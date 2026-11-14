@@ -61,6 +61,8 @@ Le scénario « habitat lunaire enrichi en O2 » est donc **hors des données me
 
 ## 5. Pièges de nettoyage repérés
 
+Le détail, cas par cas (vrai manquant, sans objet, valeur documentée, faux zéro, incohérence), est dans [`regles_valeurs_manquantes.md`](regles_valeurs_manquantes.md).
+
 - `PSI-69_Experimental table_FLEX.csv` est encodé en **cp1252** (pas UTF-8) : `pd.read_csv(..., encoding="cp1252")`.
 - FLEX, essai `C11M201` : pression = 0 mmHg, ce qui est une valeur manquante. Elle doit devenir vide, pas 0.
 - FLEX, colonne « Burning rate; mm » : l'unité est ambiguë (probablement mm²/s, la constante de combustion K). À vérifier dans NASA/TP-2015-216046 avant affichage.

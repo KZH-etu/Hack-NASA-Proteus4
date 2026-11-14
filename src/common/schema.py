@@ -3,7 +3,9 @@
 Règles :
 - chaque ligne provient d'une source NASA identifiée (psi_id / doi / source_doc + source_page) ;
 - une valeur inconnue reste vide (None / NaN), jamais inventée ;
-- 1g et microgravité ne sont jamais mélangés dans un même entraînement (colonne `gravity`).
+- 1g et microgravité ne sont jamais mélangés dans un même entraînement (colonne `gravity`) ;
+- toute valeur qui n'est pas une mesure lue telle quelle dans la source porte une marque dans `qc_flags`
+  (règles détaillées dans docs/regles_valeurs_manquantes.md).
 """
 
 from dataclasses import dataclass, fields
@@ -13,6 +15,20 @@ from typing import Optional
 FUEL_TYPES = ("solid", "droplet", "gas")
 GRAVITY_LEVELS = ("micro", "1g")
 OUTCOMES = ("burned", "extinguished", "no_ignition", "disruption", "completion", "other")
+
+# Motifs autorisés dans `qc_flags`. Format : "colonne:motif;colonne:motif", ex. "pressure_kpa:nominal;material:doc"
+QC_REASONS = (
+    "sans_objet",           # vide car sans objet vu l'issue (ex. diamètre d'extinction sans extinction)
+    "doc",                  # valeur absente de la table, prise dans un document NASA (source_doc + source_page)
+    "nominal",              # valeur nominale de l'expérience, pas mesurée essai par essai (ex. 1 atm)
+    "recopie",              # recopiée d'une autre ligne de la même table (« same conditions as 1-4 »)
+    "zero_fictif",          # 0 de la source remplacé par vide (0 utilisé pour « pas de donnée »)
+    "incoherent",           # valeur physiquement douteuse, gardée telle quelle ou vidée si impossible
+    "a_verifier",           # sources NASA contradictoires
+    "approx",               # valeur approchée dans la source (« ~6 », « ~ 21.5 »)
+    "rampe",                # condition variable pendant l'essai (« RAMPED », « 10, 5, 3 »)
+    "sans_allumage_chaud",  # burn time = 0 car pas d'allumage chaud (ACME CFI-G)
+)
 
 
 @dataclass
@@ -36,6 +52,7 @@ class UnifiedRow:
     source_doc: Optional[str] = None         # ex. "NASA/TM-20210011385" ou fichier PSI
     source_page: Optional[str] = None        # page / tableau / annexe dans source_doc
     notes: Optional[str] = None              # remarques libres (unités, hypothèses...)
+    qc_flags: Optional[str] = None           # "colonne:motif;..." avec motif dans QC_REASONS
 
 
 # Colonnes et types pandas correspondants (pour construire / valider un DataFrame)
@@ -57,6 +74,21 @@ COLUMNS = {
     "source_doc": "string",
     "source_page": "string",
     "notes": "string",
+    "qc_flags": "string",
 }
 
 assert list(COLUMNS) == [f.name for f in fields(UnifiedRow)], "COLUMNS et UnifiedRow doivent rester alignés"
+
+
+def check_qc_flags(value):
+    """Vérifie une valeur de `qc_flags` ; renvoie la liste des erreurs (vide si tout est bon)."""
+    if value is None or value != value or value == "":  # None, NaN ou vide
+        return []
+    errors = []
+    for item in str(value).split(";"):
+        col, _, reason = item.partition(":")
+        if col not in COLUMNS:
+            errors.append(f"colonne inconnue : {item!r}")
+        if reason not in QC_REASONS:
+            errors.append(f"motif inconnu : {item!r}")
+    return errors

@@ -84,4 +84,5 @@ Script : `python -m src.data.download_psi` (API publique https://psi.nasa.gov, s
 
 | Document | NTRS | Utilisé pour | Notes |
 |---|---|---|---|
-| NASA/TM-20210011385 — BASS-II Summary Report | [20210011385](https://ntrs.nasa.gov/citations/20210011385) | issues BASS-II (annexe A, pp. 103–113) | pas de vitesses de propagation dans l'annexe A |
+| NASA/TM-20210011385 — BASS-II Summary Report | [20210011385](https://ntrs.nasa.gov/citations/20210011385) | issues BASS-II (annexe A, pp. 103–113) ; pression nominale 1 atm (pp. 11, 41) ; tiges en PMMA coulé (p. 47) | pas de vitesses de propagation dans l'annexe A |
+| The Spacecraft Fire Experiment (Saffire) — Objectives, Development and Status (2016) | [20170001636](https://ntrs.nasa.gov/citations/20170001636) | matériaux des échantillons Saffire-II (Table 1 : S6 = SIBAL, S9 = PMMA plat 10 mm), épaisseur SIBAL 0,33 mm | document d'avant le vol : débits prévus, pas forcément ceux réalisés |
