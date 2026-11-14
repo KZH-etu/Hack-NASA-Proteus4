@@ -1,0 +1,17 @@
+famille,sortie,variante,score,mesure,gain_vs_v4,IC95_gain,verdict,couverture_95
+Gouttelettes (FLEX),issue,v4 (base),0.5969,exact. équilibrée,,,,
+Gouttelettes (FLEX),issue,+ variables physiques,0.5473,exact. équilibrée,-0.0497,[-0.1294 ; +0.0209],pas de diff. démontrée,
+Gouttelettes (FLEX),issue,+ réglage imbriqué,0.5827,exact. équilibrée,-0.0143,[-0.0484 ; +0.0201],pas de diff. démontrée,
+Gouttelettes (FLEX),issue,v5 (les deux),0.5654,exact. équilibrée,-0.0315,[-0.1091 ; +0.0366],pas de diff. démontrée,
+Gouttelettes (FLEX),vitesse_combustion_mm2_s,v4 (base),0.054,MAE (bas = mieux),,,,0.953
+Gouttelettes (FLEX),vitesse_combustion_mm2_s,+ variables physiques,0.0578,MAE (bas = mieux),-0.0037,[-0.0094 ; +0.0009],pas de diff. démontrée,0.957
+Gouttelettes (FLEX),vitesse_combustion_mm2_s,+ réglage imbriqué,0.0554,MAE (bas = mieux),-0.0014,[-0.0034 ; +0.0007],pas de diff. démontrée,0.957
+Gouttelettes (FLEX),vitesse_combustion_mm2_s,v5 (les deux),0.058,MAE (bas = mieux),-0.004,[-0.0084 ; +0.0001],pas de diff. démontrée,0.957
+Gaz (ACME CFI-G),issue,v4 (base),0.5761,exact. équilibrée,,,,
+Gaz (ACME CFI-G),issue,+ variables physiques,0.5627,exact. équilibrée,-0.0134,[-0.0481 ; +0.0306],pas de diff. démontrée,
+Gaz (ACME CFI-G),issue,+ réglage imbriqué,0.5688,exact. équilibrée,-0.0073,[-0.0385 ; +0.0296],pas de diff. démontrée,
+Gaz (ACME CFI-G),issue,v5 (les deux),0.5427,exact. équilibrée,-0.0335,[-0.0917 ; +0.0241],pas de diff. démontrée,
+Solides (BASS-II),debit_extinction_cm_s,v4 (base),3.3426,MAE (bas = mieux),,,,0.961
+Solides (BASS-II),debit_extinction_cm_s,+ variables physiques,3.3426,MAE (bas = mieux),-0.0,[-0.0000 ; +0.0000],pas de diff. démontrée,0.961
+Solides (BASS-II),debit_extinction_cm_s,+ réglage imbriqué,3.1606,MAE (bas = mieux),0.1821,[-0.2374 ; +0.6303],pas de diff. démontrée,0.922
+Solides (BASS-II),debit_extinction_cm_s,v5 (les deux),3.1579,MAE (bas = mieux),0.1847,[-0.2382 ; +0.6324],pas de diff. démontrée,0.922
