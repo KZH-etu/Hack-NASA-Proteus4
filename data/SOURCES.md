@@ -15,7 +15,7 @@
 
 Chaque fichier de `data/raw/` et `data/processed/` doit être listé ici.
 
-`data/raw/` n'est pas versionné : on le regénère avec les scripts ci-dessous. Le détail machine (statut HTTP, taille, chemin local) est dans `data/raw/download_log.csv` et dans le `files_manifest.csv` de chaque investigation.
+`data/raw/` n'est pas versionné (sauf le catalogue du corpus RAG, `data/raw/ntrs/catalog.*`) : on le regénère avec les scripts ci-dessous. Le détail machine (statut HTTP, taille, chemin local) est dans `data/raw/download_log.csv` et dans le `files_manifest.csv` de chaque investigation.
 
 ## Structure
 
@@ -29,7 +29,11 @@ data/
 │   │       ├── files_manifest.csv        # tous les fichiers de l'investigation, téléchargés ou non
 │   │       ├── experimental_table/       # CSV « Experimental table », tels quels
 │   │       └── documents/                # matrices d'essais, calibration (tels quels)
-│   ├── ntrs/                             # articles NTRS pour le RAG (branche rag)
+│   ├── ntrs/                             # corpus du RAG : python -m src.rag.fetch_ntrs
+│   │   ├── catalog.csv / catalog.jsonl   # versionnés : 1 ligne par document (id, titre, auteurs, année, thèmes, pages)
+│   │   ├── pdf/<id>.pdf                  # documents NASA (≈ 360 Mo, non versionnés)
+│   │   ├── pages/<id>.jsonl              # texte page par page {page, label, text} -> citations avec page
+│   │   └── download_log.csv
 │   └── download_log.csv
 ├── processed/                            # versionné, généré par src/data/
 │   ├── unified.parquet                   # table catalogue (schéma src/common/schema.py)
@@ -98,7 +102,17 @@ Générés par `python -m src.data.build_unified` à partir de `data/raw/psi/`. 
 | `annotations/bass2_appendix.csv` | annexe A du rapport BASS-II extraite (`python -m src.data.extract_bass2_appendix`) : sens d'écoulement, observations, issue écrite | NASA/TM-20210011385, pp. 103–113 (PDF dans `data/raw/ntrs/pdf/`) |
 | `annotations/bass_outcomes.csv` | saisies manuelles BASS / BASS-II (prioritaires sur l'extraction) | NASA/TM-20210011385, annexe A |
 
-## Documents NASA (NTRS)
+## Corpus du RAG (NASA NTRS + guide NASA)
+
+Script : `python -m src.rag.fetch_ntrs` (API publique https://ntrs.nasa.gov/api, sans compte). Téléchargé le 2026-11-14 : **159 documents, 156 avec du texte, 2 920 pages**. Liste complète : `data/raw/ntrs/catalog.csv` (versionné).
+
+- **15 documents prioritaires** choisis à la main : rapports des expériences PSI (FLEX, BASS-II, ACME, Saffire) et rapports sur l'atmosphère d'exploration (8 psia / 32–34 % d'O2 : NTRS 20130013505, 20150021491, 20060013463, 20050185597).
+- **18 thèmes de recherche** (BASS, Saffire, FLEX, ACME, flammes froides, SAME, SPICE, sécurité incendie, inflammabilité, propagation de flamme, gouttelettes, atmosphère, SoFIE, suppression, feux couvants, détection, suie, allumage) ; un résultat n'est gardé que si son titre, son résumé ou ses mots-clés contiennent les mots du thème (et un contexte spatial pour les thèmes généraux).
+- **Guide NASA** « Combustion in Reduced Gravity » (NP-2015-10-034-JSC), hors NTRS.
+- Écartés : 1 PDF de 126 Mo (actes de conférence de 1972) ; 2 documents ACME d'une seule page sans couche texte.
+- Comparaison avec un autre projet du challenge (277 documents) : 131 en commun ; nous avons en plus les rapports sur l'atmosphère d'exploration et le guide NASA ; leurs documents en plus sont surtout des actes de workshops généraux et quelques hors-sujets que notre filtre écarte.
+
+## Documents NASA (NTRS) utilisés pour les données
 
 | Document | NTRS | Utilisé pour | Notes |
 |---|---|---|---|

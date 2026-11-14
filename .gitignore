@@ -15,6 +15,11 @@ __pycache__/
 # Données brutes NASA (non versionnées) et index vectoriel
 data/raw/*
 !data/raw/.gitkeep
+# Catalogue du corpus RAG versionné (petit, sert de liste des sources) ; PDF et pages regénérables
+!data/raw/ntrs/
+data/raw/ntrs/*
+!data/raw/ntrs/catalog.csv
+!data/raw/ntrs/catalog.jsonl
 chroma/
 
 # Streamlit
