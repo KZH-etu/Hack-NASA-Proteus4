@@ -14,9 +14,9 @@ from langchain_text_splitters import (
 from tqdm import tqdm
 
 from src.rag.config import RagConfig
-from src.rag.db import TrackingDB
+from src.rag.ingestion.db import TrackingDB
+from src.rag.ingestion.text_utils import strip_html_tags
 from src.rag.llm_client import LMStudioClient
-from src.rag.text_utils import strip_html_tags
 
 _HEADERS_TO_SPLIT_ON = [
     ("#", "h1"),

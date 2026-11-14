@@ -24,10 +24,10 @@ API publique : https://ntrs.nasa.gov/api/openapi/ (sans compte).
 
 Usage :
     python -m src.data.download_psi                  # d'abord (documents PSI)
-    python -m src.rag.fetch_ntrs                     # reproduit exactement les documents du catalogue versionné
+    python -m src.rag.ingestion.fetch_ntrs           # reproduit exactement les documents du catalogue versionné
                                                      # (sans refaire les recherches ; contrôle des pages à la fin)
-    python -m src.rag.fetch_ntrs --refresh           # refait les recherches et réécrit le catalogue (mise à jour)
-    python -m src.rag.fetch_ntrs --out <dossier>     # tester une installation à vide dans un autre dossier
+    python -m src.rag.ingestion.fetch_ntrs --refresh # refait les recherches et réécrit le catalogue (mise à jour)
+    python -m src.rag.ingestion.fetch_ntrs --out <dossier>     # tester une installation à vide dans un autre dossier
 """
 
 import argparse

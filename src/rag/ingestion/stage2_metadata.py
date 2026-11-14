@@ -7,14 +7,14 @@ import argparse
 from tqdm import tqdm
 
 from src.rag.config import RagConfig
-from src.rag.db import TrackingDB
-from src.rag.llm_client import LMStudioClient
-from src.rag.source_adapter import CatalogSourceProvider, SourceProvider
-from src.rag.text_utils import (
+from src.rag.ingestion.db import TrackingDB
+from src.rag.ingestion.source_adapter import CatalogSourceProvider, SourceProvider
+from src.rag.ingestion.text_utils import (
     html_to_clean_markdown,
     json_psi_to_markdown,
     strip_html_tags,
 )
+from src.rag.llm_client import LMStudioClient
 
 
 def ingest_non_pdf_documents(

@@ -13,53 +13,20 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 
-from src.rag.chroma_release import SyncResult, ensure_chroma_db_up_to_date
 from src.rag.config import RagConfig
 from src.rag.llm_client import LMStudioClient
+from src.rag.server.schemas import (
+    HealthResponse,
+    RetrieveChunk,
+    RetrieveRequest,
+    RetrieveResponse,
+)
+from src.rag.storage.chroma_release import SyncResult, ensure_chroma_db_up_to_date
 
 logger = logging.getLogger(__name__)
 
 SyncCallable = Callable[[RagConfig], SyncResult]
-
-
-class RetrieveRequest(BaseModel):
-    """Input payload for semantic chunk retrieval."""
-
-    query: str = Field(..., min_length=1, description="Question ou requête sémantique.")
-    top_k: int = Field(default=5, ge=1, le=50, description="Nombre de chunks à retourner.")
-    where: dict[str, Any] | None = Field(
-        default=None,
-        description="Filtre optionnel sur les métadonnées ChromaDB.",
-    )
-
-
-class RetrieveChunk(BaseModel):
-    """Single retrieved chunk with document metadata."""
-
-    id: str
-    document: str
-    distance: float | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
-
-
-class RetrieveResponse(BaseModel):
-    """Response payload returned by POST /retrieve."""
-
-    query: str
-    count: int
-    results: list[RetrieveChunk]
-
-
-class HealthResponse(BaseModel):
-    """Health check payload returned by GET /health."""
-
-    status: str
-    sync_status: str
-    release_tag: str | None
-    collection: str
-    chunk_count: int
 
 
 def create_app(
@@ -213,7 +180,7 @@ def main(argv: list[str] | None = None) -> int:
         os.environ["RAG_SKIP_CHROMA_SYNC"] = "1"
 
     uvicorn.run(
-        "src.rag.server:app",
+        "src.rag.server.app:app",
         host=args.host,
         port=args.port,
         reload=False,

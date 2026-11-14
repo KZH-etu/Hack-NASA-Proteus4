@@ -6,9 +6,9 @@ from unittest.mock import MagicMock
 import chromadb
 from fastapi.testclient import TestClient
 
-from src.rag.chroma_release import SyncResult
 from src.rag.config import RagConfig
-from src.rag.server import create_app
+from src.rag.server.app import create_app
+from src.rag.storage.chroma_release import SyncResult
 
 
 class TestRagServer(unittest.TestCase):

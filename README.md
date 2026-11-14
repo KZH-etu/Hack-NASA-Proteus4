@@ -28,23 +28,23 @@ La base vectorielle locale (`data/rag/chroma_db/`) est **exclue de Git** (`.giti
 
 1. **Téléchargement manuel (recommandé avant usage hors ligne) :**
    ```bash
-   python -m src.rag.download_chroma_release
+   python -m src.rag.storage.download_chroma_release
    ```
    Le script récupère la dernière release `chroma-db-*`, vérifie son empreinte SHA-256, la décompresse et l'installe dans `data/rag/chroma_db/` (un fichier `.release_manifest.json` y mémorise la version locale).
-   - Vérifier si une mise à jour est disponible sans télécharger : `python -m src.rag.download_chroma_release --check-only`
-   - Forcer le re-téléchargement : `python -m src.rag.download_chroma_release --force`
+   - Vérifier si une mise à jour est disponible sans télécharger : `python -m src.rag.storage.download_chroma_release --check-only`
+   - Forcer le re-téléchargement : `python -m src.rag.storage.download_chroma_release --force`
 
 2. **Récupération automatique via le serveur web RAG (`FastAPI` + `Uvicorn`) :**
    ```bash
    python -m src.rag.server --host 127.0.0.1 --port 8000
    ```
-   Au démarrage, le serveur vérifie automatiquement que `data/rag/chroma_db/` est présent et à jour par rapport à la dernière release GitHub, et le télécharge si nécessaire avant d'exposer `GET /health` et `POST /retrieve`.
+   Au démarrage, le serveur vérifie automatiquement que `data/rag/chroma_db/` est présent et à jour par rapport à la dernière release GitHub, et le télécharge si nécessaire avant d'exposer `GET /health` et `POST /retrieve` (voir [`src/rag/server/API.md`](src/rag/server/API.md)).
 
 3. **Publier une nouvelle version (après ré-indexation) :**
    ```bash
-   python -m src.rag.publish_chroma_release
+   python -m src.rag.storage.publish_chroma_release
    ```
-   *(Plus de détails sur le pipeline d'ingestion et l'API dans [`src/rag/README.md`](src/rag/README.md).)*
+   *(Plus de détails sur l'organisation de `src/rag/` dans [`src/rag/README.md`](src/rag/README.md).)*
 
 ## Sources
 

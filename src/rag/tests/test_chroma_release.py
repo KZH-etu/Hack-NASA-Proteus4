@@ -6,7 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.rag.chroma_release import (
+from src.rag.config import RagConfig
+from src.rag.storage.chroma_release import (
     ARCHIVE_FILENAME,
     CHROMA_SQLITE_FILENAME,
     LOCAL_MANIFEST_FILENAME,
@@ -19,7 +20,6 @@ from src.rag.chroma_release import (
     read_local_manifest,
     safe_extract_tar_gz,
 )
-from src.rag.config import RagConfig
 
 
 def _create_fake_chroma_dir(chroma_dir: Path, payload: bytes = b"sqlite-data") -> None:

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.rag.source_adapter import (
+from src.rag.ingestion.source_adapter import (
     CatalogSourceProvider,
     PlaceholderSourceProvider,
     deduce_source_type,

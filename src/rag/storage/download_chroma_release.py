@@ -6,8 +6,8 @@ import argparse
 import logging
 import sys
 
-from src.rag.chroma_release import ensure_chroma_db_up_to_date
 from src.rag.config import RagConfig
+from src.rag.storage.chroma_release import ensure_chroma_db_up_to_date
 
 
 def main(argv: list[str] | None = None) -> int:

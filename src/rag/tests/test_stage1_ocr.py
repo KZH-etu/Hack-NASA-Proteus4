@@ -6,9 +6,9 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from src.rag.config import RagConfig
-from src.rag.db import TrackingDB
-from src.rag.source_adapter import PlaceholderSourceProvider, SourceDocument
-from src.rag.stage1_ocr import run as run_stage1
+from src.rag.ingestion.db import TrackingDB
+from src.rag.ingestion.source_adapter import PlaceholderSourceProvider, SourceDocument
+from src.rag.ingestion.stage1_ocr import run as run_stage1
 
 
 class TestStage1OCR(unittest.TestCase):

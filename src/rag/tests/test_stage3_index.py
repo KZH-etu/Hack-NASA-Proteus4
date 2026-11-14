@@ -7,8 +7,12 @@ from unittest.mock import MagicMock
 import chromadb
 
 from src.rag.config import RagConfig
-from src.rag.db import TrackingDB
-from src.rag.stage3_index import build_chroma_metadata, chunk_markdown, run as run_stage3
+from src.rag.ingestion.db import TrackingDB
+from src.rag.ingestion.stage3_index import (
+    build_chroma_metadata,
+    chunk_markdown,
+    run as run_stage3,
+)
 
 
 class TestStage3Index(unittest.TestCase):

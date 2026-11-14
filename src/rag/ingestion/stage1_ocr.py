@@ -11,8 +11,8 @@ from typing import Callable
 from tqdm import tqdm
 
 from src.rag.config import RagConfig
-from src.rag.db import TrackingDB
-from src.rag.source_adapter import CatalogSourceProvider, SourceProvider
+from src.rag.ingestion.db import TrackingDB
+from src.rag.ingestion.source_adapter import CatalogSourceProvider, SourceProvider
 
 PdfConverterFn = Callable[[Path], str]
 

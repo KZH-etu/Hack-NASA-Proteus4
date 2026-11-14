@@ -6,8 +6,8 @@ import argparse
 import logging
 import sys
 
-from src.rag.chroma_release import publish_chroma_release
 from src.rag.config import RagConfig
+from src.rag.storage.chroma_release import publish_chroma_release
 
 
 def main(argv: list[str] | None = None) -> int:

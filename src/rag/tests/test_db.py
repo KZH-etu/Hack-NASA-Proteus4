@@ -5,7 +5,7 @@ import uuid
 from contextlib import closing
 from pathlib import Path
 
-from src.rag.db import TrackingDB
+from src.rag.ingestion.db import TrackingDB
 
 
 class TestTrackingDB(unittest.TestCase):
