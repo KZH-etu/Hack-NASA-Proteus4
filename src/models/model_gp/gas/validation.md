@@ -1,11 +1,11 @@
 # Validation du modèle ACME CFI-G (flammes normales)
 
-Généré par `python -m src.models.gas.evaluate` le 2026-11-14. Ne pas éditer à la main.
+Généré par `python -m src.models.model_gp.gas.evaluate` le 2026-11-14. Ne pas éditer à la main.
 
 - Données : 177 flammes normales (jet de gaz dans une atmosphère contenant l'O2) sur 11 jours d'essai ; variables : is_ethane, is_propane, is_n_butane, x_o2, pressure_kpa, x_fuel, hc_rate_mg_s.
 - O2 de 18% à 40% ; pression de 51 à 304 kPa.
 - Validation croisée **par jour d'essai** (5 plis) ; référence : taux observé par combustible dans l'entraînement.
-- Deux réglages comparés : longueur de corrélation libre (≥ 0,01) et contrainte (≥ 1, pour que l'O2, qui baisse au fil d'une journée, ne serve pas d'identifiant du jour). Réglage retenu dans `src/models/gas/model.py` : ≥ 1.
+- Deux réglages comparés : longueur de corrélation libre (≥ 0,01) et contrainte (≥ 1, pour que l'O2, qui baisse au fil d'une journée, ne serve pas d'identifiant du jour). Réglage retenu dans `src/models/model_gp/gas/model.py` : ≥ 1.
 
 ## Allumage d'une flamme chaude
 

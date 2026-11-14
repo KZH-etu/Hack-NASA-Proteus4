@@ -1,8 +1,8 @@
 # Validation du modèle des solides (carte d'inflammabilité BASS / BASS-II)
 
-Généré par `python -m src.models.solids.evaluate` le 2026-11-14. Ne pas éditer à la main.
+Généré par `python -m src.models.model_gp.solids.evaluate` le 2026-11-14. Ne pas éditer à la main.
 
-- Données : 218 observations « la flamme tient / ne tient pas » tirées de 95 essais (29 jours d'essai) ; règles d'étiquetage dans `src/models/solids/model.py`.
+- Données : 218 observations « la flamme tient / ne tient pas » tirées de 95 essais (29 jours d'essai) ; règles d'étiquetage dans `src/models/model_gp/solids/model.py`.
 - Variables : is_pmma_flat, is_pmma_rod_sphere, is_fabric_other, x_o2, log_flow.
 - O2 de 14.2% à 22.2% ; vitesse d'air de 0.5 à 53 cm/s ; pression ~1 atm.
 - Validation croisée **par jour d'essai** (5 plis) : les observations d'un même essai (et d'un même jour) ne sont jamais séparées.

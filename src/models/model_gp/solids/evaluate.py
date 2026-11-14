@@ -1,8 +1,8 @@
 """Validation du modèle des solides (carte d'inflammabilité BASS / BASS-II) : validation croisée par jour d'essai,
-comparée à des références naïves. Écrit src/models/solids/validation.md.
+comparée à des références naïves. Écrit src/models/model_gp/solids/validation.md.
 
 Usage :
-    python -m src.models.solids.evaluate
+    python -m src.models.model_gp.solids.evaluate
 """
 
 import datetime
@@ -11,8 +11,8 @@ from pathlib import Path
 import numpy as np
 from sklearn.model_selection import GroupKFold
 
-from src.models.metrics import classification_metrics
-from src.models.solids.model import FEATURES, MATERIAL_CLASSES, SolidsModel, features, observations
+from src.models.model_gp.metrics import classification_metrics
+from src.models.model_gp.solids.model import FEATURES, MATERIAL_CLASSES, SolidsModel, features, observations
 
 REPORT = Path(__file__).resolve().parent / "validation.md"
 N_FOLDS = 5
@@ -49,10 +49,10 @@ def main():
     lines = [
         "# Validation du modèle des solides (carte d'inflammabilité BASS / BASS-II)",
         "",
-        f"Généré par `python -m src.models.solids.evaluate` le {datetime.date.today().isoformat()}. Ne pas éditer à la main.",
+        f"Généré par `python -m src.models.model_gp.solids.evaluate` le {datetime.date.today().isoformat()}. Ne pas éditer à la main.",
         "",
         f"- Données : {len(obs)} observations « la flamme tient / ne tient pas » tirées de {obs['test_id'].nunique()} essais "
-        f"({obs['session'].nunique()} jours d'essai) ; règles d'étiquetage dans `src/models/solids/model.py`.",
+        f"({obs['session'].nunique()} jours d'essai) ; règles d'étiquetage dans `src/models/model_gp/solids/model.py`.",
         f"- Variables : {', '.join(FEATURES)}.",
         f"- O2 de {obs['x_o2'].min():.1%} à {obs['x_o2'].max():.1%} ; vitesse d'air de {obs['flow_cm_s'].min():g} à {obs['flow_cm_s'].max():g} cm/s ; pression ~1 atm.",
         f"- Validation croisée **par jour d'essai** ({N_FOLDS} plis) : les observations d'un même essai (et d'un même jour) ne sont jamais séparées.",

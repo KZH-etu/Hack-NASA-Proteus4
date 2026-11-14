@@ -1,8 +1,8 @@
 """Validation du modèle FLEX : validation croisée par jour d'essai (les essais d'un même jour ne sont jamais
-à la fois en entraînement et en test), comparée à des références naïves. Écrit src/models/flex/validation.md.
+à la fois en entraînement et en test), comparée à des références naïves. Écrit src/models/model_gp/flex/validation.md.
 
 Usage :
-    python -m src.models.flex.evaluate
+    python -m src.models.model_gp.flex.evaluate
 """
 
 import datetime
@@ -12,8 +12,8 @@ import numpy as np
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import GroupKFold
 
-from src.models.flex.model import FEATURES, FlexModel, features, load_data
-from src.models.metrics import classification_metrics
+from src.models.model_gp.flex.model import FEATURES, FlexModel, features, load_data
+from src.models.model_gp.metrics import classification_metrics
 
 REPORT = Path(__file__).resolve().parent / "validation.md"
 N_FOLDS = 5
@@ -75,7 +75,7 @@ def main():
     lines = [
         "# Validation du modèle FLEX",
         "",
-        f"Généré par `python -m src.models.flex.evaluate` le {datetime.date.today().isoformat()}. Ne pas éditer à la main.",
+        f"Généré par `python -m src.models.model_gp.flex.evaluate` le {datetime.date.today().isoformat()}. Ne pas éditer à la main.",
         "",
         f"- Données : {len(df)} essais FLEX utilisables (toutes les variables présentes) sur {df['session'].nunique()} jours d'essai ; "
         f"variables : {', '.join(FEATURES)}.",

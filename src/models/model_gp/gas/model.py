@@ -12,7 +12,7 @@ débit d'hydrocarbure. Incertitude : ré-échantillonnage par jour d'essai (inte
 
 ACME CFI-G est la seule famille avec des essais réels près de l'atmosphère d'exploration (51 kPa, 33–39 % d'O2).
 Limites : 11 jours d'essai seulement ; l'O2 de la chambre baisse au fil des essais d'une même journée ; pas de vitesse
-d'air ambiant (brûleur sphérique en chambre calme). Validation : python -m src.models.gas.evaluate.
+d'air ambiant (brûleur sphérique en chambre calme). Validation : python -m src.models.model_gp.gas.evaluate.
 """
 
 from functools import lru_cache
