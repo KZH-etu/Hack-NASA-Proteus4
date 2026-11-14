@@ -1,22 +1,19 @@
-"""Interface d'inférence officielle et modulaire pour le Dashboard de Luca.
-Architecture : 100% Physics-Informed ML (Propriétés thermodynamiques de la matière).
-"""
+"""Interface d'inférence Physics-Informed ML (Propriétés thermodynamiques NIST/NASA)."""
 
 import os
 import joblib
 import numpy as np
 import pandas as pd
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "models", "official_thermodynamic_models.joblib")
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "models", "pim_flammability_gbt_v1.joblib")
 
-# Chargement paresseux au premier appel
 _BUNDLE = None
 
 def _get_bundle():
     global _BUNDLE
     if _BUNDLE is None:
         if not os.path.exists(MODEL_PATH):
-            raise FileNotFoundError(f"Modèle officiel introuvable à : {MODEL_PATH}")
+            raise FileNotFoundError(f"Fichier modèle introuvable : {MODEL_PATH}")
         _BUNDLE = joblib.load(MODEL_PATH)
     return _BUNDLE
 
@@ -30,10 +27,6 @@ def predict_fire_safety(
     custom_l_gas: float = None,
     is_solid: int = None
 ):
-    """Prédit le risque d'allumage et le taux de combustion pour n'importe quelle condition spatiale.
-    
-    Supporte les matériaux connus de la NASA et les matériaux totalement inédits (Zero-Shot).
-    """
     bundle = _get_bundle()
     clf = bundle["classifier_pipeline"]
     reg = bundle["regressor_pipeline"]
@@ -41,7 +34,6 @@ def predict_fire_safety(
     thermo_table = bundle["thermo_properties_table"]
     default_thermo = bundle["default_thermo"]
 
-    # 1. Extraction ou injection des propriétés physico-chimiques
     mat_lower = str(material).lower().strip()
     base_props = thermo_table.get(mat_lower, default_thermo).copy()
 
@@ -50,7 +42,6 @@ def predict_fire_safety(
     l_gas = custom_l_gas if custom_l_gas is not None else base_props["l_gas_kj_g"]
     solid_flag = is_solid if is_solid is not None else base_props["is_solid"]
 
-    # 2. Vecteur d'entrée pour le classificateur
     X_clf = pd.DataFrame([{
         "o2_percent": float(o2_percent),
         "pressure_kpa": float(pressure_kpa),
@@ -64,7 +55,6 @@ def predict_fire_safety(
     prob_fire = float(clf.predict_proba(X_clf)[0, 1])
     is_fire = bool(prob_fire >= thresh)
 
-    # 3. Prédiction continue en cascade (taux de combustion)
     if is_fire:
         X_reg = pd.DataFrame([{
             "o2_percent": float(o2_percent),
@@ -78,14 +68,13 @@ def predict_fire_safety(
     else:
         pred_rate = 0.0
 
-    # 4. Calcul de l'indice de risque global pour Luca (0 à 100)
     risk_score = round(prob_fire * 100, 1)
     if risk_score < 35:
-        risk_level = "GREEN (Atmosphère auto-extinguible)"
+        risk_level = "GREEN (Auto-extinguible)"
     elif risk_score < 65:
         risk_level = "ORANGE (Risque d'inflammation modéré sous flux)"
     else:
-        risk_level = "RED (Propagation active très dangereuse)"
+        risk_level = "RED (Propagation active dangereuse)"
 
     return {
         "is_fire_active": is_fire,
@@ -102,16 +91,3 @@ def predict_fire_safety(
             "is_solid": solid_flag
         }
     }
-
-if __name__ == "__main__":
-    print("--- TEST 1 : Cabine standard ISS (Air 21% O2, 101.3 kPa, PMMA solide) ---")
-    res1 = predict_fire_safety(21.0, 101.3, 0.0, "pmma")
-    print(res1)
-
-    print("\n--- TEST 2 : Sas lunaire Artemis enrichi (34% O2, 70 kPa, Méthanol) ---")
-    res2 = predict_fire_safety(34.0, 70.0, 5.0, "methanol")
-    print(res2)
-
-    print("\n--- TEST 3 : Nouveau matériau INÉDIT (Kevlar synthétique non testé par NASA) ---")
-    res3 = predict_fire_safety(30.0, 80.0, 10.0, "kevlar")
-    print(res3)
