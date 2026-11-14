@@ -104,7 +104,7 @@ Générés par `python -m src.data.build_unified` à partir de `data/raw/psi/`. 
 
 ## Corpus du RAG (NASA NTRS + ressources du challenge)
 
-Script : `python -m src.rag.fetch_ntrs` (API publique https://ntrs.nasa.gov/api, sans compte). Téléchargé le 2026-11-14 : **194 documents, 189 avec du texte, 3 608 pages**. Liste complète : `data/raw/ntrs/catalog.csv` (versionné).
+Script : `python -m src.rag.fetch_ntrs` (API publique https://ntrs.nasa.gov/api, sans compte). Téléchargé le 2026-11-14 : **332 documents, 327 avec du texte, 3 746 pages** (dont 138 fiches du NASA Task Book). Liste complète : `data/raw/ntrs/catalog.csv` (versionné).
 
 - **Documents prioritaires** choisis à la main :
   - rapports des expériences PSI (FLEX, BASS-II, ACME, Saffire) ;
@@ -120,8 +120,9 @@ Script : `python -m src.rag.fetch_ntrs` (API publique https://ntrs.nasa.gov/api,
   - rapport du Sénat n° 956 sur l'accident d'Apollo 204 ;
   - pages web converties en texte (`data/raw/ntrs/web/`, une « page » par document) : NASA Combustion Science, guide du chercheur, Apollo 1, résumé du Review Board Apollo 204, Apollo 13, incendie de Mir (1997), 3 spinoffs (Fireman's Air Tanks, Fire Detector, Fire Attire) ;
   - vidéo NASA ScienceCasts : au catalogue seulement (pas de transcription).
+- **NASA Task Book** (https://taskbook.nasaprs.com) : les **138 projets** « Physical Sciences > COMBUSTION SCIENCE », obtenus par la recherche du site officiel (formulaire + pagination). Une fiche = un document (`taskbook-<TASKID>`) : période, discipline, chercheur principal, description, avancement annuel, bibliographie. **Les coordonnées personnelles (adresse, e-mail, téléphone) sont retirées du texte.**
 - **Écartés ou sans texte** : 1 PDF de 126 Mo (actes de conférence de 1972) ; 3 documents sans couche texte (2 ACME d'une page, l'article du spinoff Fireman's Air Tanks) ; 2 liens cassés de la page Apollo 13 (rapport de mission, annexes du Review Board : 404 sur nasa.gov).
-- **Comparaison avec un autre projet du challenge** (277 documents NTRS, normes, NASA Task Book) : 133 documents en commun. Nous avons en plus les ressources du challenge (Apollo 1 / 13, Mir, guide du chercheur, fiches Glenn : quasiment absentes chez eux), l'atmosphère d'exploration et le découpage par page. Eux ont en plus le **NASA Task Book** (fiches de 138 projets de recherche en combustion), pas encore repris chez nous, et des actes de workshops généraux que notre filtre écarte.
+- **Comparaison avec un autre projet du challenge** (277 documents NTRS, normes, NASA Task Book) : 133 documents en commun. Nous avons en plus les ressources du challenge (Apollo 1 / 13, Mir, guide du chercheur, fiches Glenn : quasiment absentes chez eux), l'atmosphère d'exploration et le découpage par page. Task Book : mêmes 138 projets des deux côtés (retrouvés indépendamment par la recherche du site) ; leur fichier publié contient les e-mails et téléphones des chercheurs, le nôtre non. Eux ont en plus des actes de workshops généraux que notre filtre écarte.
 
 ## Documents NASA (NTRS) utilisés pour les données
 

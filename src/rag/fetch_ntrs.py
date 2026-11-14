@@ -14,7 +14,9 @@ Sources :
   (la recherche NTRS seule renvoie beaucoup de hors-sujet) ;
 - EXTRA : ressources du challenge hors NTRS : guide du chercheur, fiches des investigations (page « NASA Combustion
   Science » de Glenn), rapport du Sénat sur Apollo 1, pages web (Apollo 1, Apollo 13, incendie de Mir, spinoffs)
-  converties en texte (web/<id>.html -> une « page »), vidéo ScienceCasts (catalogue seulement, pas de texte).
+  converties en texte (web/<id>.html -> une « page »), vidéo ScienceCasts (catalogue seulement, pas de texte) ;
+- TASKBOOK : fiches des projets « COMBUSTION SCIENCE » du NASA Task Book (recherche du site officiel), sans les
+  coordonnées personnelles des chercheurs.
 API publique : https://ntrs.nasa.gov/api/openapi/ (sans compte).
 
 Usage :
@@ -149,6 +151,10 @@ EXTRA = [
      "url": "https://www.youtube.com/watch?v=W1oXykoz9zg", "report_numbers": ""},
 ]
 
+# NASA Task Book : fiches des projets financés (recherche « Physical Sciences > COMBUSTION SCIENCE » du site officiel)
+TASKBOOK = "https://taskbook.nasaprs.com/tbp/index.cfm"
+TASKBOOK_COMBUSTION = "306,168,167,171,169"  # valeur de la case « COMBUSTION SCIENCE » du formulaire de recherche
+
 CATALOG_COLUMNS = ["id", "title", "authors", "year", "sti_type", "report_numbers", "topics", "source", "url", "pdf_url",
                    "pdf_path", "size_mb", "n_pages", "n_pages_text", "status", "downloaded_at"]
 
@@ -211,7 +217,51 @@ def relevant(record, pattern, need_space):
     return re.search(pattern, text, re.I) and (not need_space or re.search(SPACE, text, re.I))
 
 
-def collect(per_topic, priority_only):
+class SearchForm(HTMLParser):
+    """Valeurs par défaut du formulaire de recherche du Task Book (champs cachés, cases cochées, options choisies)."""
+
+    def __init__(self):
+        super().__init__()
+        self.fields, self.select = [], None
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "input" and a.get("name") and a["name"] != "action":
+            kind = (a.get("type") or "text").lower()
+            if kind in ("hidden", "text") or (kind in ("checkbox", "radio") and "checked" in a):
+                self.fields.append((a["name"], a.get("value", "")))
+        elif tag == "select":
+            self.select = a.get("name")
+        elif tag == "option" and self.select and "selected" in a:
+            self.fields.append((self.select, a.get("value", "")))
+
+    def handle_endtag(self, tag):
+        if tag == "select":
+            self.select = None
+
+
+def taskbook_ids():
+    """Identifiants des projets « COMBUSTION SCIENCE » du Task Book (recherche du site, toutes les pages de résultats)."""
+    tb = requests.Session()
+    tb.headers["User-Agent"] = "Mozilla/5.0"
+    home = tb.get(TASKBOOK, timeout=60).text
+    form = SearchForm()
+    form.feed(re.search(r'<form name="list".*?</form>', home, re.S).group(0))
+    data = form.fields + [("action", "public_retrieve_result"), ("element", TASKBOOK_COMBUSTION), ("StartSearch", "Start Search")]
+    page = tb.post(TASKBOOK, data=data, timeout=180).text
+    total = re.search(r"Total Tasks:(?:<[^>]+>|&nbsp;|\s)*(\d+)", page)
+    ids = list(dict.fromkeys(re.findall(r"TASKID=([0-9A-F]{32})", page)))
+    for p in range(2, 50):  # pages de 25 résultats, jusqu'à ce qu'une page n'apporte plus rien
+        page = tb.get(f"{TASKBOOK}?action=sort&sort=asc&col=pi&p={p}", timeout=180).text
+        new = [i for i in dict.fromkeys(re.findall(r"TASKID=([0-9A-F]{32})", page)) if i not in ids]
+        if not new:
+            break
+        ids += new
+    print(f"  Task Book       : {len(ids)} projet(s) sur {total.group(1) if total else '?'}")
+    return ids
+
+
+def collect(per_topic, priority_only, with_taskbook=True):
     """Liste des documents à télécharger (dédoublonnés, thèmes fusionnés)."""
     docs = {}
 
@@ -235,6 +285,12 @@ def collect(per_topic, priority_only):
             print(f"  thème {topic:13} : {len(kept)} document(s)")
             for r in kept:
                 add(describe(r, [topic], f"recherche « {query} »"))
+    if with_taskbook and not priority_only:
+        for tid in taskbook_ids():
+            add({"id": f"taskbook-{tid}", "kind": "taskbook", "title": "", "authors": "", "year": "", "sti_type": "TASK_BOOK",
+                 "report_numbers": "", "topics": ["taskbook"], "source": "NASA Task Book (COMBUSTION SCIENCE)",
+                 "url": f"{TASKBOOK}?action=public_query_taskbook_content&TASKID={tid}", "pdf_url": None,
+                 "abstract": "", "keywords": []})
     return list(docs.values())
 
 
@@ -297,7 +353,7 @@ def html_text(html):
 def download(doc, max_mb):
     if doc["kind"] == "video":
         return None, "video_sans_texte"  # pas de transcription disponible : gardé au catalogue seulement
-    if doc["kind"] == "html":
+    if doc["kind"] in ("html", "taskbook"):
         path = OUT / "web" / f"{doc['id']}.html"
         if path.exists():
             return path, "already_present"
@@ -322,12 +378,45 @@ def download(doc, max_mb):
     return path, "ok"
 
 
-def split_pages(doc_id, path):
+PRIVATE_LINE = re.compile(r"^(Address:|Email:|Phone:|Congressional District|Organization Type:)", re.I)
+EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
+PHONE = re.compile(r"(\+?1[-.\s]?)?\(?\b\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b")
+
+
+def taskbook_text(doc, html):
+    """Texte d'une fiche du Task Book, à partir de « Fiscal Year: » (sans le menu du site) et sans les coordonnées
+    personnelles (adresse, e-mail, téléphone), inutiles au RAG. Remplit titre, chercheur principal et année de `doc`."""
+    plain = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html)).replace("&nbsp;", " ")
+    field = lambda label: (re.search(label + r":\s*(.+?)\s{2,}", plain) or re.search(label + r":\s*(.{0,150})", plain))
+    pi, fy = field("Principal Investigator/Affiliation"), re.search(r"Fiscal Year:\s*FY\s*(\d{4})", plain)
+    title = re.search(r"Project Title:(?:&nbsp;|\s)*([^<]*?)\s*<", html)  # le titre s'arrête au lien du bouton « Reduce »
+    title = re.sub(r"\s+", " ", title.group(1)).strip() if title else ""
+    doc["title"] = f"NASA Task Book : {title}" if title else "NASA Task Book (projet sans titre)"
+    doc["authors"] = re.sub(r"\s+", " ", pi.group(1)).strip() if pi else ""
+    doc["year"] = fy.group(1) if fy else ""
+    lines = html_text(html).split("\n")
+    start = next((i for i, line in enumerate(lines) if line.startswith("Fiscal Year:")), 0)
+    kept, skip_next = [], False
+    for line in lines[start:]:
+        if skip_next:
+            skip_next = False
+            continue
+        if PRIVATE_LINE.match(line):
+            skip_next = line.rstrip().endswith("Address:")  # la ligne suivante est l'adresse postale
+            continue
+        kept.append(line)
+    text = re.sub(r"Center Contact:.*?(?=Unique ID:|$)", "", "\n".join(kept), flags=re.M)
+    text = PHONE.sub("", EMAIL.sub("", text))  # aucune coordonnée personnelle dans le corpus
+    return f"{doc['title']}\n{text}"
+
+
+def split_pages(doc, path):
     """pages/<id>.jsonl ; renvoie (nb de pages, nb de pages avec du texte). Une page web = une page."""
-    out = OUT / "pages" / f"{doc_id}.jsonl"
+    out = OUT / "pages" / f"{doc['id']}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
     if path.suffix == ".html":
-        text = html_text(path.read_text(encoding="utf-8"))
+        html = path.read_text(encoding="utf-8")
+        text = taskbook_text(doc, html) if doc["kind"] == "taskbook" else html_text(html)
         out.write_text(json.dumps({"page": 1, "label": None, "text": text}, ensure_ascii=False) + "\n", encoding="utf-8")
         return 1, int(len(text) > 50)
     pdf = pymupdf.open(path)
@@ -345,11 +434,12 @@ def main():
     parser.add_argument("--per-topic", type=int, default=15, help="documents gardés par thème (défaut 15)")
     parser.add_argument("--max-mb", type=float, default=80, help="taille maximale d'un PDF (défaut 80 Mo)")
     parser.add_argument("--priority-only", action="store_true", help="seulement les documents prioritaires")
+    parser.add_argument("--no-taskbook", action="store_true", help="sans les fiches du NASA Task Book")
     args = parser.parse_args()
 
     OUT.mkdir(parents=True, exist_ok=True)
     print("Recherche des documents...")
-    docs = collect(args.per_topic, args.priority_only)
+    docs = collect(args.per_topic, args.priority_only, with_taskbook=not args.no_taskbook)
     print(f"{len(docs)} documents à traiter")
 
     today = datetime.date.today().isoformat()
@@ -361,7 +451,7 @@ def main():
             path, status = None, f"erreur ({type(e).__name__})"
         n_pages = n_text = 0
         if path is not None:
-            n_pages, n_text = split_pages(doc["id"], path)
+            n_pages, n_text = split_pages(doc, path)
             if n_pages and n_text / n_pages < 0.2:
                 status += " ; scan_sans_texte"  # document numérisé sans couche texte : inutilisable sans OCR
         doc.update(pdf_path=path.relative_to(ROOT).as_posix() if path else "", size_mb=round(path.stat().st_size / 1e6, 1) if path else "",
