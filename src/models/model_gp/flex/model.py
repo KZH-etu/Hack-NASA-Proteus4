@@ -7,7 +7,9 @@ Deux modèles à processus gaussien, entraînés sur families/droplets.parquet (
 
 Incertitude :
 - extinction : intervalle à 90 % obtenu en ré-entraînant le modèle sur des tirages des jours d'essai (bootstrap par jour) ;
-- K : écart-type du processus gaussien (bruit de mesure compris) ;
+- K : écart-type du processus gaussien (bruit de mesure compris) et intervalle à 95 % calibré : l'écart-type est
+  élargi d'un facteur appris par validation croisée interne par jour d'essai, pour que l'intervalle couvre vraiment
+  95 % des essais (même principe que model_rf ; jamais rétréci) ;
 - « pas de donnée proche » si les conditions demandées sont loin de tous les essais (distance au plus proche voisin
   dans l'espace normalisé) ; alerte d'extrapolation hors des plages mesurées.
 
@@ -26,6 +28,7 @@ import numpy as np
 import pandas as pd
 from sklearn.gaussian_process import GaussianProcessClassifier, GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
+from sklearn.model_selection import GroupKFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -35,6 +38,8 @@ FEATURES = ["is_heptane", "x_o2", "pressure_kpa", "x_co2", "x_he", "d0_mm"]
 FUELS = ("heptane", "methanol")
 N_BOOTSTRAP = 20
 SEED = 0
+K_COVERAGE = 0.95          # niveau de l'intervalle calibré de K
+N_CALIBRATION_FOLDS = 5    # validation croisée interne (par jour d'essai) pour calibrer cet intervalle
 
 
 # ---------- Données ----------
@@ -79,6 +84,26 @@ def bootstrap_by_session(df, n=N_BOOTSTRAP, seed=SEED):
             yield sample
 
 
+def k_calibration_scale(k, coverage=K_COVERAGE, n_folds=N_CALIBRATION_FOLDS):
+    """Facteur d'élargissement de l'écart-type de K pour que l'intervalle à 95 % couvre 95 % des essais.
+
+    Validation croisée interne par jour d'essai sur les seules données d'entraînement : pour chaque essai prédit
+    sans son jour, rapport erreur réelle / écart-type annoncé ; le facteur est le quantile à 95 % de ce rapport
+    divisé par 1,96. Jamais inférieur à 1 (on n'annonce pas plus de précision que le processus gaussien).
+    """
+    groups = k["session"].astype(str)
+    if groups.nunique() < n_folds:
+        return 1.0
+    ratios = []
+    for train_idx, test_idx in GroupKFold(n_splits=n_folds).split(k, groups=groups):
+        train, test = k.iloc[train_idx], k.iloc[test_idx]
+        reg = make_regressor().fit(features(train), train["burning_rate_mm2_s"])
+        mean, std = reg.predict(features(test), return_std=True)
+        ratios.append(np.abs(test["burning_rate_mm2_s"].to_numpy() - mean) / np.maximum(std, 1e-9))
+    z = 1.959964  # quantile à 97,5 % de la loi normale
+    return max(1.0, float(np.quantile(np.concatenate(ratios), coverage)) / z)
+
+
 class FlexModel:
     """Modèles entraînés sur un ensemble d'essais FLEX."""
 
@@ -89,6 +114,7 @@ class FlexModel:
         self.ensemble = [make_classifier().fit(features(s), s["extinguished"]) for s in bootstrap_by_session(df, n_bootstrap)]
         k = df.dropna(subset=["burning_rate_mm2_s"])
         self.regressor = make_regressor().fit(features(k), k["burning_rate_mm2_s"])
+        self.k_scale = k_calibration_scale(k)
         # Distance de référence : plus proche voisin de chaque essai parmi les autres (espace normalisé)
         self.scaler = StandardScaler().fit(X)
         Z = self.scaler.transform(X)
@@ -99,10 +125,12 @@ class FlexModel:
         self.ranges = {c: (float(df[c].min()), float(df[c].max())) for c in FEATURES[1:]}
 
     def predict_frame(self, X):
-        """Pour chaque ligne de X : probabilité d'extinction, intervalle à 90 %, K et écart-type, distance aux données."""
+        """Pour chaque ligne de X : probabilité d'extinction, intervalle à 90 %, K, écart-type et intervalle à 95 %
+        calibré, distance aux données."""
         p = self.classifier.predict_proba(X)[:, 1]
         boot = np.array([m.predict_proba(X)[:, 1] for m in self.ensemble]) if self.ensemble else p[None, :]
         k_mean, k_std = self.regressor.predict(X, return_std=True)
+        half = 1.959964 * self.k_scale * k_std
         Z = self.scaler.transform(X)
         nn = np.sqrt(((Z[:, None, :] - self.Z[None, :, :]) ** 2).sum(-1)).min(axis=1)
         return pd.DataFrame({
@@ -111,6 +139,8 @@ class FlexModel:
             "p_high": np.maximum(np.quantile(boot, 0.95, axis=0), p),
             "k_mm2_s": k_mean,
             "k_std": k_std,
+            "k_low": k_mean - half,
+            "k_high": k_mean + half,
             "nn_distance": nn,
             "near_data": nn <= self.nn_reference,
         })
@@ -160,6 +190,7 @@ def predict(conditions):
         "p_extinction_interval_90": (round(float(r["p_low"]), 3), round(float(r["p_high"]), 3)),
         "burning_rate_k_mm2_s": round(float(r["k_mm2_s"]), 3),
         "burning_rate_k_std": round(float(r["k_std"]), 3),
+        "burning_rate_k_interval_95": (round(float(r["k_low"]), 3), round(float(r["k_high"]), 3)),
         "nearest_data_distance": round(float(r["nn_distance"]), 2),
         "near_data": bool(r["near_data"]),
         "warnings": warnings,

@@ -70,6 +70,9 @@ Intervalle à 90 % (± 1,645 écart-type) : la vraie valeur est dedans dans **90
 | ± 1 écart-type (68 %) | 80.5% | 68 % |
 | ± 1,645 écart-type (90 %) | 89.9% | 90 % |
 | ± 1,96 écart-type (95 %) | 92.6% | 95 % |
+| **Intervalle à 95 % calibré** (`burning_rate_k_interval_95`) | **94.9%** | 95 % |
+
+Calibration : l'écart-type est élargi d'un facteur appris par validation croisée interne par jour d'essai, sur les seules données d'entraînement de chaque pli (facteurs obtenus : 1.0, 1.2, 1.27, 1.28, 1.35).
 
 ## Importance des variables (longueurs de corrélation du noyau, données normalisées ; petite = influente)
 
