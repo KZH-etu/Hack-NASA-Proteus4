@@ -7,7 +7,7 @@ import chromadb
 from fastapi.testclient import TestClient
 
 from src.rag.config import RagConfig
-from src.rag.server.app import create_app
+from src.rag.server.app import _merge_adjacent_texts, create_app
 from src.rag.storage.chroma_release import SyncResult
 
 
@@ -23,38 +23,69 @@ class TestRagServer(unittest.TestCase):
         collection = self.chroma_client.get_or_create_collection(
             name=self.config.chroma_collection
         )
+        base_meta = {
+            "id_pdf": "uuid-1234",
+            "title": "FLEX Droplet Report",
+            "source_type": "ntrs",
+            "headers_path": "Results > Extinction",
+            "mission_program": "ISS",
+            "experiment_year": 2015,
+            "authors": "Alice Smith",
+            "pdf_url": "https://ntrs.nasa.gov/1234.pdf",
+            "experiment_url": "https://ntrs.nasa.gov/citations/1234",
+        }
+        overlap = "shared overlap sentence across chunk boundary"
         collection.add(
-            ids=["chunk-1"],
-            documents=["Contexte : Intro\nTexte : Microgravity droplet burning rate."],
-            embeddings=[[1.0, 0.0, 0.0]],
+            ids=["c0", "c1", "c2", "c3", "other-doc"],
+            documents=[
+                f"Contexte : Intro\nTexte : Chunk zero before {overlap}",
+                f"Contexte : Results > Extinction\nTexte : {overlap} hit chunk one middle.",
+                "Contexte : Results > Extinction\nTexte : Chunk two right after hit.",
+                "Contexte : Conclusion\nTexte : Chunk three far away.",
+                "Contexte : Other\nTexte : Unrelated document chunk.",
+            ],
+            embeddings=[
+                [0.1, 0.9, 0.0],
+                [1.0, 0.0, 0.0],  # Exact match for query [1, 0, 0]
+                [0.2, 0.8, 0.0],
+                [0.0, 0.1, 0.9],
+                [0.0, 0.0, 1.0],
+            ],
             metadatas=[
+                {**base_meta, "chunk_index": 0, "headers_path": "Intro"},
+                {**base_meta, "chunk_index": 1},
+                {**base_meta, "chunk_index": 2},
+                {**base_meta, "chunk_index": 3, "headers_path": "Conclusion"},
                 {
-                    "id_pdf": "uuid-1234",
-                    "title": "FLEX Droplet Report",
-                    "source_type": "ntrs",
+                    **base_meta,
+                    "id_pdf": "uuid-other",
+                    "title": "Other Paper",
                     "chunk_index": 0,
-                    "headers_path": "Intro",
-                    "mission_program": "ISS",
-                    "experiment_year": 2015,
-                    "authors": "Alice Smith",
-                    "pdf_url": "https://ntrs.nasa.gov/1234.pdf",
-                    "experiment_url": "https://ntrs.nasa.gov/citations/1234",
-                }
+                },
             ],
         )
 
     def tearDown(self) -> None:
         self.tmp_dir.cleanup()
 
-    def test_lifespan_runs_sync_and_endpoints_return_chunks(self) -> None:
+    def test_merge_adjacent_texts_deduplicates_overlap(self) -> None:
+        merged = _merge_adjacent_texts(
+            [
+                "Alpha beta gamma common overlap segment here.",
+                "common overlap segment here. Delta epsilon.",
+            ]
+        )
+        self.assertEqual(merged, "Alpha beta gamma common overlap segment here. Delta epsilon.")
+
+    def test_lifespan_runs_sync_health_and_retrieve_returns_concatenated_strings(self) -> None:
         sync_calls: list[RagConfig] = []
 
         def fake_sync(cfg: RagConfig) -> SyncResult:
             sync_calls.append(cfg)
             return SyncResult(
                 status="up_to_date",
-                tag_name="chroma-db-v20261114-213500",
-                chunk_count=1,
+                tag_name="chroma-db-v20261114-203450",
+                chunk_count=5,
                 chroma_dir=cfg.chroma_dir,
                 message="OK",
             )
@@ -78,16 +109,34 @@ class TestRagServer(unittest.TestCase):
             health_data = health_resp.json()
             self.assertEqual(health_data["status"], "ok")
             self.assertEqual(health_data["sync_status"], "up_to_date")
-            self.assertEqual(health_data["release_tag"], "chroma-db-v20261114-213500")
-            self.assertEqual(health_data["chunk_count"], 1)
+            self.assertEqual(health_data["release_tag"], "chroma-db-v20261114-203450")
+            self.assertEqual(health_data["chunk_count"], 5)
 
-            ret_resp = client.post("/retrieve", json={"query": "droplet burning", "top_k": 3})
+            # Default neighbors=1 -> fetches chunk 0 + chunk 1 + chunk 2 for hit c1
+            ret_resp = client.post("/retrieve", json={"query": "droplet burning", "top_k": 1})
             self.assertEqual(ret_resp.status_code, 200)
-            ret_data = ret_resp.json()
-            self.assertEqual(ret_data["count"], 1)
-            chunk = ret_data["results"][0]
-            self.assertEqual(chunk["id"], "chunk-1")
-            self.assertEqual(chunk["metadata"]["id_pdf"], "uuid-1234")
-            self.assertEqual(chunk["metadata"]["mission_program"], "ISS")
-            self.assertEqual(chunk["metadata"]["authors"], "Alice Smith")
-            llm_client.embed_texts.assert_called_once_with(["droplet burning"])
+            contexts = ret_resp.json()
+            self.assertIsInstance(contexts, list)
+            self.assertEqual(len(contexts), 1)
+            ctx = contexts[0]
+            self.assertIn("Document : FLEX Droplet Report", ctx)
+            self.assertIn("Auteurs : Alice Smith | Mission : ISS | Année : 2015 | Source : ntrs", ctx)
+            self.assertIn("Chunk zero before", ctx)
+            self.assertIn("hit chunk one middle.", ctx)
+            self.assertIn("Chunk two right after hit.", ctx)
+            # Ensure overlap wasn't duplicated twice
+            self.assertEqual(ctx.count("shared overlap sentence across chunk boundary"), 1)
+            # Chunk 3 and other doc must NOT be included
+            self.assertNotIn("Chunk three far away.", ctx)
+            self.assertNotIn("Unrelated document chunk.", ctx)
+
+            # neighbors=0 returns only hit chunk 1
+            no_neighbor_resp = client.post(
+                "/retrieve",
+                json={"query": "droplet burning", "top_k": 1, "neighbors": 0},
+            )
+            self.assertEqual(no_neighbor_resp.status_code, 200)
+            single_ctx = no_neighbor_resp.json()[0]
+            self.assertIn("hit chunk one middle.", single_ctx)
+            self.assertNotIn("Chunk zero before", single_ctx)
+            self.assertNotIn("Chunk two right after hit.", single_ctx)

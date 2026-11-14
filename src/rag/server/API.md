@@ -60,53 +60,29 @@ curl -s http://127.0.0.1:8000/health
 
 ### 2. `POST /retrieve`
 
-Calcule l'embedding dense de la requête via LM Studio (`text-embedding-qwen3-embedding-0.6b`) et retourne les `top_k` chunks les plus proches sémantiquement dans ChromaDB, accompagnés des métadonnées complètes du document d'origine.
+Calcule l'embedding dense de la requête via LM Studio (`text-embedding-qwen3-embedding-0.6b`), récupère les `top_k` chunks les plus proches dans ChromaDB, va chercher pour chaque hit ses chunks collés avant et après dans le même document (`chunk_index - neighbors .. chunk_index + neighbors`), concatène leurs textes (en fusionnant les chevauchements exacts) et renvoie directement une **liste de chaînes de caractères** prête à être injectée dans le prompt d'un LLM.
 
 #### Corps de la requête (`application/json`)
 
 | Champ | Type | Requis | Défaut | Contraintes / Description |
 |---|---|---|---|---|
 | `query` | `string` | Oui | — | Question ou requête en langage naturel (`min_length=1`). |
-| `top_k` | `integer` | Non | `5` | Nombre maximum de chunks à retourner (`1 <= top_k <= 50`). |
-| `where` | `object \| null` | Non | `null` | Filtre optionnel ChromaDB sur les métadonnées (ex. `{"source_type": "ntrs"}` ou `{"mission_program": "ISS"}`). |
+| `top_k` | `integer` | Non | `5` | Nombre de hits correspondants recherchés dans ChromaDB (`1 <= top_k <= 50`). |
+| `neighbors` | `integer` | Non | `1` | Nombre de chunks adjacents récupérés **avant et après** chaque hit (`0 <= neighbors <= 5`). Par défaut `1` (1 avant + 1 après = les 2 chunks collés). |
 
 #### Réponse `200 OK` (`application/json`)
 
-| Champ | Type | Description |
-|---|---|---|
-| `query` | `string` | Requête envoyée. |
-| `count` | `integer` | Nombre effectif de chunks retournés. |
-| `results` | `array<RetrieveChunk>` | Liste des chunks triés par pertinence (distance croissante). |
+Type : `array<string>` (`list[str]`).
 
-##### Structure d'un objet `RetrieveChunk`
-
-| Champ | Type | Description |
-|---|---|---|
-| `id` | `string` | Identifiant UUID du chunk dans ChromaDB. |
-| `document` | `string` | Contenu textuel du chunk (`Contexte : [Fil d'Ariane] \n Texte : [Contenu]`). |
-| `distance` | `float \| null` | Distance vectorielle L2 calculée par ChromaDB (plus petite = plus pertinent). |
-| `metadata` | `object` | Métadonnées complètes du document source copiées sur le chunk (voir tableau ci-dessous). |
-
-##### Champs de `metadata` sur chaque chunk
-
-| Clé | Type | Description |
-|---|---|---|
-| `id_pdf` | `string` | UUID4 unique du document dans `tracking.db`. |
-| `title` | `string` | Titre du rapport ou de la ressource NASA. |
-| `source_type` | `string` | Origine : `"ntrs"`, `"taskbook"`, `"psi"` ou `"autres"`. |
-| `chunk_index` | `integer` | Position séquentielle du chunk dans le document (`0, 1, ...`). |
-| `headers_path` | `string` | Fil d'Ariane hiérarchique des titres (ex. `"1. Introduction > 1.2 Objectives"`). |
-| `mission_program` | `string` | Programme/mission NASA (ex. `"ISS"`, `"Shuttle"`, `"Apollo"`, `"Unknown"`). |
-| `experiment_year` | `integer` | Année de l'expérience ou publication (`0` si inconnue). |
-| `authors` | `string` | Auteur(s) séparés par des virgules (`"Unknown"` si inconnu). |
-| `pdf_url` | `string` | URL directe vers le PDF source (chaîne vide si ressource HTML/JSON sans PDF). |
-| `experiment_url` | `string` | URL de la fiche NASA / expérience d'origine. |
+Chaque élément de la liste correspond à un hit et contient :
+- un en-tête avec les métadonnées du document source (`Document`, `Auteurs`, `Mission`, `Année`, `Source`, `Section`, `URL`),
+- suivi du texte concaténé du chunk précédent, du chunk trouvé et du chunk suivant (`[chunk_index - neighbors .. chunk_index + neighbors]`).
 
 #### Codes d'erreur
 
 | Code HTTP | Cas | Détail |
 |---|---|---|
-| `422 Unprocessable Entity` | Requête invalide | `query` vide/manquant ou `top_k` hors de `[1, 50]`. |
+| `422 Unprocessable Entity` | Requête invalide | `query` vide/manquant, `top_k` hors `[1, 50]` ou `neighbors` hors `[0, 5]`. |
 | `503 Service Unavailable` | LM Studio inaccessible | Impossible de générer l'embedding de la requête (`LMStudioClient.embed_texts` en échec). |
 
 #### Exemple `curl`
@@ -116,35 +92,16 @@ curl -s -X POST http://127.0.0.1:8000/retrieve \
   -H "Content-Type: application/json" \
   -d '{
     "query": "heptane droplet extinction diameter in microgravity",
-    "top_k": 2,
-    "where": {"source_type": "ntrs"}
+    "top_k": 3,
+    "neighbors": 1
   }'
 ```
 
 #### Exemple de réponse `200 OK`
 
 ```json
-{
-  "query": "heptane droplet extinction diameter in microgravity",
-  "count": 2,
-  "results": [
-    {
-      "id": "8c1f2e7a-9b4d-4d6e-91c2-3f4a5b6c7d8e",
-      "document": "Contexte : Results > Flame Extinction\nTexte : ...",
-      "distance": 0.4128,
-      "metadata": {
-        "id_pdf": "0b8f4d91-...",
-        "title": "Detailed Results From FLEX",
-        "source_type": "ntrs",
-        "chunk_index": 14,
-        "headers_path": "Results > Flame Extinction",
-        "mission_program": "ISS",
-        "experiment_year": 2015,
-        "authors": "F. L. Dryer, V. Nayagam",
-        "pdf_url": "https://ntrs.nasa.gov/api/citations/20150023456/downloads/...",
-        "experiment_url": "https://ntrs.nasa.gov/citations/20150023456"
-      }
-    }
-  ]
-}
+[
+  "Document : Detailed Results From FLEX\nAuteurs : F. L. Dryer, V. Nayagam | Mission : ISS | Année : 2015 | Source : ntrs\nSection : Results > Flame Extinction\nURL : https://ntrs.nasa.gov/citations/20150023456\n---\nTexte du chunk précédent... Texte du chunk correspondant... Texte du chunk suivant...",
+  "Document : ..."
+]
 ```
