@@ -1,0 +1,7 @@
+famille,sortie,modele,n_essais,validation,exactitude_modele,exactitude_reference,exactitude_equilibree,equilibree_IC95,detection_par_issue,ecart_fiabilite,bat_la_reference,MAE_modele,MAE_reference,MAE_IC95,couverture_95
+Gouttelettes (FLEX),issue,Forêt aléatoire,274,par groupe (5 plis),0.781021897810219,0.6788321167883211,0.5969374098230084,[51% ; 68%],"completion 26% (27), disruption 62% (61), extinguished 91% (186)",0.06494995069979165,True,,,,
+Gouttelettes (FLEX),issue,k plus proches voisins,274,par groupe (5 plis),0.7335766423357665,0.6788321167883211,0.4919567019866686,[43% ; 55%],"completion 4% (27), disruption 54% (61), extinguished 90% (186)",0.04671532846715334,True,,,,
+Gouttelettes (FLEX),vitesse_combustion_mm2_s,Forêt aléatoire,258,par groupe (5 plis),,,,,,,True,0.0540390303785362,0.10771317829457365,[0.044 ; 0.067],0.9534883720930233
+Gouttelettes (FLEX),vitesse_combustion_mm2_s,k plus proches voisins,258,par groupe (5 plis),,,,,,,True,0.05594961240310077,0.10771317829457365,[0.048 ; 0.065],0.9031007751937985
+Gaz (ACME CFI-G),issue,Forêt aléatoire,331,par groupe (5 plis),0.676737160120846,0.552870090634441,0.5761094552078159,[50% ; 64%],"burned 65% (88), extinguished 83% (183), no_ignition 25% (60)",0.04780062395207042,True,,,,
+Gaz (ACME CFI-G),issue,k plus proches voisins,331,par groupe (5 plis),0.5921450151057401,0.552870090634441,0.44214273886405037,[38% ; 51%],"burned 34% (88), extinguished 87% (183), no_ignition 12% (60)",0.09667673716012089,True,,,,

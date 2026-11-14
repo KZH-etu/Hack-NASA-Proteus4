@@ -1,0 +1,32 @@
+
+=== Gouttelettes (FLEX) / issue — Forêt aléatoire ===
+           issue precision rappel    f1  support
+      completion       0.5  0.259 0.341       27
+      disruption     0.623  0.623 0.623       61
+    extinguished     0.849  0.909 0.878      186
+   moyenne macro     0.657  0.597 0.614      274
+moyenne pondérée     0.764  0.781 0.768      274
+        accuracy                  0.781      274
+F1 macro, IC 95 % : [0.511 ; 0.698]
+Matrice de confusion (lignes = vraie issue, colonnes = issue prédite) :
+prédit        completion  disruption  extinguished
+vrai                                              
+completion             7           9            11
+disruption             4          38            19
+extinguished           3          14           169
+
+=== Gaz (ACME CFI-G) / issue — Forêt + SMOTE ===
+           issue precision rappel    f1  support
+          burned     0.641   0.75 0.691       88
+    extinguished     0.761  0.781 0.771      183
+     no_ignition     0.525   0.35 0.420       60
+   moyenne macro     0.642  0.627 0.627      331
+moyenne pondérée     0.686  0.695 0.686      331
+        accuracy                  0.695      331
+F1 macro, IC 95 % : [0.539 ; 0.705]
+Matrice de confusion (lignes = vraie issue, colonnes = issue prédite) :
+prédit        burned  extinguished  no_ignition
+vrai                                           
+burned            66            19            3
+extinguished      24           143           16
+no_ignition       13            26           21
