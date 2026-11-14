@@ -2,5 +2,73 @@
 
 Chaque fichier de `data/raw/` et `data/processed/` doit être listé ici.
 
-| Fichier | Expérience | PSI | DOI / NTRS | URL | Date de téléchargement | Notes |
-|---|---|---|---|---|---|---|
+`data/raw/` n'est pas versionné : on le regénère avec les scripts ci-dessous. Le détail machine (statut HTTP, taille, chemin local) est dans `data/raw/download_log.csv` et dans le `files_manifest.csv` de chaque investigation.
+
+## Structure
+
+```
+data/
+├── raw/                                  # non versionné
+│   ├── psi/
+│   │   ├── psi_index.csv                 # 1 ligne par investigation (DOI, licence, nb de fichiers, taille totale)
+│   │   └── PSI-xx_ACRONYME/
+│   │       ├── investigation.json        # métadonnées brutes de l'API PSI
+│   │       ├── files_manifest.csv        # tous les fichiers de l'investigation, téléchargés ou non
+│   │       ├── experimental_table/       # CSV « Experimental table », tels quels
+│   │       └── documents/                # matrices d'essais, calibration (tels quels)
+│   ├── ntrs/                             # articles NTRS pour le RAG (branche rag)
+│   └── download_log.csv
+├── processed/                            # versionné, généré par src/data/
+│   ├── unified.parquet                   # table catalogue (schéma src/common/schema.py)
+│   ├── families/                         # une table de modélisation par famille physique
+│   └── annotations/                      # valeurs saisies à la main, avec leur page source
+└── SOURCES.md
+```
+
+## NASA PSI (Physical Sciences Informatics)
+
+Script : `python -m src.data.download_psi` (API publique https://psi.nasa.gov, sans compte). Téléchargé le 2026-11-14.
+
+| PSI | Expérience | Famille | DOI | Licence | Fichiers dans PSI |
+|---|---|---|---|---|---|
+| PSI-69 | FLEX | droplet | [10.60555/mbq8-0451](https://doi.org/10.60555/mbq8-0451) | CC0-1.0 | 7 515 |
+| PSI-39 | CFI | droplet | [10.60555/m6pj-a914](https://doi.org/10.60555/m6pj-a914) | CC0-1.0 | 3 256 |
+| PSI-159 | ACME CFI-G | gas | [10.60555/cyt1-kh64](https://doi.org/10.60555/cyt1-kh64) | CC0-1.0 | 3 756 |
+| PSI-10 | ACME Flame Design | gas | [10.60555/w4zy-bt45](https://doi.org/10.60555/w4zy-bt45) | non renseignée dans les métadonnées | 3 807 |
+| PSI-107 | SPICE | gas | [10.60555/9kbh-e962](https://doi.org/10.60555/9kbh-e962) | CC0-1.0 | 188 |
+| PSI-26 | BASS | solid | [10.60555/58h4-dy80](https://doi.org/10.60555/58h4-dy80) | CC0-1.0 | 399 |
+| PSI-25 | BASS-II | solid | [10.60555/4qc4-de67](https://doi.org/10.60555/4qc4-de67) | CC0-1.0 | 1 267 |
+| PSI-98 | SAFFIRE-I | solid | [10.60555/0t15-1z43](https://doi.org/10.60555/0t15-1z43) | CC0-1.0 | 76 |
+| PSI-99 | SAFFIRE-II | solid | [10.60555/2chp-m469](https://doi.org/10.60555/2chp-m469) | CC0-1.0 | 221 |
+| PSI-100 | SAFFIRE-III | solid | [10.60555/040q-4h36](https://doi.org/10.60555/040q-4h36) | CC0-1.0 | 87 |
+| PSI-101 | SAME-R | aerosol | [10.60555/2np7-jv14](https://doi.org/10.60555/2np7-jv14) | CC0-1.0 | 344 |
+| PSI-102 | SAME | aerosol | [10.60555/gd4k-8h62](https://doi.org/10.60555/gd4k-8h62) | CC0-1.0 | 165 |
+
+### Fichiers téléchargés
+
+| Fichier (sous `data/raw/psi/`) | PSI | Notes |
+|---|---|---|
+| `PSI-69_FLEX/experimental_table/PSI-69_Experimental table_FLEX.csv` | PSI-69 | encodage cp1252 |
+| `PSI-39_CFI/experimental_table/PSI-39_Experimental table_CFI.csv` | PSI-39 | |
+| `PSI-159_ACME_CFI-G/experimental_table/PSI-159_Experimental table_CFI-G_Normal Flames.csv` | PSI-159 | |
+| `PSI-159_ACME_CFI-G/experimental_table/PSI-159_Experimental table_CFI-G_Inverse Flames.csv` | PSI-159 | ~860 lignes vides en fin de fichier |
+| `PSI-10_ACME_Flame_Design/experimental_table/PSI-10_Experimental table_Flame Design_Normal Flame.csv` | PSI-10 | valeurs `RAMPED` |
+| `PSI-10_ACME_Flame_Design/experimental_table/PSI-10_Experimental table_Flame Design_Inverse Flame.csv` | PSI-10 | |
+| `PSI-107_SPICE/experimental_table/PSI-107_Experimental table_Spice.csv` | PSI-107 | |
+| `PSI-26_BASS/experimental_table/PSI-26_Experimental table_BASS.csv` | PSI-26 | |
+| `PSI-26_BASS/documents/PSI-26_Science Documents_As Run_Test Matrix.xlsx` | PSI-26 | O2, pression, débit, observations par essai |
+| `PSI-26_BASS/documents/PSI-26_Science Documents_Planned_Test Matrix.xlsx` | PSI-26 | |
+| `PSI-25_BASS-II/experimental_table/PSI-25_Experimental table_BASS-II.csv` | PSI-25 | |
+| `PSI-25_BASS-II/documents/PSI-25_Science Documents_BASS-II_Test.Matrices.xlsx` | PSI-25 | une feuille par PI |
+| `PSI-25_BASS-II/documents/PSI-25_Reference Data_Fan calibration data.xlsx` | PSI-25 | conversion potentiomètre → vitesse d'air |
+| `PSI-98_SAFFIRE-I/experimental_table/PSI-98_Experimental table_SAFFIRE-1.csv` | PSI-98 | |
+| `PSI-99_SAFFIRE-II/experimental_table/PSI-99_Experimental table_SAFFIRE-2.csv` | PSI-99 | contient des valeurs 1g |
+| `PSI-100_SAFFIRE-III/experimental_table/PSI-100_Experimental table_SAFFIRE-3.csv` | PSI-100 | |
+| `PSI-101_SAME-R/experimental_table/PSI-101_Experimental table_SAME-R.csv` | PSI-101 | |
+| `PSI-102_SAME/experimental_table/PSI-102_Experimental table_SAME.csv` | PSI-102 | |
+
+## Documents NASA (NTRS)
+
+| Document | NTRS | Utilisé pour | Notes |
+|---|---|---|---|
+| NASA/TM-20210011385 — BASS-II Summary Report | [20210011385](https://ntrs.nasa.gov/citations/20210011385) | issues BASS-II (annexe A, pp. 103–113) | pas de vitesses de propagation dans l'annexe A |

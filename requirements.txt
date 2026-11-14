@@ -9,3 +9,4 @@ chromadb
 rank-bm25
 python-dotenv
 plotly
+openpyxl
