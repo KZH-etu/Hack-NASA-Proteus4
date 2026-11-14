@@ -66,9 +66,14 @@ def nearest_tests(model, X_point, fuel_flag, k=3):
 
 
 def recommend_next_experiment(scenario, n=5):
-    """Recommandations d'essais FLEX autour d'un scénario. Exemple :
-    recommend_next_experiment({"fuel": "heptane", "o2_percent": 34, "pressure_kpa": 55, "d0_mm": 3.0})
+    """Recommandations d'essais autour d'un scénario de mission.
+    - gouttelettes (FLEX) : {"fuel": "heptane", "o2_percent": 34, "pressure_kpa": 55, "d0_mm": 3.0}
+    - solides (BASS / BASS-II) : {"material": "pmma_flat", "o2_percent": 34, "flow_cm_s": 10}
+      (voir src/models/solids.py ; modèle peu fiable, la recommandation repose surtout sur la nouveauté)
     """
+    if "material" in scenario:
+        from src.models.solids import recommend_next_experiment as recommend_solids
+        return recommend_solids(scenario, n=n)
     fuel = scenario.get("fuel", "heptane").lower()
     if fuel not in FUELS:
         raise ValueError(f"FLEX n'a testé que {FUELS} ; « {fuel} » n'est pas couvert")
