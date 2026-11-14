@@ -38,8 +38,16 @@ FAMILY_COLUMNS = {
     "sides_burning": ("Int64", "", "Échantillon allumé sur 1 ou 2 faces (« 1 sided »)"),
     "flow_direction": ("string", "", "opposed / concurrent / stagnation (bougies) ; BASS-II : annexe A du rapport"),
     "flow_cm_s": ("Float64", "cm/s", "Vitesse d'air si une seule valeur ; vide si rampe (voir flow_min / flow_max)"),
-    "flow_min_cm_s": ("Float64", "cm/s", "Plus petite vitesse d'air affichée pendant l'essai (hors réglages en « pot »)"),
+    "flow_min_cm_s": ("Float64", "cm/s", "Plus petite vitesse d'air affichée pendant l'essai (hors réglages en « pot ») ; "
+                                         "PAS le débit d'extinction (voir extinction_*)"),
     "flow_max_cm_s": ("Float64", "cm/s", "Plus grande vitesse d'air affichée pendant l'essai"),
+    "extinction_mode": ("string", "", "Essais éteints : low_flow (en baissant le débit), blowoff (soufflage, débit élevé), "
+                                      "flow_off (débit coupé volontairement), brief_flame (flamme brève qui ne s'établit pas), "
+                                      "steady_flow (éteinte à vitesse constante) ; vide si le texte ne le dit pas"),
+    "extinction_flow_cm_s": ("Float64", "cm/s", "Vitesse d'air à l'extinction, seulement si écrite en cm/s "
+                                                "(« 5 3 2 ext », « 10 blowoff », « extinguished 8 cm/s ») ; marque deduit"),
+    "extinction_pot": ("Float64", "réglage", "Réglage du potentiomètre du ventilateur à l'extinction (« at pot 0.35 ») ; "
+                                             "non converti en cm/s : calibration variable selon le jour et absente sous 1–2"),
     "flow_raw": ("string", "", "Vitesse d'air telle qu'écrite (« Air display », « Air Flow »)"),
     "fan_raw": ("string", "", "Réglage du ventilateur tel qu'écrit (« Fan display », potentiomètre)"),
     "flow_restrictor": ("string", "", "Restricteur de débit (BASS, BASS-II)"),
@@ -206,6 +214,69 @@ def outcome_from_text(row, *texts):
     return None
 
 
+# Conditions d'extinction écrites dans les textes (Air display, Fan display, observations)
+OUT_WORD = r"(?:extingui\w*|extinction|went out|goes out|go out|flame out|\bout\b|died|quench\w*|blew (?:out|off)|blow ?off)"
+BLOWOFF = re.compile(r"blow ?off|blew (?:out|off)")
+FLOW_OFF = re.compile(r"turned (?:the )?(?:flow|fan)(?: pot)? (?:off|to 0\b)|turned off (?:the )?flow|(?:flow|fan) off\b"
+                      r"|pot to 0\b|until turned (?:the )?(?:flow )?off|air (?:reading|display) (?:was )?(?:at )?zero")
+LOW_FLOW = re.compile(r"decreas|reduc|turned (?:it |the )?(?:flow |pot )?down|lower(?:ed)? (?:the )?flow|low(?:er)? flow|down to"
+                      r"|slow ramp|limit|after flow change|fan pot changed to")
+# Flamme brève qui ne s'établit pas après l'allumage (ni soufflage, ni bas débit)
+BRIEF = re.compile(r"brief(?:ly)? (?:ignition|flame|flash)|flash|no sustained|would not (?:sustain|stay lit)|no joy on sustained"
+                   r"|while the igniter was still on|before spreading beyond (?:the )?igniter|did not spread at all|only stayed lit")
+POT_AT_OUT = re.compile(OUT_WORD + r"[^;.]{0,30}?\bpot(?:entiometer)?s?\b(?:\s*(?:of|=|setting|at))*\s*(\d*\.\d+|\d+(?:\.\d+)?)")
+# « out immediately at 0.34 » ; « at » obligatoire (« blowoff! HCl still 0.8 » n'est pas un réglage)
+NUMBER_AT_OUT = re.compile(OUT_WORD + r"[^;.\d]{0,20}?(?:\bat|just as we reached a)\s*(0?\.\d+)\b(?!\s*(?:cm|mm|%|min|s\b))")
+VALUE_POT_AT_OUT = re.compile(OUT_WORD + r"[^;.]{0,40}?\bat\s*(\d*\.\d+)\s*pot\b")       # « quenched after prolonged burn at 0.4 pot »
+POT_BEFORE_OUT = re.compile(r"\bpot\w*\s*(?:changed\s*)?(?:to|of|at|=)\s*(\d*\.\d+)[^;.]{0,40}?" + OUT_WORD)  # « fan pot changed to 0.6 and flame went out »
+LAST_POT_OUT = re.compile(r"(\d*\.\d+)\s*(?:extinction|extinguished|flame extinguished)\b")   # « … 0.285, 0.28 extinction finally »
+CMS_AT_OUT = re.compile(OUT_WORD + r"[^;.]{0,40}?(\d+(?:\.\d+)?)\s*cm/s")
+DISPLAY_THEN_OUT = re.compile(r"(\d*\.?\d+)\s*(?:ext|blow ?off)\b")  # « 5 3 2 ext » : dernière vitesse affichée
+
+
+def extinction_details(row):
+    """Mode, réglage du potentiomètre et vitesse d'air à l'extinction, quand le texte de la source les donne.
+    Rien n'est converti : un réglage « pot » reste un réglage (calibration du ventilateur non fiable sous 1–2)."""
+    from src.data.extract_bass2_appendix import NEGATIONS  # « did not blowoff », « no blowoff attained »
+
+    v = row.values
+    if v["outcome"] != "extinguished":
+        return
+    flow_text = (v["flow_raw"] or "").lower()
+    text = NEGATIONS.sub(" ", " ; ".join(t for t in (v["flow_raw"], v["fan_raw"], v["observations"]) if t).lower())
+    # Plusieurs réglages cités (« oscillating at 0.36, out immediately at 0.34 ») : le dernier est celui de l'extinction
+    patterns = [POT_AT_OUT, VALUE_POT_AT_OUT, NUMBER_AT_OUT, POT_BEFORE_OUT] + ([LAST_POT_OUT] if "pot" in text else [])
+    found = [m for p in patterns for m in p.finditer(text)]
+    pot = max(found, key=lambda m: m.end()) if found else None
+    if pot:
+        v["extinction_pot"] = float(pot.group(1))
+        row.flag("extinction_pot", "deduit")
+    cms = CMS_AT_OUT.search(text)
+    shown = DISPLAY_THEN_OUT.search(flow_text)
+    if cms:
+        v["extinction_flow_cm_s"] = float(cms.group(1))
+    elif shown and not re.search(r"\b0\s*ext", flow_text):
+        v["extinction_flow_cm_s"] = float(shown.group(1))
+    if v["extinction_flow_cm_s"] is not None:
+        row.flag("extinction_flow_cm_s", "deduit")
+
+    ext_flow, top = v["extinction_flow_cm_s"], v["flow_max_cm_s"]
+    if BLOWOFF.search(text):
+        v["extinction_mode"] = "blowoff"
+    elif FLOW_OFF.search(text) or re.search(r"\b0\s*ext", flow_text):
+        v["extinction_mode"] = "flow_off"
+    elif BRIEF.search(text):
+        v["extinction_mode"] = "brief_flame"
+    elif LOW_FLOW.search(text) or pot or (shown and ext_flow is not None):
+        v["extinction_mode"] = "low_flow"
+    elif ext_flow is not None and top is not None and ext_flow < top:
+        v["extinction_mode"] = "low_flow"      # éteinte à une vitesse plus basse que la plus haute de l'essai
+    elif ext_flow is not None and v["flow_min_cm_s"] == top:
+        v["extinction_mode"] = "steady_flow"   # une seule vitesse pendant tout l'essai
+    if v["extinction_mode"]:
+        row.flag("extinction_mode", "deduit")
+
+
 def with_unit(text):
     """« 20 cm/s » -> (20, None) ; « ~ 21.5 » -> (21.5, 'approx') ; « 22.1 to 22.0 » -> (22.05, 'approx') ;
     texte -> (None, 'qualitatif') ; vide -> (None, None)."""
@@ -343,6 +414,7 @@ def build_bass(annotations):
         notes = [f"échantillon : {r['Fuel Sample Material']}", "conditions : matrice As Run (PSI-26)", note]
         if "material:doc" in row.flags.items:
             notes.append(f"matériau PMMA : {BASS_DRAWINGS}")
+        extinction_details(row)
         flag_shape(row)
         unified.append(_unified(row, meta, notes))
         family.append(row.finish("observations"))
@@ -383,6 +455,7 @@ def build_bass2(annotations):
                  note, deduced, None if note else "absent de l'annexe A du rapport"]
         if "material:doc" in row.flags.items:
             notes.append(f"matériau PMMA : {BASS2_REPORT} p. 47 (tiges de PMMA coulé) / {BASS_DRAWINGS}")
+        extinction_details(row)
         flag_shape(row)
         unified.append(_unified(row, meta, notes))
         family.append(row.finish("observations"))
