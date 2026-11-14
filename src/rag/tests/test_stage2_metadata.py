@@ -6,7 +6,9 @@ from unittest.mock import MagicMock
 from src.rag.config import RagConfig
 from src.rag.db import TrackingDB
 from src.rag.llm_client import DocumentMetadata
+from src.rag.source_adapter import SourceDocument
 from src.rag.stage2_metadata import run as run_stage2
+from src.rag.text_utils import html_to_clean_markdown, strip_html_tags
 
 
 class TestStage2Metadata(unittest.TestCase):
@@ -14,6 +16,7 @@ class TestStage2Metadata(unittest.TestCase):
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp_dir.name)
         self.config = RagConfig(
+            catalog_csv_path=self.root / "missing_catalog.csv",
             pdf_dir=self.root / "pdfs",
             md_dir=self.root / "markdown",
             tracking_db_path=self.root / "tracking.db",
@@ -27,21 +30,81 @@ class TestStage2Metadata(unittest.TestCase):
     def tearDown(self) -> None:
         self.tmp_dir.cleanup()
 
-    def _seed_ocr_done(self, name: str, content: str | None) -> int:
-        doc_id = self.db.upsert_source_document(
+    def _seed_ocr_done(self, name: str, content: str | None) -> str:
+        id_pdf = self.db.upsert_source_document(
             f"{name}.pdf",
             f"https://nasa.gov/{name}.pdf",
             f"https://nasa.gov/exp/{name}",
+            source_id=name,
         )
-        md_name = f"{name}.md"
+        md_name = f"{id_pdf}.md"
         if content is not None:
             (self.config.md_dir / md_name).write_text(content, encoding="utf-8")
-        self.db.mark_stage_done(doc_id, stage=1, md_filename=md_name)
-        return doc_id
+        self.db.mark_stage_done(id_pdf, stage=1, md_filename=md_name)
+        return id_pdf
+
+    def test_html_to_clean_markdown_preserves_headings_and_removes_all_tags(self) -> None:
+        raw_html = """
+        <html><head><script>alert(1)</script><style>body{}</style></head>
+        <body>
+          <nav>Menu</nav>
+          <main>
+            <h1>1. Intro</h1>
+            <p>Hello <b>world</b> &amp; microgravity.</p>
+            <h2>1.2 Objectifs</h2>
+            <ul><li>Item A</li><li>Item B</li></ul>
+          </main>
+        </body></html>
+        """
+        md = html_to_clean_markdown(raw_html)
+        self.assertIn("# 1. Intro", md)
+        self.assertIn("## 1.2 Objectifs", md)
+        self.assertIn("- Item A", md)
+        self.assertNotIn("<", md)
+        self.assertNotIn(">", md)
+        self.assertNotIn("alert(1)", md)
+        self.assertNotIn("Menu", md)
+
+    def test_ingests_html_before_metadata_and_strips_tags_for_llm(self) -> None:
+        html_path = self.root / "web-apollo.html"
+        html_path.write_text(
+            "<html><body><main><h1>Apollo 1</h1><p>Fire <em>safety</em> report.</p></main></body></html>",
+            encoding="utf-8",
+        )
+        non_pdf_provider = MagicMock()
+        non_pdf_provider.list_documents.return_value = [
+            SourceDocument(
+                pdf_filename="web-apollo.html",
+                pdf_path=html_path,
+                pdf_url="https://sma.nasa.gov/apollo-1",
+                experiment_url="https://sma.nasa.gov/apollo-1",
+                source_id="web-apollo",
+                title="Apollo 1",
+                source_type="autres",
+                file_ext=".html",
+            )
+        ]
+
+        llm_client = MagicMock()
+        llm_client.extract_metadata_json.return_value = DocumentMetadata(
+            mission_program="Apollo", experiment_year=1967, authors="NASA"
+        )
+
+        summary = run_stage2(
+            self.config,
+            db=self.db,
+            llm_client=llm_client,
+            non_pdf_provider=non_pdf_provider,
+        )
+        self.assertEqual(summary, {"processed": 1, "done": 1, "error": 0})
+        sent_excerpt = llm_client.extract_metadata_json.call_args.args[0]
+        self.assertNotIn("<", sent_excerpt)
+        self.assertIn("# Apollo 1", sent_excerpt)
+        self.assertIn("Fire safety report.", sent_excerpt)
 
     def test_truncates_markdown_to_3000_chars_and_saves_metadata(self) -> None:
         long_text = "A" * 5000
-        doc_id = self._seed_ocr_done("long_doc", long_text)
+        id_pdf = self._seed_ocr_done("long_doc", long_text)
 
         llm_client = MagicMock()
         llm_client.extract_metadata_json.return_value = DocumentMetadata(
@@ -53,12 +116,38 @@ class TestStage2Metadata(unittest.TestCase):
         excerpt_sent = llm_client.extract_metadata_json.call_args.args[0]
         self.assertEqual(len(excerpt_sent), 3000)
 
-        doc = self.db.get_document(doc_id)
+        doc = self.db.get_document(id_pdf)
         assert doc is not None
         self.assertEqual(doc["metadata_status"], "done")
         self.assertEqual(doc["mission_program"], "Apollo")
         self.assertEqual(doc["experiment_year"], 1972)
         self.assertEqual(doc["authors"], "J. Doe")
+
+    def test_preserves_existing_db_metadata_over_llm_output(self) -> None:
+        id_pdf = self.db.upsert_source_document(
+            "cat.pdf",
+            "https://ntrs.nasa.gov/cat.pdf",
+            "https://ntrs.nasa.gov/citations/1",
+            source_id="1",
+            title="Catalog Title",
+            source_type="ntrs",
+            authors="Catalog Author",
+            experiment_year=2015,
+        )
+        (self.config.md_dir / f"{id_pdf}.md").write_text("# Report", encoding="utf-8")
+        self.db.mark_stage_done(id_pdf, stage=1, md_filename=f"{id_pdf}.md")
+
+        llm_client = MagicMock()
+        llm_client.extract_metadata_json.return_value = DocumentMetadata(
+            mission_program="ISS", experiment_year=1999, authors="Wrong LLM Author"
+        )
+        run_stage2(self.config, db=self.db, llm_client=llm_client)
+
+        doc = self.db.get_document(id_pdf)
+        assert doc is not None
+        self.assertEqual(doc["mission_program"], "ISS")
+        self.assertEqual(doc["experiment_year"], 2015)
+        self.assertEqual(doc["authors"], "Catalog Author")
 
     def test_missing_markdown_file_marks_error_and_continues(self) -> None:
         id_missing = self._seed_ocr_done("missing_md", None)
@@ -71,11 +160,8 @@ class TestStage2Metadata(unittest.TestCase):
 
         summary = run_stage2(self.config, db=self.db, llm_client=llm_client)
         self.assertEqual(summary, {"processed": 2, "done": 1, "error": 1})
-        doc_missing = self.db.get_document(id_missing)
-        doc_ok = self.db.get_document(id_ok)
-        assert doc_missing is not None and doc_ok is not None
-        self.assertEqual(doc_missing["metadata_status"], "error")
-        self.assertEqual(doc_ok["metadata_status"], "done")
+        self.assertEqual(self.db.get_document(id_missing)["metadata_status"], "error")  # type: ignore[index]
+        self.assertEqual(self.db.get_document(id_ok)["metadata_status"], "done")  # type: ignore[index]
 
     def test_llm_error_marks_document_error_and_continues(self) -> None:
         id_bad = self._seed_ocr_done("bad_llm", "# Doc 1")
@@ -113,6 +199,9 @@ class TestStage2Metadata(unittest.TestCase):
         summary = run_stage2(self.config, db=self.db, llm_client=llm_client, limit=2)
         self.assertEqual(summary, {"processed": 2, "done": 2, "error": 0})
         self.assertEqual(llm_client.extract_metadata_json.call_count, 2)
+
+    def test_strip_html_tags_helper(self) -> None:
+        self.assertEqual(strip_html_tags("<p>Hello <b>NASA</b></p>"), "Hello NASA")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
 * text=auto eol=lf
 *.parquet binary
 *.pdf binary
+data/rag/chroma_db/*.sqlite3 filter=lfs diff=lfs merge=lfs -text
+data/rag/chroma_db/**/*.bin filter=lfs diff=lfs merge=lfs -text

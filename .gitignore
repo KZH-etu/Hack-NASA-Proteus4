@@ -21,6 +21,9 @@ data/raw/ntrs/*
 !data/raw/ntrs/catalog.csv
 !data/raw/ntrs/catalog.jsonl
 chroma/
+data/rag/markdown/
+data/rag/pdfs/
+data/rag/tracking.db
 
 # Streamlit
 .streamlit/secrets.toml

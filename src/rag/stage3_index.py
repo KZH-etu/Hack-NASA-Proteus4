@@ -16,6 +16,7 @@ from tqdm import tqdm
 from src.rag.config import RagConfig
 from src.rag.db import TrackingDB
 from src.rag.llm_client import LMStudioClient
+from src.rag.text_utils import strip_html_tags
 
 _HEADERS_TO_SPLIT_ON = [
     ("#", "h1"),
@@ -29,7 +30,11 @@ def chunk_markdown(
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
 ) -> list[dict[str, str]]:
-    """Split Markdown by headers then recursively, injecting a breadcrumb prefix."""
+    """Strip any HTML tags, split Markdown by headers then recursively, with breadcrumbs."""
+    clean_markdown = strip_html_tags(markdown_text)
+    if not clean_markdown:
+        return []
+
     header_splitter = MarkdownHeaderTextSplitter(
         headers_to_split_on=_HEADERS_TO_SPLIT_ON,
         strip_headers=True,
@@ -39,14 +44,14 @@ def chunk_markdown(
         chunk_overlap=chunk_overlap,
     )
 
-    sections = header_splitter.split_text(markdown_text)
+    sections = header_splitter.split_text(clean_markdown)
     if not sections:
         return []
 
     chunks: list[dict[str, str]] = []
     for section in sections:
         header_parts = [
-            section.metadata[key].strip()
+            strip_html_tags(str(section.metadata[key]))
             for _, key in _HEADERS_TO_SPLIT_ON
             if key in section.metadata and str(section.metadata[key]).strip()
         ]
@@ -54,7 +59,7 @@ def chunk_markdown(
 
         sub_chunks = text_splitter.split_text(section.page_content)
         for content in sub_chunks:
-            cleaned_content = content.strip()
+            cleaned_content = strip_html_tags(content)
             if not cleaned_content:
                 continue
             chunks.append(
@@ -72,11 +77,13 @@ def build_chroma_metadata(
     chunk_index: int,
     headers_path: str,
 ) -> dict[str, str | int]:
-    """Build ChromaDB-safe metadata (no None values)."""
+    """Build ChromaDB-safe metadata keyed by id_pdf (no None values, no document_id)."""
     year_raw = doc_row.get("experiment_year")
     experiment_year = int(year_raw) if year_raw is not None else 0
     return {
-        "document_id": int(doc_row["document_id"]),
+        "id_pdf": str(doc_row["id_pdf"]),
+        "title": str(doc_row.get("title") or ""),
+        "source_type": str(doc_row.get("source_type") or "autres"),
         "chunk_index": int(chunk_index),
         "headers_path": str(headers_path or "Document"),
         "mission_program": str(doc_row.get("mission_program") or "Unknown"),
@@ -114,17 +121,21 @@ def run(
         stage=3, retry_errors=retry_errors, limit=limit
     )
     if not pending:
+        tqdm.write("[Stage 3] Aucun document en attente.")
         return {"processed": 0, "done": 0, "error": 0}
 
+    tqdm.write(f"[Stage 3] {len(pending)} document(s) à indexer dans ChromaDB...")
     done_count = 0
     error_count = 0
+    total = len(pending)
 
-    for row in tqdm(pending, desc="Stage 3 - Indexing", unit="doc"):
-        doc_id = int(row["document_id"])
+    for idx, row in enumerate(tqdm(pending, desc="Stage 3 - Indexing", unit="doc"), start=1):
+        id_pdf = str(row["id_pdf"])
         md_filename = row.get("md_filename")
+        title = str(row.get("title") or md_filename or id_pdf)
         try:
             if not md_filename:
-                raise FileNotFoundError(f"Missing md_filename for document_id={doc_id}")
+                raise FileNotFoundError(f"Missing md_filename for id_pdf={id_pdf}")
             md_path = config.md_dir / str(md_filename)
             if not md_path.exists():
                 raise FileNotFoundError(f"Markdown file not found: {md_path}")
@@ -147,23 +158,28 @@ def run(
 
             ids = [str(uuid.uuid4()) for _ in chunks]
             metadatas = [
-                build_chroma_metadata(row, chunk_index=idx, headers_path=chunk["headers_path"])
-                for idx, chunk in enumerate(chunks)
+                build_chroma_metadata(row, chunk_index=c_idx, headers_path=chunk["headers_path"])
+                for c_idx, chunk in enumerate(chunks)
             ]
 
-            # Remove any stale chunks for this document_id before inserting
-            collection.delete(where={"document_id": doc_id})
+            collection.delete(where={"id_pdf": id_pdf})
             collection.add(
                 ids=ids,
                 documents=documents,
                 embeddings=embeddings,
                 metadatas=metadatas,
             )
-            tracking_db.mark_stage_done(doc_id, stage=3)
+            tracking_db.mark_stage_done(id_pdf, stage=3)
             done_count += 1
+            tqdm.write(
+                f"[Stage 3] ({idx}/{total}) OK -> {md_filename} ({len(chunks)} chunks) | {title[:60]}"
+            )
         except Exception as exc:
-            tracking_db.mark_stage_error(doc_id, stage=3, error_message=str(exc))
+            tracking_db.mark_stage_error(id_pdf, stage=3, error_message=str(exc))
             error_count += 1
+            tqdm.write(
+                f"[Stage 3] ({idx}/{total}) ERREUR -> {md_filename} ({id_pdf}) : {exc}"
+            )
 
     return {
         "processed": len(pending),
