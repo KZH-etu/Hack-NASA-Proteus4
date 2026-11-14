@@ -2,6 +2,7 @@
 
 Sorties :
 - unified.parquet          table catalogue, toutes familles (schéma src/common/schema.py)
+- experiments_all.csv      la même table en CSV (lisible sur GitHub), avec liens PSI et DOI
 - families/<famille>.parquet  une table de modélisation par famille physique, avec ses colonnes propres
 - campaigns.csv            une ligne par investigation PSI (DOI, plateforme, nb de lignes, statut)
 - skipped_rows.csv         lignes des tables sources écartées, avec la raison
@@ -23,18 +24,16 @@ from collections import Counter
 import pandas as pd
 
 from src.common.schema import COLUMNS, FUEL_TYPES, GRAVITY_LEVELS, OUTCOMES, QC_REASONS, check_qc_flags
-from src.data import droplets
+from src.data import aerosols, droplets, gas, solids
 from src.data.common import PROCESSED, RAW_PSI, psi_index
 
 # Familles traitées : nom -> module (chaque module expose build() et FAMILY_COLUMNS)
-FAMILIES = {"droplets": droplets}
+FAMILIES = {"droplets": droplets, "gas": gas, "solids": solids, "aerosols": aerosols}
+# Familles hors table catalogue (pas de combustion : fumées pour la détection)
+OUT_OF_CATALOGUE = {"aerosols"}
 
 # Investigations pas encore traitées (affichées comme « à faire » dans campaigns.csv et qc_report.md)
-PENDING = {
-    "PSI-39": "droplets", "PSI-159": "gas", "PSI-10": "gas", "PSI-107": "gas",
-    "PSI-26": "solids", "PSI-25": "solids", "PSI-98": "solids", "PSI-99": "solids", "PSI-100": "solids",
-    "PSI-101": "aerosols", "PSI-102": "aerosols",
-}
+PENDING = {}
 
 UNIFIED_DOCS = {
     "experiment": ("", "Nom de l'expérience"),
@@ -44,13 +43,13 @@ UNIFIED_DOCS = {
     "fuel_type": ("", f"Famille : {', '.join(FUEL_TYPES)}"),
     "material": ("", "Combustible ou matériau (minuscules)"),
     "geometry": ("", "Géométrie de l'échantillon"),
-    "o2_percent": ("%", "O2 initial, en % molaire"),
+    "o2_percent": ("%", "O2 initial côté oxydant, en % molaire (flammes inverses ACME : O2 du jet du brûleur)"),
     "pressure_kpa": ("kPa", "Pression ambiante"),
-    "flow_cm_s": ("cm/s", "Vitesse d'écoulement imposé ; vide si non quantifiée (ex. FLEX : gouttelettes libres ou à dérive lente)"),
+    "flow_cm_s": ("cm/s", "Vitesse d'écoulement imposé (SPICE : co-courant d'air) ; vide si non quantifiée (FLEX : gouttelettes libres ou à dérive lente) ou sans objet (ACME : brûleur sphérique en chambre calme)"),
     "gravity": ("", f"{' / '.join(GRAVITY_LEVELS)} ; ne jamais mélanger les deux dans un entraînement"),
     "outcome": ("", f"Issue normalisée : {', '.join(OUTCOMES)} (texte d'origine dans notes)"),
     "spread_rate_mm_s": ("mm/s", "Vitesse de propagation de flamme"),
-    "burning_rate": ("selon l'expérience", "Taux de combustion ; FLEX : constante K en mm²/s"),
+    "burning_rate": ("mm²/s", "Constante de combustion K des gouttelettes (FLEX) ; sans objet pour les gaz et les solides"),
     "source_doc": ("", "Fichier PSI ou document NASA d'où vient la ligne"),
     "source_page": ("", "Ligne du fichier PSI ou page du document"),
     "notes": ("", "Texte d'origine utile (issue brute, diluant, unités)"),
@@ -68,6 +67,9 @@ QC_REASON_DOCS = {
     "approx": "valeur approchée dans la source (« ~6 »)",
     "rampe": "condition variable pendant l'essai",
     "sans_allumage_chaud": "burn time = 0 car pas d'allumage chaud",
+    "qualitatif": "texte qualitatif à la place d'un nombre (« LOW O2 ») : vide, texte gardé en commentaire",
+    "erreur_excel": "erreur de formule dans la source (« #DIV/0! », « #VALUE! ») : vide",
+    "deduit": "déduit d'un texte explicite de la même ligne (ex. « 5 3 2 ext » -> extinction)",
 }
 
 ANNOTATION_TEMPLATES = {
@@ -130,16 +132,24 @@ def flag_counter(series):
 
 
 def empty_cells_report(df):
-    """Pour chaque colonne : cases vides, dont « sans objet » / « faux zéro vidé » (le reste = vraiment manquant)."""
+    """Pour chaque colonne, classe les cases vides : sans objet, faux zéro vidé, autre marque (rampe, erreur...),
+    colonne absente du fichier source ; le reste est vraiment manquant dans la source."""
     flags = df["qc_flags"].fillna("")
-    lines = ["| Colonne | Vides | dont sans objet | dont faux zéro vidé | vraiment manquants |", "|---|---:|---:|---:|---:|"]
+    lines = ["| Colonne | Vides | sans objet | faux zéro vidé | autre marque | absente du fichier source | vraiment manquants |",
+             "|---|---:|---:|---:|---:|---:|---:|"]
     for col in df.columns:
         empty = df[col].isna()
         if not empty.any() or col == "qc_flags":
             continue
-        sans_objet = (empty & flags.str.contains(f"{col}:sans_objet", regex=False)).sum()
-        zero = (empty & flags.str.contains(f"{col}:zero_fictif", regex=False) & ~flags.str.contains(f"{col}:sans_objet", regex=False)).sum()
-        lines.append(f"| `{col}` | {empty.sum()} / {len(df)} | {sans_objet} | {zero} | {empty.sum() - sans_objet - zero} |")
+        source = "source_file" if "source_file" in df else "source_doc"  # colonne absente de ce fichier source
+        has = lambda reason: flags.str.contains(f"{col}:{reason}", regex=False)
+        # une marque explicite l'emporte sur « absente du fichier » : elle dit pourquoi c'est vide
+        sans_objet = empty & has("sans_objet")
+        zero = empty & ~sans_objet & has("zero_fictif")
+        other = empty & ~sans_objet & ~zero & flags.str.contains(f"{col}:", regex=False)
+        absent = empty & ~sans_objet & ~zero & ~other & df.groupby(source)[col].transform(lambda s: s.isna().all())
+        missing = empty & ~absent & ~sans_objet & ~zero & ~other
+        lines.append(f"| `{col}` | {empty.sum()} / {len(df)} | {sans_objet.sum()} | {zero.sum()} | {other.sum()} | {absent.sum()} | {missing.sum()} |")
     return lines
 
 
@@ -151,7 +161,7 @@ def write_qc_report(unified, families, skipped, campaigns):
            "| PSI | Expérience | Famille | Lignes | Avec marques | Statut |", "|---|---|---|---:|---:|---|"]
     for c in campaigns:
         rows = unified[unified["psi_id"] == c["psi_id"]]
-        out.append(f"| {c['psi_id']} | {c['experiment']} | {c['family']} | {len(rows)} | {int(rows['qc_flags'].notna().sum())} | {c['status']} |")
+        out.append(f"| {c['psi_id']} | {c['experiment']} | {c['family']} | {len(rows) or c['n_rows_family']} | {int(rows['qc_flags'].notna().sum())} | {c['status']} |")
     out += ["", f"Lignes écartées : {len(skipped)} (détail dans `skipped_rows.csv`).", ""]
     for name, df in families.items():
         out += [f"## families/{name}.parquet ({len(df)} lignes)", "", "Marques les plus fréquentes :", ""]
@@ -174,11 +184,12 @@ def write_data_dictionary():
     (PROCESSED / "data_dictionary.md").write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
-def campaigns_table(unified):
+def campaigns_table(unified, families):
     rows = []
     for psi_id, meta in psi_index().items():
         info = json.loads(next(RAW_PSI.glob(f"{psi_id}_*/investigation.json")).read_text(encoding="utf-8"))
         n = int((unified["psi_id"] == psi_id).sum())
+        n_family = sum(int((df["psi_id"] == psi_id).sum()) for df in families.values())
         rows.append({
             "psi_id": psi_id,
             "experiment": meta["acronym"].replace("_", " "),
@@ -192,9 +203,18 @@ def campaigns_table(unified):
             "start": info.get("investigationStartDate"),
             "end": info.get("investigationEndDate"),
             "n_rows": n,
-            "status": "traité" if n else f"à faire ({PENDING.get(psi_id, '?')})",
+            "n_rows_family": n_family,
+            "status": "traité" if n else "traité (famille seulement, hors catalogue)" if n_family else f"à faire ({PENDING.get(psi_id, '?')})",
         })
     return rows
+
+
+def write_experiments_all(unified):
+    """unified en CSV, avec les liens vers l'investigation PSI et le DOI (équivalent d'experiments_all.csv)."""
+    out = unified.copy()
+    out["psi_url"] = "https://psi.nasa.gov/physci/repo/data/investigations/" + out["psi_id"]
+    out["doi_url"] = "https://doi.org/" + out["doi"]
+    out.to_csv(PROCESSED / "experiments_all.csv", index=False, encoding="utf-8")
 
 
 # ---------- Construction ----------
@@ -207,7 +227,8 @@ def main():
     for name, module in FAMILIES.items():
         family_df, unified_df, skipped_rows = module.build()
         families[name] = family_df
-        unified_parts.append(unified_df)
+        if name not in OUT_OF_CATALOGUE:
+            unified_parts.append(unified_df)
         skipped += skipped_rows
 
     unified = pd.concat(unified_parts, ignore_index=True)[list(COLUMNS)].astype(COLUMNS)
@@ -219,10 +240,11 @@ def main():
         raise SystemExit("Validation échouée :\n- " + "\n- ".join(errors))
 
     unified.to_parquet(PROCESSED / "unified.parquet", index=False)
+    write_experiments_all(unified)
     for name, df in families.items():
         df.to_parquet(PROCESSED / "families" / f"{name}.parquet", index=False)
 
-    campaigns = campaigns_table(unified)
+    campaigns = campaigns_table(unified, families)
     pd.DataFrame(campaigns).to_csv(PROCESSED / "campaigns.csv", index=False)
     pd.DataFrame(skipped, columns=["psi_id", "source_file", "source_line", "reason"]).to_csv(PROCESSED / "skipped_rows.csv", index=False)
     for file_name, header in ANNOTATION_TEMPLATES.items():
@@ -236,7 +258,7 @@ def main():
     print(f"unified.parquet : {len(unified)} lignes")
     for name, df in families.items():
         print(f"families/{name}.parquet : {len(df)} lignes")
-    print(f"Investigations traitées : {sum(1 for c in campaigns if c['n_rows'])} / {len(campaigns)}")
+    print(f"Investigations traitées : {sum(1 for c in campaigns if c['status'].startswith('traité'))} / {len(campaigns)}")
 
 
 if __name__ == "__main__":

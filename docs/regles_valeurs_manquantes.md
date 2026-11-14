@@ -16,7 +16,7 @@ Ces règles servent de spécification à `src/data/build_unified.py`.
 | **F. Incohérent** | garder la valeur et la signaler (la vider si physiquement impossible) | `<col>:incoherent` ou `<col>:a_verifier` |
 | **G. Piège : l'« évident » est faux** | **ne pas remplir** | — |
 
-Autres marques : `approx` (« ~6 »), `rampe` (« RAMPED », « 10, 5, 3 »), `sans_allumage_chaud` (ACME CFI-G). La liste fait foi dans `QC_REASONS` (`src/common/schema.py`), et `check_qc_flags()` vérifie une valeur.
+Autres marques : `deduit` (issue écrite en toutes lettres dans une autre colonne de la même ligne), `approx` (« ~6 »), `rampe` (« RAMP », « RAMPED », « 10, 5, 3 »), `sans_allumage_chaud` (ACME CFI-G), `qualitatif` (texte comme « LOW O2 » à la place d'un nombre, recopié dans les commentaires), `erreur_excel` (« #DIV/0! », « #VALUE! »). La liste fait foi dans `QC_REASONS` (`src/common/schema.py`), et `check_qc_flags()` vérifie une valeur.
 
 ## Colonnes du schéma absentes des tables sources
 
@@ -48,46 +48,103 @@ Référence des colonnes : NASA/TP-2015-216046 (NTRS 20150023456), Table IX, p. 
 - **Vitesse de propagation** : notion des solides, sans objet pour une gouttelette → `spread_rate_mm_s:sans_objet` dans la table unifiée.
 
 ### CFI (PSI-39)
-- **`Fiber` vide (9 lignes)** : **A**. Ne pas supposer « No ».
-- Une ligne (Flex 1220) a O2 + N2 + He = 0,97 : **F**.
-- Les pressions sont du texte avec unité (« 1 atm », « 1.25 atm ») : convertir.
+Chiffres vérifiés par `build_unified.py` (`families/droplets.parquet`, `experiment = CFI`).
+- **Table des conditions seulement** : pas d'issue, de diamètre ni de K dans la source → vides (**A**).
+- **8 copies exactes** (mêmes « Flex Number », date, CIR, conditions) → écartées dans `skipped_rows.csv`. Reste 79 essais.
+- **`Fiber` vide (9 lignes)** : **A**. Ne pas supposer « No » (`fiber_supported` vide).
+- **4 lignes avec O2 + N2 + He = 0,97** : `x_o2:incoherent`.
+- Pressions écrites avec leur unité (« 1 atm », « 1.25 atm », de 0,5 à 5 atm) → kPa.
+- Combustible « [.60]/[.40] C12H26/iso-dodecane » → `fuel = n-dodecane`, `fuel_main_fraction = 0,60` ; « C12H26 » seul → 1.
+
+### Flammes gazeuses : conventions communes (`families/gas.parquet`)
+Chiffres vérifiés par `build_unified.py`. Dans `qc_report.md`, chaque case vide est classée : sans objet, faux zéro vidé, autre marque, colonne absente du fichier source (ex. buse SPICE pour ACME), ou vraiment manquante.
+- **`flame_type`** : `normal` (combustible dans le jet, O2 dans la chambre), `inverse` (O2 dans le jet, combustible dans la chambre), `coflow` (SPICE).
+- **`o2_percent` dans la table unifiée = O2 côté oxydant.** Pour les flammes inverses ACME, c'est l'O2 du jet du brûleur (jusqu'à 85 %), pas une atmosphère de cabine. Il faut filtrer sur `flame_type` avant de comparer à un scénario d'habitat.
+- **`flow_cm_s`** : `sans_objet` pour ACME (brûleur sphérique en chambre calme, débits en mg/s dans `families/gas`) ; co-courant d'air pour SPICE.
+- **`spread_rate_mm_s` et `burning_rate`** : `sans_objet` pour les gaz.
+- **Date ACME** : déduite du code d'essai `AAJJJ…` (année + jour de l'année), convention donnée dans la table ACME s-Flame (PSI-23). `session` = ce jour d'essai.
 
 ### ACME CFI-G (PSI-159)
-- **« Cool flame? » vide (171 / 179)** : **G**. Ce n'est **pas** « non » : des commentaires mentionnent des flammes froides sur des lignes où cette colonne est vide (« direct cool - no hot ignition »). Laisser vide.
-- **« Hot ignition = No » ne veut pas dire « pas de flamme »** (piège **G**) : il peut y avoir une flamme froide sans allumage chaud.
-- **Burn time = 0 ou vide quand Hot ignition = No** : la durée de flamme **chaude** est bien 0. Harmoniser en 0 avec la marque `sans_allumage_chaud`.
-- Casse incohérente (`Yes` / `yes`, `Inverse` / `inverse`) : normaliser.
-- Table « Inverse Flames » : 861 lignes entièrement vides en fin de fichier, à supprimer.
+- **« Cool flame? » vide (171 / 179)** : **G**. Ce n'est **pas** « non ». `cool_flame` est rempli seulement si la colonne ou un commentaire est explicite (« Cool flame! », « direct cool », « No cool flame detected ») : 9 oui, 2 non, 322 vides.
+- **« Hot ignition = No » ne veut pas dire « pas de flamme »** (piège **G**) : 2 essais ont une flamme froide sans allumage chaud.
+- **Burn time quand Hot ignition = No (62 lignes)** : la durée de flamme **chaude** est 0 (4 étaient vides) → 0 + `sans_allumage_chaud`.
+- **Pression** : colonne « approx p (bar) » → kPa avec la marque `approx`.
+- **Xf = 0 et mHC = 0** (essais 21125A4 et 21125H3, sans allumage) : `x_fuel:a_verifier`.
+- **Température du brûleur** : convertie depuis la colonne en °C (+ 273,15). La colonne K de la table inverse (avec deux `#VALUE!` d'Excel) n'est pas utilisée. « - » → vide.
+- **Tad et Zst = `#DIV/0!`** (2 flammes normales) : vide + `erreur_excel`.
+- Casse incohérente (`Yes` / `yes`, `Inverse` / `inverse`, `Blue` / `blue`) : normalisée.
+- Table « Inverse Flames » : 861 lignes entièrement vides en fin de fichier, ignorées.
 
 ### ACME Flame Design (PSI-10)
+- **Pas d'issue dans la table** (le but était les limites de suie et d'extinction) : `outcome` vide, **A**.
 - **XO2 final, p final, p mean vides (20 lignes)** : tous les essais du jour 13 (21301*). Rien n'a été noté ce jour-là : **A**.
-- Valeurs `RAMPED` : condition variable pendant l'essai, donc pas une valeur unique. Laisser vide avec la marque `rampe`.
+- **`RAMP` / `RAMPED`** (60 flammes normales, 9 inverses) : condition variable pendant l'essai → vide + `rampe`.
+- **`LOW O2`** (2 flammes inverses) : texte qualitatif à la place d'un nombre → vide + `qualitatif`, texte recopié dans `comments`.
+- Flammes inverses : le combustible de la chambre est l'éthylène (colonnes « XC2H4 »).
 
 ### SPICE (PSI-107)
-- **Fuel Rate vide (12 lignes)** avec **HC Fuel Rate = 0** : perte de signal (« Ku LOS » dans les colonnes d'heure). Fuel Rate est **A**, et le 0 de HC Fuel Rate est un **faux zéro (E) → vide**.
-- **Air Rate négatif** (−0,28 et −5,92 cm/s, 8 lignes) : physiquement impossible, donc **F → vide**, avec la marque `incoherent`.
-- Combustibles « 75 % Propylene » : le diluant n'est pas précisé, **A**.
+- **34 copies exactes** (mêmes heures, mêmes débits que la ligne précédente) → écartées dans `skipped_rows.csv` (`copie_exacte`). Reste 435 points de mesure.
+- **Pas d'identifiant d'essai** : `test_id = GMT<jour>-L<ligne>` ; `session` = jour + heure d'allumage (une flamme). Pas d'année dans la table → `test_date` vide (**A**).
+- **O2 et pression : C (nominal)**. Co-courant d'air de la cabine dans la MSG → O2 21 % et 1 atm, marqués `nominal` (pression : NASA/TM-20210011385 p. 11, même boîte à gants).
+- **Combustible pur** quand le libellé n'a pas de pourcentage → `x_fuel = 1`. « 75 % Propylene » → `x_fuel = 0,75`, **diluant non précisé (A)**.
+- **Fuel Rate vide (12 lignes)** avec **HC Fuel Rate = 0** : perte de signal (« Ku LOS »). Le 0 est un **faux zéro (E) → vide** (7 lignes après retrait des copies).
+- **Air Rate négatif** (−0,28 et −5,92 cm/s, 8 lignes) : **F → vide**, marque `incoherent`.
+- Pas d'issue dans la table (point de fumée étudié) : `outcome` vide, **A**.
 
-### BASS (PSI-26) et BASS-II (PSI-25)
-- BASS-II, **« Fan display » vide (13 lignes)** : le débit est réglé au potentiomètre (colonne « Air display »). **A**, et sans gravité pour nous.
-- BASS-II, **O2 final très bas** (B2 : 1,6 % ; P22a : 0,6 % ; T28a : 0,9 %) : chute impossible dans la boîte à gants. **F**, à ne pas utiliser comme O2 de l'essai (on utilise l'O2 initial).
-- CO initial négatif (jusqu'à −3 ppm) : dérive du capteur, **F** (valeur gardée).
-- BASS, 1 ligne sans numéro d'essai (8/3/2012) : à vérifier dans l'Excel « As Run » ; c'est sans doute une ligne de commentaire.
+### Solides : conventions communes (`families/solids.parquet`)
+Chiffres vérifiés par `build_unified.py`.
+- **Matériau et géométrie** sont lus dans la description d'échantillon (« 1/4" black rod », « 2 cm 0.1 mm PMMA film », « SIBAL 2 cm »…). Diamètres des tiges : 1/4" = 6,35 mm, 3/8" = 9,525 mm, 1/2" = 12,7 mm.
+- **PMMA implicite** (tiges, sphères, sections sphériques, films sans le mot « PMMA ») : `material:doc` (BASS 30 lignes, BASS-II 57) ; sources : NASA/TM-20210011385 p. 47 et plans BASS (PSI-26, Engineering Documents). Une « candle » sans précision garde un matériau vide (3 lignes, **A**).
+- **Dimensions sans objet selon la géométrie** : pas de largeur ni d'épaisseur pour une tige, une sphère ou une bougie ; pas de diamètre pour un échantillon plat → `sans_objet`.
+- **Vitesse d'air** (« Air display » BASS / BASS-II, anémomètre en cm/s : NASA/TM-20210011385 p. 21, et observations BASS « at 10 cm/s ») :
+  - une seule valeur → `flow_cm_s` ;
+  - plusieurs valeurs (« 10, 5, 3 ») → `flow_cm_s` vide + `rampe`, avec `flow_min_cm_s` / `flow_max_cm_s` ;
+  - une valeur accompagnée de texte (« 3 ign », « 10 max ») → `qualitatif` ;
+  - les réglages du potentiomètre ne sont pas des vitesses : « 5 3 pot 0.4 », « 3 0.5 pot 0.4 pot », « 5 pots 0.4 0.36 0.32 » (tous les nombres après « pots ») sont ignorés (texte brut dans `flow_raw`) ;
+  - « <1 » compte pour 1 dans `flow_min_cm_s`, avec la marque `approx`.
+- **`spread_rate_mm_s` et `burning_rate`** : les vitesses de propagation BASS / BASS-II ne sont que dans les figures des rapports (**A**) ; `burning_rate` est `sans_objet`.
+
+### BASS (PSI-26)
+- La table PSI (essais) est enrichie par la matrice `As Run` (O2, pression mesurée 0,97–1,01 atm, CO2, vitesse d'air, observations). **Jointure sur (n° As Run, n° d'essai)** : les 121 essais sont appariés sans ambiguïté (le n° As Run seul est en double pour 5 essais, et les dates diffèrent de format, ex. « 6/29/`12 »).
+- `test_id` = `AR<n° As Run>-T<n° d'essai>`.
+- **1 ligne « SOOT Cleaning »** sans numéro d'essai : pas un essai → `skipped_rows.csv`.
+- **Issue** : « ext » ou « blowoff » écrit dans les colonnes de débit → `extinguished` + `outcome:deduit` (2 essais) ; sinon seulement dans les observations en texte libre → vide tant que `annotations/bass_outcomes.csv` n'est pas rempli.
+
+### BASS-II (PSI-25)
+- **Pression** : 101,325 kPa `nominal` (rapport p. 11 et 41).
+- **« Fan display » vide (13 lignes)** : réglage au potentiomètre, **A** sans conséquence (la vitesse est dans « Air display »).
+- **O2 final très bas** (B2 : 1,6 % ; P22a : 0,6 % ; T28a : 0,9 %) : `x_o2_final:incoherent`. Utiliser l'O2 initial.
+- **CO négatif** (jusqu'à −3 ppm) : dérive du capteur, valeur gardée + `incoherent`.
+- **Annexe A du rapport extraite automatiquement** (`python -m src.data.extract_bass2_appendix` → `annotations/bass2_appendix.csv`) : 126 essais sur 129 (O20–O22, essais de 2016, ne sont pas dans le rapport).
+  - **Sens de l'écoulement** (colonne du tableau) : 120 essais (67 opposed, 38 concurrent, 15 stagnation pour les bougies) → `flow_direction:doc`.
+  - **Observations** recopiées dans `observations`.
+  - **Issue** déduite des observations **seulement si elle y est écrite** (« extinguished », « blew out », « flame out at 0.28 », « burned entire sample », « did not ignite ») → `outcome:deduit`. Les tournures négatives sont retirées avant de classer (« did not blowoff », « no blowoff attained », « still did not extinguish »). Une flamme qui ne tient qu'avec l'allumeur (« died upon igniter removal », « no sustained flame at any flow ») → `no_ignition`.
+  - Ordre de priorité : saisie manuelle (`annotations/bass_outcomes.csv`, marque `doc`) > annexe extraite > mots écrits dans « Air display » / « Fan display » (« 5 3 2 ext », « 10 blowoff », « out .275 », « no ign »).
+  - Résultat : 102 issues sur 129 (89 extinguished, 10 burned, 3 no_ignition). Les 27 autres ont des observations sans issue explicite (« Steady burn », « Mostly blue ») : vides, à relire si besoin.
+  - Comparaison avec Krypton-N : ils ont 25 issues (mots des colonnes de débit) ; les 3 désaccords (O12, P9, O6) ont été relus un par un et corrigés de notre côté.
 
 ### Saffire I, II, III (PSI-98, 99, 100)
-- **Lignes de visualisation d'écoulement** (`F1C1/F1C2`…) et **lignes « Note 1…4 »** de Saffire-II : ce ne sont pas des essais. À exclure. Le texte des notes va dans `notes` des lignes concernées.
-- **Saffire-II, matériau vide pour 2-6 et 2-9** : **C**. 2-6 = tissu SIBAL et 2-9 = PMMA plat de 10 mm, d'après NTRS 20170001636 (Table 1, échantillons S6 et S9).
-- **Saffire-II, longueur de propagation µg vide pour le silicone (2-1 à 2-4)** : la longueur brûlée est ~0, donc pas de propagation. **B (sans objet)**, pas un manquant.
-- **Saffire-II, vitesse 1g vide pour 2-3** : longueur brûlée en 1g ~0, **B**.
+- **Lignes de visualisation d'écoulement** (`F1C1/F1C2`…) et **lignes « Note 1…4 »** : écartées (`skipped_rows.csv`) ; le texte des notes est recopié dans `observations` / `notes` des échantillons qui y renvoient (la Note 1, « O2 déduit de la production de CO2 », concerne la colonne O2 de tous les essais en vol de Saffire-II).
+- **Saffire-II : chaque échantillon donne 2 lignes** : vol (`gravity = micro`) et essai de comparaison au sol (`test_id` + `-1g`, `gravity = 1g`). Pour le sol, O2, débit et pression ne sont pas donnés : **A**.
+- **Matériau vide pour 2-6 et 2-9** : **C**. 2-6 = SIBAL et 2-9 = PMMA plat de 10 mm, d'après NTRS 20170001636 (Table 1) ; 2-8 = PMMA « structuré » (`geometry:doc`).
+- **Longueur brûlée « Complete »** : `burn_complete = True` et longueur brûlée = longueur de l'échantillon (`recopie`). Sinon, `burn_complete` est déduit en comparant les deux longueurs de la même ligne.
+- **Longueur brûlée « ~ 0 »** (silicone, Nomex) : 0 + `approx`, issue `other` (pas de propagation) ; vitesse de propagation `sans_objet`. « n/a (Nomex) » → `sans_objet`.
+- **Vitesse en 1g « Acceleratory »** : pas de vitesse unique → vide + `qualitatif`, `spread_mode = acceleratory`. « Note 4 » (flamme ancrée à la base, régression 0,01–0,04 mm/s) → vide + `qualitatif`.
+- **O2 en fourchette** (« 21.5 - 21.7 », « 22.1 to 22.0 ») : milieu de la fourchette + `approx`.
 - **Épaisseurs incohérentes (F)** :
-  - Saffire-I indique « 0,37 cm » et Saffire-III « 0,33 cm » de SIBAL, alors que le document NASA donne **0,33 mm**. L'unité « cm » de ces tables est probablement fausse (un tissu de 3,7 mm n'est pas réaliste).
-  - Saffire-II « 037 mm » = 0,37 mm (décimale manquante).
-- **Saffire-I, longueur et largeur inversées ?** : la table donne longueur 40,6 cm et largeur 94 cm, alors que le document NASA donne 0,4 m × 0,95 m (large × long). Marque **F**.
-- **Saffire-II, débit** : la table donne 20 cm/s pour tous les échantillons. Mais l'investigation PSI dit « 20 ou 30 cm/s selon le matériau », et le document de 2016 prévoyait 30 cm/s pour S6. On garde la table, avec la marque `a_verifier`.
+  - Saffire-I indique « 0,37 cm » et Saffire-III « 0,33 cm » de SIBAL, alors que le document NASA donne **0,33 mm**. Valeur de la table gardée (3,7 et 3,3 mm) + `incoherent` ; un tissu de 3,7 mm n'est pas réaliste.
+  - Saffire-II « 037 mm » = 0,37 mm (décimale manquante) + `a_verifier`.
+- **Saffire-I, longueur et largeur inversées ?** : 40,6 cm × 94 cm dans la table, 0,4 m (large) × 0,95 m (long) dans le document NASA → `a_verifier`.
+- **Saffire-II, débit** : 20 cm/s partout dans la table, alors que l'investigation PSI dit « 20 ou 30 cm/s selon le matériau » et que le document de 2016 prévoyait 30 cm/s pour S6 → `a_verifier`.
+- **Saffire-III** : O2 et pression mesurés par des capteurs mais seulement dans la télémétrie (non téléchargée) → vides. Pas de résultat de combustion dans la table → `outcome` vide.
+- Issue : longueur brûlée > 0 ou « Complete » → `burned` ; ~ 0 ou cas mixte PMMA / Nomex (2-7) → `other` ; Saffire-I : durée de combustion > 0 → `burned`.
 
 ### SAME (PSI-102) et SAME-R (PSI-101), hors modèle
-- SAME, échantillons 5 à 8 : la source dit explicitement « same conditions as 1-4 ». **D** : chaque matériau a 4 conditions, à dupliquer depuis les lignes 1 à 4.
-- SAME-R, lignes « a » (61a, 62a…) : mesure du **même** échantillon après vieillissement. Durée et temps de vieillissement primaire viennent de la ligne parente (61, 62…) : **D**.
+Fumées de matériaux chauffés, sans flamme : `families/aerosols.parquet` seulement, **pas dans `unified.parquet`** (catalogue des essais de combustion).
+- SAME, échantillons 5 à 8 : la source dit explicitement « same conditions as 1-4 ». **D** : une ligne par condition des essais 1 à 4 (`test_id` « 5-c1 »…), marque `recopie`. 8 lignes source → 20 lignes.
+- SAME-R, lignes « a » (61a, 62a…) : mesure du **même** échantillon après vieillissement. Durée, vieillissement et mélange primaires recopiés de la ligne parente (`parent_test`) : **D**, marque `recopie`.
+- SAME-R : dates sans année dans la source (« 21-Jul ») → gardées telles quelles dans `date_raw`.
+- Le n° d'essai 57 existe pour deux matériaux (Lampwick et Teflon) : la clé est (matériau, n° d'essai).
 - SAME-R, « Inlet velocity = 0 » (22 lignes) : vrais zéros (essais « No flow run »).
 
 ## Correspondance des issues vers `outcome`
@@ -105,7 +162,8 @@ Valeurs autorisées : `OUTCOMES` dans `src/common/schema.py`. Le texte d'origine
 | ACME CFI-G | Hot ignition = no + `FT` (1 ligne, Normal Flames) | `no_ignition` + `outcome:a_verifier` |
 | Saffire I–III | longueur brûlée > 0 ou « Complete » | `burned` |
 | Saffire-II | longueur brûlée µg « ~ 0 » (silicone 2-1 à 2-4, Nomex de 2-7) | `other`, avec la note « pas de propagation » (on ne sait pas s'il y a eu un allumage bref) |
-| BASS, BASS-II | observations en texte libre | vide tant que `data/processed/annotations/` n'est pas rempli ; ensuite issue annotée + `outcome:doc` + page |
+| BASS-II | observations de l'annexe A du rapport, puis mots des colonnes de débit | issue écrite explicitement → `outcome:deduit` (voir BASS-II) ; saisie manuelle → `outcome:doc` |
+| BASS | mots des colonnes de débit (« ext ») ; observations As Run en texte libre | `outcome:deduit` (2 essais) ; le reste à annoter |
 | ACME Flame Design, SPICE, CFI, SAME, SAME-R | pas d'issue enregistrée dans la table | vide (**A**) |
 
 ## Ce que ça change pour le schéma

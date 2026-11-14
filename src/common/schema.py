@@ -28,6 +28,9 @@ QC_REASONS = (
     "approx",               # valeur approchée dans la source (« ~6 », « ~ 21.5 »)
     "rampe",                # condition variable pendant l'essai (« RAMPED », « 10, 5, 3 »)
     "sans_allumage_chaud",  # burn time = 0 car pas d'allumage chaud (ACME CFI-G)
+    "qualitatif",           # texte qualitatif à la place d'un nombre (« LOW O2 ») : vide, texte gardé dans les commentaires
+    "erreur_excel",         # erreur de formule dans la source (« #DIV/0! », « #VALUE! ») : vide
+    "deduit",               # déduit d'un texte explicite de la même ligne (ex. « 5 3 2 ext » -> extinction)
 )
 
 
