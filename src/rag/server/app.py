@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import re
 from contextlib import asynccontextmanager
 from typing import Any, Callable
 
@@ -16,7 +17,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.rag.config import RagConfig
 from src.rag.llm_client import LMStudioClient
-from src.rag.server.schemas import HealthResponse, RetrieveRequest
+from src.rag.server.schemas import (
+    HealthResponse,
+    RetrieveMetadata,
+    RetrieveRequest,
+    RetrieveResult,
+)
 from src.rag.storage.chroma_release import SyncResult, ensure_chroma_db_up_to_date
 
 logger = logging.getLogger(__name__)
@@ -133,13 +139,67 @@ def _fetch_neighbors_map(
     return chunk_map
 
 
-def _retrieve_contexts(
+def _clean_text(value: Any) -> str | None:
+    """Return a stripped non-empty string unless it is an 'Unknown' sentinel."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.lower() == "unknown":
+        return None
+    return text
+
+
+def _clean_int(value: Any) -> int | None:
+    """Safely coerce an integer metadata field when present."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _extract_ntrs_id(*urls: str | None) -> str | None:
+    """Extract a numeric NASA NTRS identifier from citation or PDF URLs."""
+    for url in urls:
+        if not url:
+            continue
+        match = re.search(r"(\d{7,})", url)
+        if match:
+            return match.group(1)
+    return None
+
+
+def _build_retrieve_metadata(meta: dict[str, Any]) -> RetrieveMetadata:
+    """Normalize ChromaDB metadata fields into a structured RetrieveMetadata model."""
+    pdf_url = _clean_text(meta.get("pdf_url"))
+    experiment_url = _clean_text(meta.get("experiment_url"))
+    ntrs_id = _clean_text(meta.get("ntrs_id")) or _extract_ntrs_id(experiment_url, pdf_url)
+    page = _clean_int(meta.get("page") if meta.get("page") is not None else meta.get("page_number"))
+
+    return RetrieveMetadata(
+        id_pdf=_clean_text(meta.get("id_pdf")),
+        chunk_index=_clean_int(meta.get("chunk_index")),
+        title=_clean_text(meta.get("title")),
+        authors=_clean_text(meta.get("authors")),
+        experiment_year=_clean_int(meta.get("experiment_year")),
+        mission_program=_clean_text(meta.get("mission_program")),
+        source_type=_clean_text(meta.get("source_type")),
+        headers_path=_clean_text(meta.get("headers_path")),
+        pdf_url=pdf_url,
+        experiment_url=experiment_url,
+        ntrs_id=ntrs_id,
+        page=page,
+    )
+
+
+def _retrieve_results(
     collection: Any,
     query_vector: list[float],
     top_k: int,
     neighbors: int,
-) -> list[str]:
-    """Query ChromaDB and return one concatenated context string per hit."""
+) -> list[RetrieveResult]:
+    """Query ChromaDB and return merged passage text paired with document metadata."""
     total_chunks = int(collection.count())
     if total_chunks == 0:
         return []
@@ -156,7 +216,7 @@ def _retrieve_contexts(
         return []
 
     neighbor_map = _fetch_neighbors_map(collection, metadatas, neighbors)
-    contexts: list[str] = []
+    results: list[RetrieveResult] = []
 
     for idx, hit_doc in enumerate(documents):
         meta = metadatas[idx] if idx < len(metadatas) else {}
@@ -177,9 +237,33 @@ def _retrieve_contexts(
         else:
             merged_text = hit_body
 
-        contexts.append(_format_context_block(meta, merged_text))
+        results.append(
+            RetrieveResult(
+                text=merged_text,
+                context_block=_format_context_block(meta, merged_text),
+                metadata=_build_retrieve_metadata(meta),
+            )
+        )
 
-    return contexts
+    return results
+
+
+def _retrieve_contexts(
+    collection: Any,
+    query_vector: list[float],
+    top_k: int,
+    neighbors: int,
+) -> list[str]:
+    """Query ChromaDB and return one concatenated context string per hit."""
+    return [
+        item.context_block
+        for item in _retrieve_results(
+            collection=collection,
+            query_vector=query_vector,
+            top_k=top_k,
+            neighbors=neighbors,
+        )
+    ]
 
 
 def create_app(
@@ -260,8 +344,8 @@ def create_app(
             chunk_count=int(collection.count()),
         )
 
-    @application.post("/retrieve", response_model=list[str])
-    def retrieve(payload: RetrieveRequest) -> list[str]:
+    @application.post("/retrieve", response_model=list[RetrieveResult])
+    def retrieve(payload: RetrieveRequest) -> list[RetrieveResult]:
         collection = application.state.collection
         embedder: LMStudioClient = application.state.llm_client
         if int(collection.count()) == 0:
@@ -275,7 +359,7 @@ def create_app(
                 detail=f"Impossible de calculer l'embedding de la requête : {exc}",
             ) from exc
 
-        return _retrieve_contexts(
+        return _retrieve_results(
             collection=collection,
             query_vector=query_vector,
             top_k=payload.top_k,
@@ -294,7 +378,7 @@ def main(argv: list[str] | None = None) -> int:
         description="Lance le serveur web FastAPI RAG après synchronisation ChromaDB."
     )
     parser.add_argument("--host", default="127.0.0.1", help="Adresse d'écoute.")
-    parser.add_argument("--port", type=int, default=8000, help="Port d'écoute.")
+    parser.add_argument("--port", type=int, default=8001, help="Port d'écoute.")
     parser.add_argument(
         "--skip-sync",
         action="store_true",

@@ -5,9 +5,9 @@ API REST **FastAPI + Uvicorn** dédiée au retrieval sémantique sur la base vec
 ## Lancement & Synchronisation au démarrage
 
 ```bash
-python -m src.rag.server --host 127.0.0.1 --port 8000
+python -m src.rag.server --host 127.0.0.1 --port 8001
 # ou directement avec Uvicorn :
-uvicorn src.rag.server:app --host 127.0.0.1 --port 8000
+uvicorn src.rag.server:app --host 127.0.0.1 --port 8001
 ```
 
 Avant d'accepter des requêtes (`lifespan`), le serveur :
@@ -15,7 +15,7 @@ Avant d'accepter des requêtes (`lifespan`), le serveur :
 2. Télécharge et décompresse automatiquement la dernière release si la base locale est absente ou obsolète (`RAG_SKIP_CHROMA_SYNC=1` ou `--skip-sync` pour désactiver).
 3. Ouvre la collection ChromaDB (`nasa_scientific_reports`) et initialise le client d'embedding LM Studio (`text-embedding-qwen3-embedding-0.6b`).
 
-- **URL de base par défaut :** `http://127.0.0.1:8000`
+- **URL de base par défaut :** `http://127.0.0.1:8001`
 - **Documentation interactive Swagger / OpenAPI :** `GET /docs` et `GET /openapi.json`
 - **CORS :** activé (`Access-Control-Allow-Origin: *`)
 
@@ -60,7 +60,7 @@ curl -s http://127.0.0.1:8000/health
 
 ### 2. `POST /retrieve`
 
-Calcule l'embedding dense de la requête via LM Studio (`text-embedding-qwen3-embedding-0.6b`), récupère les `top_k` chunks les plus proches dans ChromaDB, va chercher pour chaque hit ses chunks collés avant et après dans le même document (`chunk_index - neighbors .. chunk_index + neighbors`), concatène leurs textes (en fusionnant les chevauchements exacts) et renvoie directement une **liste de chaînes de caractères** prête à être injectée dans le prompt d'un LLM.
+Calcule l'embedding dense de la requête via LM Studio (`text-embedding-qwen3-embedding-0.6b`), récupère les `top_k` chunks les plus proches dans ChromaDB, va chercher pour chaque hit ses chunks collés avant et après dans le même document (`chunk_index - neighbors .. chunk_index + neighbors`), concatène leurs textes (en fusionnant les chevauchements exacts) et renvoie une **liste d'objets structurés** (`RetrieveResult`) contenant le texte extrait, le bloc formaté LLM et les métadonnées documentaires (titre, auteurs, année, mission, lien PDF, lien NASA...).
 
 #### Corps de la requête (`application/json`)
 
@@ -72,11 +72,13 @@ Calcule l'embedding dense de la requête via LM Studio (`text-embedding-qwen3-em
 
 #### Réponse `200 OK` (`application/json`)
 
-Type : `array<string>` (`list[str]`).
+Type : `array<RetrieveResult>` (`list[RetrieveResult]`).
 
-Chaque élément de la liste correspond à un hit et contient :
-- un en-tête avec les métadonnées du document source (`Document`, `Auteurs`, `Mission`, `Année`, `Source`, `Section`, `URL`),
-- suivi du texte concaténé du chunk précédent, du chunk trouvé et du chunk suivant (`[chunk_index - neighbors .. chunk_index + neighbors]`).
+| Champ | Type | Description |
+|---|---|---|
+| `text` | `string` | Texte fusionné du chunk pertinent et de ses voisins (`[chunk_index - neighbors .. chunk_index + neighbors]`). |
+| `context_block` | `string` | Passage complet préfixé d'un en-tête documentaire prêt à être injecté dans un prompt LLM. |
+| `metadata` | `object` | Métadonnées structurées issues de ChromaDB (`id_pdf`, `chunk_index`, `title`, `authors`, `experiment_year`, `mission_program`, `source_type`, `headers_path`, `pdf_url`, `experiment_url`, `ntrs_id`, `page`). |
 
 #### Codes d'erreur
 
@@ -88,7 +90,7 @@ Chaque élément de la liste correspond à un hit et contient :
 #### Exemple `curl`
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/retrieve \
+curl -s -X POST http://127.0.0.1:8001/retrieve \
   -H "Content-Type: application/json" \
   -d '{
     "query": "heptane droplet extinction diameter in microgravity",
@@ -101,7 +103,23 @@ curl -s -X POST http://127.0.0.1:8000/retrieve \
 
 ```json
 [
-  "Document : Detailed Results From FLEX\nAuteurs : F. L. Dryer, V. Nayagam | Mission : ISS | Année : 2015 | Source : ntrs\nSection : Results > Flame Extinction\nURL : https://ntrs.nasa.gov/citations/20150023456\n---\nTexte du chunk précédent... Texte du chunk correspondant... Texte du chunk suivant...",
-  "Document : ..."
+  {
+    "text": "Texte du chunk précédent... Texte du chunk correspondant... Texte du chunk suivant...",
+    "context_block": "Document : Detailed Results From FLEX\nAuteurs : F. L. Dryer, V. Nayagam | Mission : ISS | Année : 2015 | Source : ntrs\nSection : Results > Flame Extinction\nURL : https://ntrs.nasa.gov/citations/20150023456\n---\nTexte du chunk précédent... Texte du chunk correspondant... Texte du chunk suivant...",
+    "metadata": {
+      "id_pdf": "doc-123",
+      "chunk_index": 4,
+      "title": "Detailed Results From FLEX",
+      "authors": "F. L. Dryer, V. Nayagam",
+      "experiment_year": 2015,
+      "mission_program": "ISS",
+      "source_type": "ntrs",
+      "headers_path": "Results > Flame Extinction",
+      "pdf_url": "https://ntrs.nasa.gov/api/citations/20150023456/downloads/20150023456.pdf",
+      "experiment_url": "https://ntrs.nasa.gov/citations/20150023456",
+      "ntrs_id": "20150023456",
+      "page": null
+    }
+  }
 ]
 ```

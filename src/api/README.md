@@ -1,21 +1,28 @@
 # API HEPHAISTOS
 
-Un seul serveur pour l'interface, les prédictions et le chat :
+L'application repose sur deux serveurs complémentaires :
 
 ```bash
-python -m src.api            # http://127.0.0.1:8000  (documentation interactive : /docs)
+# 1. Serveur RAG (ChromaDB + embeddings LM Studio) sur le port 8001
+python -m src.rag.server --host 127.0.0.1 --port 8001
+
+# 2. API principale HEPHAISTOS (/predict, /ask via Google Gemini, interface web) sur le port 8000
+python -m src.api --host 127.0.0.1 --port 8000
 ```
 
 | Route | Rôle | Code |
 |---|---|---|
 | `GET /` | interface HEPHAISTOS (`app/frontend_hephaistos/`) | `app.py` |
 | `POST /predict` | prédiction au format de la page → `model_gp`, avec les essais NASA proches en sources | `predict.py` |
-| `GET /models/status` | état des modèles (préchauffés au démarrage) et du RAG | `app.py` |
-| `POST /ask` | chat : passages du RAG puis réponse rédigée par le LLM de LM Studio, avec sources | `ask.py` |
-| `GET /health`, `POST /retrieve` | routes du serveur RAG (`src/rag/server`), reprises sans modification | `src/rag/server` |
+| `GET /models/status` | état des modèles ML, du serveur RAG distant (`:8001`) et de la config Gemini | `app.py` |
+| `POST /ask` | chat : interroge `POST {RAG_SERVER_URL}/retrieve`, rédige avec `GEMINI_MODEL` (`gemini-3.8-flash`) et renvoie réponse + sources complètes | `ask.py` |
 
-Le serveur RAG de `src/rag/server` n'est pas modifié : `app.py` crée son application avec `create_app()`, exécute son démarrage (base ChromaDB, LM Studio) et reprend ses routes. Si le RAG ne démarre pas, les prédictions restent disponibles et `/models/status` donne la raison.
+## Variables d'environnement (`.env`)
 
-Variables utiles : `RAG_CHAT_MODEL` (modèle de chat de LM Studio), `HEPHAISTOS_API_KEY` (clé facultative, en-tête `X-API-Key`), et celles du RAG (`src/rag/config.py`).
+Voir [`.env.example`](../../.env.example) à la racine du dépôt :
+- `GEMINI_API_KEY` : clé API Google AI Studio (obligatoire pour `/ask`).
+- `GEMINI_MODEL` : modèle Gemini utilisé par `/ask` (défaut : `gemini-3.8-flash`).
+- `RAG_SERVER_URL` : URL du serveur RAG (défaut : `http://127.0.0.1:8001`).
+- `HEPHAISTOS_API_KEY` : clé facultative vérifiée sur l'en-tête `X-API-Key`.
 
-Format des requêtes et réponses, et ce que la page doit afficher : `docs/guide_dashboard.md`. Tests : `pytest src/api/tests`.
+Tests : `pytest src/api/tests`.

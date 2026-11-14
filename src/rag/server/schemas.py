@@ -26,6 +26,37 @@ class RetrieveRequest(BaseModel):
     )
 
 
+class RetrieveMetadata(BaseModel):
+    """Document and chunk metadata associated with a retrieved passage."""
+
+    id_pdf: str | None = Field(default=None, description="Identifiant interne du document PDF.")
+    chunk_index: int | None = Field(default=None, description="Index du chunk central dans le document.")
+    title: str | None = Field(default=None, description="Titre du document ou du rapport scientifique.")
+    authors: str | None = Field(default=None, description="Auteurs du document.")
+    experiment_year: int | None = Field(default=None, description="Année de rédaction ou d'expérience.")
+    mission_program: str | None = Field(default=None, description="Programme ou mission NASA associé(e).")
+    source_type: str | None = Field(default=None, description="Origine documentaire (ex. ntrs, psi).")
+    headers_path: str | None = Field(default=None, description="Fil d'Ariane des sections Markdown.")
+    pdf_url: str | None = Field(default=None, description="Lien direct vers le PDF source.")
+    experiment_url: str | None = Field(default=None, description="Lien vers la fiche NASA / NTRS.")
+    ntrs_id: str | None = Field(default=None, description="Identifiant NTRS extrait de l'URL si disponible.")
+    page: int | None = Field(default=None, description="Numéro de page du chunk si disponible.")
+
+
+class RetrieveResult(BaseModel):
+    """Single retrieved passage containing merged text and full document metadata."""
+
+    text: str = Field(..., description="Texte fusionné du chunk pertinent et de ses voisins.")
+    context_block: str = Field(
+        ...,
+        description="Passage formaté avec en-tête documentaire prêt pour un prompt LLM.",
+    )
+    metadata: RetrieveMetadata = Field(
+        default_factory=RetrieveMetadata,
+        description="Métadonnées structurées du document source.",
+    )
+
+
 class HealthResponse(BaseModel):
     """Health check payload returned by GET /health."""
 

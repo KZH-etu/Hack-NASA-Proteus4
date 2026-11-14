@@ -160,6 +160,39 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
 .legend i{display:inline-block;width:46px;height:6px;background:linear-gradient(90deg,rgb(79,141,255),rgb(252,61,33))}
 /* Téléphone : une seule colonne qui défile normalement (pas de zones de défilement imbriquées) */
 @media(max-width:800px){#predict .split{display:block;overflow:auto}#predict .left,#predict .right,#predict .pred,#predict .src{overflow:visible}#predict .right{display:block}}
+/* Réponses et sources enrichies du chatbot */
+#chat .chat-answer{white-space:normal;display:grid;gap:8px;line-height:1.55}
+#chat .chat-answer p,#chat .chat-answer h3,#chat .chat-answer ul,#chat .chat-answer ol{margin:0}
+#chat .chat-answer h3{font-size:14px;font-weight:700;color:#0b3d91;margin-top:4px}
+#chat .chat-answer ul,#chat .chat-answer ol{padding-left:20px;display:grid;gap:4px}
+#chat .chat-code{font-family:ui-monospace,Consolas,monospace;font-size:.9em;background:#e6ebf2;padding:1px 4px;border-radius:3px}
+#chat .cite-ref{display:inline-block;margin:0 1px;padding:0 5px;border-radius:3px;background:#e8effa;color:#0b3d91;font-size:11px;font-weight:700;text-decoration:none;vertical-align:baseline;border:1px solid #c6d6f0;cursor:pointer}
+#chat .cite-ref:hover,#chat .cite-ref:focus-visible{background:#0b3d91;color:#fff;border-color:#0b3d91;outline:none}
+#chat .s{margin-top:12px;padding-top:10px;border-top:1px solid #e4e4e4;font-size:13px}
+#chat .s-title{display:block;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#0b3d91;margin-bottom:8px}
+#chat .chat-sources{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+#chat .src-item{background:#f7f9fc;border:1px solid #dde5f2;border-left:3px solid #0b3d91;padding:8px 10px;border-radius:4px}
+#chat .src-item:target,#chat .src-item.src-highlight{border-color:#fc3d21;box-shadow:0 0 0 2px rgba(252,61,33,.18)}
+#chat .src-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;margin-bottom:3px}
+#chat .src-idx{font-weight:800;color:#0b3d91;font-size:12px}
+#chat .src-meta{color:#444;font-size:12px;line-height:1.4}
+#chat .src-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:5px;font-size:12px}
+#chat .src-links a{color:#0b3d91;font-weight:600;text-decoration:underline}
+#chat .src-links a:hover{color:#fc3d21}
+#chat .src-excerpt{margin-top:7px;padding-top:6px;border-top:1px dashed #cfd9ea}
+#chat .src-excerpt > summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-size:12px;font-weight:600;color:#0b3d91;user-select:none}
+#chat .src-excerpt > summary::-webkit-details-marker{display:none}
+#chat .src-excerpt > summary::before{content:"";width:0;height:0;border-left:5px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;transform:rotate(0deg)}
+#chat .src-excerpt[open] > summary::before{transform:rotate(90deg)}
+#chat .src-excerpt > summary:hover,#chat .src-excerpt > summary:focus-visible{color:#fc3d21;outline:none}
+#chat .src-excerpt-body{margin-top:6px;display:grid;gap:6px}
+#chat .src-excerpt-text{margin:0;padding:8px 10px;background:#fff;border:1px solid #dde5f2;border-radius:3px;font-size:12px;line-height:1.45;color:#222;white-space:pre-wrap;word-break:break-word}
+#chat .src-excerpt::details-content{interpolate-size:allow-keywords;overflow:clip;contain:layout}
+#chat .src-excerpt:not([open])::details-content{block-size:0}
+@media(prefers-reduced-motion:no-preference){
+  #chat .src-excerpt > summary::before{transition:transform .2s ease}
+  #chat .src-excerpt::details-content{transition:block-size .22s ease,content-visibility .22s allow-discrete,display .22s allow-discrete}
+}
 </style>
 </head>
 <body>
@@ -354,18 +387,39 @@ document.addEventListener("click", e => {
 const OUTCOME_FR = {extinguished:"extinction", burned:"a brûlé", completion:"brûlée jusqu’au bout",
                     disruption:"goutte éclatée", no_ignition:"ne s’est pas allumée"};
 const fr = v => (v == null || v === "") ? v : Number(v).toLocaleString("fr-FR", {maximumFractionDigits: 3});
+function safeHttpUrl(raw){
+  if(!raw) return null;
+  try{
+    const parsed = new URL(String(raw), window.location.href);
+    return (parsed.protocol === "http:" || parsed.protocol === "https:") ? parsed.href : null;
+  }catch{
+    return null;
+  }
+}
 function renderSource(s){
   const parts = [];
-  const head = [s.experiment, s.psi_id && "(" + s.psi_id + ")", s.test_id && "essai " + s.test_id, s.title, s.ntrs_id && "NTRS " + s.ntrs_id].filter(Boolean).join(" ");
+  const head = [s.index != null && "[" + s.index + "]", s.experiment, s.psi_id && "(" + s.psi_id + ")", s.test_id && "essai " + s.test_id, s.title, s.year && "(" + s.year + ")", s.ntrs_id && "NTRS " + s.ntrs_id].filter(Boolean).join(" ");
   if(head) parts.push("<strong>" + esc(head) + "</strong>");
   const cond = [s.material, s.o2_percent != null && "O₂ " + fr(s.o2_percent) + " %", s.pressure_kpa != null && fr(s.pressure_kpa) + " kPa", s.flow_cm_s != null && fr(s.flow_cm_s) + " cm/s"].filter(Boolean).join(", ");
   if(cond) parts.push(esc(cond));
   if(s.outcome) parts.push('Issue : <span class="outcome">' + esc(OUTCOME_FR[s.outcome] || s.outcome) + "</span>");
+  const metaLine = [s.authors, s.mission_program && "Mission : " + s.mission_program, s.headers_path && "Section : " + s.headers_path, s.source_type && s.source_type.toUpperCase()].filter(Boolean).join(" • ");
+  if(metaLine) parts.push(esc(metaLine));
   const doc = [s.source_doc, (s.source_page || s.page) && "p. " + (s.source_page || s.page)].filter(Boolean).join(", ");
   if(doc) parts.push(esc(doc));
-  const link = s.url || (s.doi && "https://doi.org/" + s.doi);
-  const linkText = s.doi || (String(link).includes("psi.nasa.gov") ? "Source NASA PSI" + (s.psi_id ? " (" + s.psi_id + ")" : "") : "lien");
-  if(link) parts.push('<a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(linkText) + "</a>");
+  const pdfHref = safeHttpUrl(s.pdf_url);
+  const expHref = safeHttpUrl(s.experiment_url || s.url || (s.doi && "https://doi.org/" + s.doi));
+  const links = [];
+  const pdfLooksLikePdf = pdfHref && (pdfHref.toLowerCase().includes(".pdf") || (expHref && pdfHref !== expHref));
+  if(pdfHref){
+    const primaryLabel = pdfLooksLikePdf ? "Ouvrir le PDF" : (String(pdfHref).includes("psi.nasa.gov") ? "Source NASA PSI" : "Source NASA");
+    links.push('<a href="' + esc(pdfHref) + '" target="_blank" rel="noopener noreferrer">' + esc(primaryLabel) + "</a>");
+  }
+  if(expHref && expHref !== pdfHref){
+    const linkText = s.doi || (String(expHref).includes("psi.nasa.gov") ? "Source NASA PSI" + (s.psi_id ? " (" + s.psi_id + ")" : "") : (s.ntrs_id ? "Fiche NTRS (" + s.ntrs_id + ")" : "Fiche document"));
+    links.push('<a href="' + esc(expHref) + '" target="_blank" rel="noopener noreferrer">' + esc(linkText) + "</a>");
+  }
+  if(links.length) parts.push(links.join(" · "));
   if(s.demo) parts.push('<span class="muted">DEMO : donnée factice</span>');
   return "<li>" + parts.join("<br>") + "</li>";
 }
@@ -587,29 +641,268 @@ async function callChat(question){
   const r = await fetch(CONFIG.CHAT_URL, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, history })
   });
-  if(!r.ok) throw new Error("Le serveur a répondu " + r.status);
+  if(!r.ok){
+    let msg = "Le serveur a répondu " + r.status;
+    try{
+      const errBody = await r.json();
+      if(errBody && errBody.detail) msg = errBody.detail;
+    }catch{}
+    throw new Error(msg);
+  }
   return await r.json();
 }
 
-function addMsg(cls, html){
+function addMsg(cls, text){
   $("#chatEmpty")?.remove();
   const d = document.createElement("div");
-  d.className = "msg " + cls; d.innerHTML = html;
-  $("#log").appendChild(d); $("#log").scrollTop = 1e9;
+  d.className = "msg " + cls;
+  d.textContent = text;
+  $("#log").appendChild(d);
+  $("#log").scrollTop = 1e9;
   return d;
+}
+
+let chatMsgSeq = 0;
+
+function appendInlineFormatted(parent, text, msgId, availableIndices){
+  const re = /(\*\*[^*\n]+\*\*|`[^`\n]+`|\[\d+\])/g;
+  let last = 0;
+  let match;
+  while((match = re.exec(text)) !== null){
+    if(match.index > last){
+      parent.appendChild(document.createTextNode(text.slice(last, match.index)));
+    }
+    const token = match[0];
+    if(token.startsWith("**") && token.endsWith("**")){
+      const strong = document.createElement("strong");
+      appendInlineFormatted(strong, token.slice(2, -2), msgId, availableIndices);
+      parent.appendChild(strong);
+    }else if(token.startsWith("`") && token.endsWith("`")){
+      const code = document.createElement("code");
+      code.className = "chat-code";
+      code.textContent = token.slice(1, -1);
+      parent.appendChild(code);
+    }else{
+      const num = Number(token.slice(1, -1));
+      if(availableIndices.has(num)){
+        const targetId = "chat-src-" + msgId + "-" + num;
+        const a = document.createElement("a");
+        a.className = "cite-ref";
+        a.href = "#" + targetId;
+        a.textContent = token;
+        a.setAttribute("aria-label", "Voir la source " + num);
+        a.addEventListener("click", e => {
+          e.preventDefault();
+          const target = document.getElementById(targetId);
+          if(!target) return;
+          target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          target.classList.add("src-highlight");
+          setTimeout(() => target.classList.remove("src-highlight"), 1600);
+        });
+        parent.appendChild(a);
+      }else{
+        parent.appendChild(document.createTextNode(token));
+      }
+    }
+    last = re.lastIndex;
+  }
+  if(last < text.length){
+    parent.appendChild(document.createTextNode(text.slice(last)));
+  }
+}
+
+function appendFormattedAnswer(container, rawText, msgId, availableIndices){
+  const lines = String(rawText || "").replace(/\r\n?/g, "\n").split("\n");
+  let listEl = null;
+  let listTag = null;
+  let paraLines = [];
+
+  const flushParagraph = () => {
+    if(!paraLines.length) return;
+    const p = document.createElement("p");
+    appendInlineFormatted(p, paraLines.join(" "), msgId, availableIndices);
+    container.appendChild(p);
+    paraLines = [];
+  };
+  const flushList = () => {
+    listEl = null;
+    listTag = null;
+  };
+
+  for(const rawLine of lines){
+    const line = rawLine.trim();
+    if(!line){
+      flushParagraph();
+      flushList();
+      continue;
+    }
+    const headingMatch = line.match(/^#{1,4}\s+(.+)$/);
+    if(headingMatch){
+      flushParagraph();
+      flushList();
+      const h = document.createElement("h3");
+      appendInlineFormatted(h, headingMatch[1], msgId, availableIndices);
+      container.appendChild(h);
+      continue;
+    }
+    const ulMatch = line.match(/^[-*•]\s+(.+)$/);
+    if(ulMatch){
+      flushParagraph();
+      if(listTag !== "ul"){
+        listEl = document.createElement("ul");
+        listTag = "ul";
+        container.appendChild(listEl);
+      }
+      const li = document.createElement("li");
+      appendInlineFormatted(li, ulMatch[1], msgId, availableIndices);
+      listEl.appendChild(li);
+      continue;
+    }
+    const olMatch = line.match(/^\d+[.)]\s+(.+)$/);
+    if(olMatch){
+      flushParagraph();
+      if(listTag !== "ol"){
+        listEl = document.createElement("ol");
+        listTag = "ol";
+        container.appendChild(listEl);
+      }
+      const li = document.createElement("li");
+      appendInlineFormatted(li, olMatch[1], msgId, availableIndices);
+      listEl.appendChild(li);
+      continue;
+    }
+    flushList();
+    paraLines.push(line);
+  }
+  flushParagraph();
+}
+
+function renderChatSourceItem(s, idx, msgId){
+  const sourceIndex = s.index != null ? s.index : idx + 1;
+  const li = document.createElement("li");
+  li.className = "src-item";
+  li.id = "chat-src-" + msgId + "-" + sourceIndex;
+
+  const head = document.createElement("div");
+  head.className = "src-head";
+  const badge = document.createElement("span");
+  badge.className = "src-idx";
+  badge.textContent = "[" + sourceIndex + "]";
+  head.appendChild(badge);
+
+  const titleEl = document.createElement("strong");
+  const titleParts = [
+    s.title || s.experiment || "Document NASA",
+    s.year ? "(" + s.year + ")" : null
+  ].filter(Boolean);
+  titleEl.textContent = titleParts.join(" ");
+  head.appendChild(titleEl);
+  li.appendChild(head);
+
+  const metaParts = [
+    s.authors ? "Auteurs : " + s.authors : null,
+    s.mission_program ? "Mission : " + s.mission_program : null,
+    s.headers_path ? "Section : " + s.headers_path : null,
+    (s.source_page || s.page) ? "p. " + (s.source_page || s.page) : null,
+    s.ntrs_id ? "NTRS " + s.ntrs_id : null,
+    s.source_type ? String(s.source_type).toUpperCase() : null
+  ].filter(Boolean);
+  if(metaParts.length){
+    const meta = document.createElement("div");
+    meta.className = "src-meta";
+    meta.textContent = metaParts.join(" · ");
+    li.appendChild(meta);
+  }
+
+  const pdfHref = safeHttpUrl(s.pdf_url);
+  const expHref = safeHttpUrl(s.experiment_url || s.url || (s.doi && "https://doi.org/" + s.doi));
+  const pdfLooksLikePdf = pdfHref && (pdfHref.toLowerCase().includes(".pdf") || (expHref && pdfHref !== expHref));
+  if(pdfHref || expHref){
+    const links = document.createElement("div");
+    links.className = "src-links";
+    if(pdfHref){
+      const aPdf = document.createElement("a");
+      aPdf.href = pdfHref;
+      aPdf.target = "_blank";
+      aPdf.rel = "noopener noreferrer";
+      aPdf.textContent = pdfLooksLikePdf ? "Ouvrir le PDF" : (String(pdfHref).includes("psi.nasa.gov") ? "Source NASA PSI" : "Ouvrir le document");
+      links.appendChild(aPdf);
+    }
+    if(expHref && expHref !== pdfHref){
+      const aDoc = document.createElement("a");
+      aDoc.href = expHref;
+      aDoc.target = "_blank";
+      aDoc.rel = "noopener noreferrer";
+      aDoc.textContent = s.ntrs_id ? "Fiche NTRS (" + s.ntrs_id + ")" : "Fiche NASA";
+      links.appendChild(aDoc);
+    }
+    li.appendChild(links);
+  }
+
+  const excerpts = Array.isArray(s.excerpts)
+    ? s.excerpts.map(t => String(t || "").trim()).filter(Boolean)
+    : (s.excerpt ? [String(s.excerpt).trim()] : []);
+  if(excerpts.length){
+    const details = document.createElement("details");
+    details.className = "src-excerpt";
+    const summary = document.createElement("summary");
+    summary.textContent = excerpts.length > 1
+      ? "Voir les " + excerpts.length + " extraits exacts"
+      : "Voir l’extrait exact";
+    details.appendChild(summary);
+
+    const body = document.createElement("div");
+    body.className = "src-excerpt-body";
+    excerpts.forEach(text => {
+      const quote = document.createElement("blockquote");
+      quote.className = "src-excerpt-text";
+      quote.textContent = text;
+      body.appendChild(quote);
+    });
+    details.appendChild(body);
+    li.appendChild(details);
+  }
+  return li;
+}
+
+function renderChatReply(container, res){
+  container.replaceChildren();
+  const msgId = ++chatMsgSeq;
+  const sources = Array.isArray(res.sources) ? res.sources : [];
+  const availableIndices = new Set(sources.map((s, idx) => Number(s.index != null ? s.index : idx + 1)));
+
+  const ans = document.createElement("div");
+  ans.className = "chat-answer";
+  appendFormattedAnswer(ans, res.answer || "", msgId, availableIndices);
+  container.appendChild(ans);
+
+  if(sources.length){
+    const wrap = document.createElement("div");
+    wrap.className = "s";
+    const heading = document.createElement("strong");
+    heading.className = "s-title";
+    heading.textContent = "Sources (" + sources.length + ")";
+    wrap.appendChild(heading);
+
+    const ul = document.createElement("ul");
+    ul.className = "chat-sources";
+    sources.forEach((s, idx) => ul.appendChild(renderChatSourceItem(s, idx, msgId)));
+    wrap.appendChild(ul);
+    container.appendChild(wrap);
+  }
+  $("#log").scrollTop = 1e9;
 }
 
 async function sendChat(){
   const q = $("#q").value.trim();
   if(!q || $("#send").disabled) return;
   $("#q").value = ""; $("#send").disabled = true;
-  addMsg("u", esc(q));
+  addMsg("u", q);
   const wait = addMsg("a", "…");
   try{
     const res = await callChat(q);
     history.push({ role: "user", content: q }, { role: "assistant", content: res.answer });
-    const src = (res.sources || []).length ? '<div class="s"><strong>Sources</strong><ul style="list-style:none;padding:0">' + res.sources.map(renderSource).join("") + "</ul></div>" : "";
-    wait.innerHTML = esc(res.answer) + src;
+    renderChatReply(wait, res);
   }catch(err){
     wait.className = "msg err";
     wait.textContent = "Impossible de joindre l’IA du chat (" + err.message + ").";
