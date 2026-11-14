@@ -17,7 +17,7 @@ suivantes explorent d'autres zones. Chaque recommandation est expliquée (compos
 import numpy as np
 import pandas as pd
 
-from src.models.flex.model import FEATURES, FUELS, conditions_to_row, predict, trained_model
+from src.models.model_gp.flex.model import FEATURES, FUELS, conditions_to_row, predict, trained_model
 
 # Distance « couverture » : écart à partir duquel deux essais sont considérés comme vraiment différents
 COVERAGE_SCALES = {"x_o2": 0.02, "pressure_kpa": 10.0, "x_co2": 0.05, "x_he": 0.05, "d0_mm": 0.5}
@@ -68,7 +68,7 @@ def nearest_tests(model, X_point, fuel_flag, k=3):
 def recommend_next_experiment(scenario, n=5):
     """Recommandations d'essais FLEX autour d'un scénario de mission. Exemple :
     recommend_next_experiment({"fuel": "heptane", "o2_percent": 34, "pressure_kpa": 55, "d0_mm": 3.0})
-    Point d'entrée commun à toutes les familles : src/models/recommend.py.
+    Point d'entrée commun à toutes les familles : src/models/model_gp/recommend.py.
     """
     fuel = scenario.get("fuel", "heptane").lower()
     if fuel not in FUELS:
@@ -114,7 +114,7 @@ def recommend_next_experiment(scenario, n=5):
         "scenario_prediction": predict(scenario),
         "nearest_flex_tests": nearest_tests(model, target, fuel_flag, k=3),
         "recommendations": picks,
-        "method": "score = pertinence × (incertitude + nouveauté) ; voir src/models/flex/recommend.py",
+        "method": "score = pertinence × (incertitude + nouveauté) ; voir src/models/model_gp/flex/recommend.py",
     }
 
 

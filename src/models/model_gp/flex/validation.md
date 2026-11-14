@@ -1,6 +1,6 @@
 # Validation du modèle FLEX
 
-Généré par `python -m src.models.flex.evaluate` le 2026-11-14. Ne pas éditer à la main.
+Généré par `python -m src.models.model_gp.flex.evaluate` le 2026-11-14. Ne pas éditer à la main.
 
 - Données : 261 essais FLEX utilisables (toutes les variables présentes) sur 80 jours d'essai ; variables : is_heptane, x_o2, pressure_kpa, x_co2, x_he, d0_mm.
 - Validation croisée **par jour d'essai** (5 plis, `GroupKFold` sur `session`) : un jour n'est jamais à la fois en entraînement et en test.

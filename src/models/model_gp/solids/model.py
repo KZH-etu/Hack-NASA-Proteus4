@@ -18,7 +18,7 @@ longueurs de corrélation ≥ 1 (en données normalisées) pour que l'O2, qui va
 d'identifiant du jour. Incertitude : ré-échantillonnage par jour d'essai (intervalle à 90 %).
 
 **Fiabilité faible** : en validation par jour d'essai, AUC ≈ 0,59 (meilleure variante testée ; détail dans
-src/models/solids/validation.md). Les données BASS-II ne suffisent pas à prédire si une flamme tient d'un jour à
+src/models/model_gp/solids/validation.md). Les données BASS-II ne suffisent pas à prédire si une flamme tient d'un jour à
 l'autre. `predict()` le dit ; la recommandation repose surtout sur la nouveauté (distance aux essais existants).
 Limite majeure : O2 de 14 à 22 % seulement ; pression ~1 atm ; aucun essai solide en atmosphère enrichie en O2.
 """
@@ -45,7 +45,7 @@ SEED = 0
 THIN_MM = 0.5  # PMMA « mince » : film ou plaque jusqu'à 0,5 mm
 MIN_LENGTH_SCALE = 1.0
 RELIABILITY = ("faible : en validation par jour d'essai, AUC ≈ 0,59 (0,5 = hasard) ; "
-               "à ne pas utiliser pour décider (voir src/models/solids/validation.md)")
+               "à ne pas utiliser pour décider (voir src/models/model_gp/solids/validation.md)")
 
 # Recommandation : unités de couverture et de pertinence (O2 en fraction, débit en log)
 COVERAGE_SCALES = {"x_o2": 0.02, "log_flow": 0.4}
@@ -209,7 +209,7 @@ def nearest_tests(model, group, o2, flow, k=3):
 def recommend_next_experiment(scenario, n=5):
     """Essais solides recommandés autour d'un scénario. Exemple :
     recommend_next_experiment({"material": "pmma_flat", "o2_percent": 34, "flow_cm_s": 10})
-    score = pertinence × (incertitude + nouveauté), comme pour FLEX (src/models/flex/recommend.py) ; la nouveauté domine
+    score = pertinence × (incertitude + nouveauté), comme pour FLEX (src/models/model_gp/flex/recommend.py) ; la nouveauté domine
     car le modèle est peu fiable.
     """
     model = trained_model()
