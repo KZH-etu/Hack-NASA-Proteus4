@@ -29,7 +29,7 @@ data/
 │   │       ├── files_manifest.csv        # tous les fichiers de l'investigation, téléchargés ou non
 │   │       ├── experimental_table/       # CSV « Experimental table », tels quels
 │   │       └── documents/                # matrices d'essais, calibration (tels quels)
-│   ├── ntrs/                             # corpus du RAG : python -m src.rag.fetch_ntrs
+│   ├── ntrs/                             # corpus du RAG : python -m src.rag.ingestion.fetch_ntrs
 │   │   ├── catalog.csv / catalog.jsonl   # versionnés : 1 ligne par document (id, titre, auteurs, année, thèmes, pages)
 │   │   ├── pdf/<id>.pdf                  # documents NASA (≈ 360 Mo, non versionnés)
 │   │   ├── pages/<id>.jsonl              # texte page par page {page, label, text} -> citations avec page
@@ -104,7 +104,7 @@ Générés par `python -m src.data.build_unified` à partir de `data/raw/psi/`. 
 
 ## Corpus du RAG (NASA NTRS + ressources du challenge)
 
-Script : `python -m src.data.download_psi` puis `python -m src.rag.fetch_ntrs` (API publique https://ntrs.nasa.gov/api, sans compte). Par défaut, le script **reproduit exactement les documents du catalogue versionné**, sans refaire les recherches, et vérifie à la fin que chaque document a le même nombre de pages ; `--refresh` refait les recherches et réécrit le catalogue. Test d'une installation à vide (`--out` vers un dossier vide, le 2026-11-14) : 399 / 399 documents identiques, 390 / 390 fichiers de pages identiques octet par octet. Téléchargé le 2026-11-14 : **399 documents, 387 avec du texte, 5 295 pages** (dont 138 fiches du NASA Task Book et 67 documents PSI). Liste complète : `data/raw/ntrs/catalog.csv` (versionné).
+Script : `python -m src.data.download_psi` puis `python -m src.rag.ingestion.fetch_ntrs` (API publique https://ntrs.nasa.gov/api, sans compte). Par défaut, le script **reproduit exactement les documents du catalogue versionné**, sans refaire les recherches, et vérifie à la fin que chaque document a le même nombre de pages ; `--refresh` refait les recherches et réécrit le catalogue. Test d'une installation à vide (`--out` vers un dossier vide, le 2026-11-14) : 399 / 399 documents identiques, 390 / 390 fichiers de pages identiques octet par octet. Téléchargé le 2026-11-14 : **399 documents, 387 avec du texte, 5 295 pages** (dont 138 fiches du NASA Task Book et 67 documents PSI). Liste complète : `data/raw/ntrs/catalog.csv` (versionné).
 
 - **Documents prioritaires** choisis à la main :
   - rapports des expériences PSI (FLEX, BASS-II, ACME, Saffire) ;

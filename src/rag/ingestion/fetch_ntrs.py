@@ -44,7 +44,7 @@ import requests
 
 from src.data.download_psi import RAW_PSI, download_file as download_psi_file, safe_name
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]  # src/rag/ingestion/fetch_ntrs.py -> racine du dépôt
 OUT = ROOT / "data" / "raw" / "ntrs"
 API = "https://ntrs.nasa.gov/api"
 SPACE = r"microgravity|micro-gravity|low[- ]gravity|reduced[- ]gravity|spacecraft|space station|\bISS\b|orbit|cygnus|zero[- ]g"
