@@ -30,3 +30,6 @@ chroma/
 Thumbs.db
 .vscode/
 .idea/
+
+# model_rf : service entraîné, recréé automatiquement
+src/models/model_rf/artifacts/

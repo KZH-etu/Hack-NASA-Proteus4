@@ -1,4 +1,4 @@
-"""Démonstration de bout en bout sur les vraies données (data/processed/*.parquet).
+"""Démonstration de bout en bout sur les vraies données (data/processed/families/*.parquet).
 
     python -m src.models.model_rf.experiments.run_demo
 """

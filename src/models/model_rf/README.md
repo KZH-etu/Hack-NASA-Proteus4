@@ -4,7 +4,7 @@ Un modèle par famille d'expériences. L'utilisateur choisit une famille, règle
 et reçoit soit une **prédiction avec incertitude** (familles avec modèle), soit les **essais NASA réels
 les plus proches** (familles sans modèle). Dans les deux cas : la source PSI de chaque essai montré.
 
-Données attendues : `data/processed/{droplets,solids,gas,aerosols}.parquet` (à la racine du dépôt).
+Données attendues : `data/processed/families/{droplets,solids,gas,aerosols}.parquet` (à la racine du dépôt).
 
 ## Familles
 
