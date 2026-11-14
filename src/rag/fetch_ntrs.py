@@ -16,7 +16,10 @@ Sources :
   Science » de Glenn), rapport du Sénat sur Apollo 1, pages web (Apollo 1, Apollo 13, incendie de Mir, spinoffs)
   converties en texte (web/<id>.html -> une « page »), vidéo ScienceCasts (catalogue seulement, pas de texte) ;
 - TASKBOOK : fiches des projets « COMBUSTION SCIENCE » du NASA Task Book (recherche du site officiel), sans les
-  coordonnées personnelles des chercheurs.
+  coordonnées personnelles des chercheurs ;
+- PSI : pour chacune des 12 investigations téléchargées par src.data.download_psi, une fiche (objectifs, hypothèse,
+  approche, retombées, publications) + rapports, documents scientifiques, présentations et articles publiés (PDF,
+  enregistrés dans data/raw/psi/<investigation>/documents/) ; les articles déjà au catalogue via NTRS sont écartés.
 API publique : https://ntrs.nasa.gov/api/openapi/ (sans compte).
 
 Usage :
@@ -28,6 +31,7 @@ Usage :
 import argparse
 import csv
 import datetime
+import html as html_lib
 import json
 import re
 from html.parser import HTMLParser
@@ -35,6 +39,8 @@ from pathlib import Path
 
 import pymupdf
 import requests
+
+from src.data.download_psi import RAW_PSI, download_file as download_psi_file, safe_name
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "data" / "raw" / "ntrs"
@@ -155,6 +161,11 @@ EXTRA = [
 TASKBOOK = "https://taskbook.nasaprs.com/tbp/index.cfm"
 TASKBOOK_COMBUSTION = "306,168,167,171,169"  # valeur de la case « COMBUSTION SCIENCE » du formulaire de recherche
 
+# Documents PSI (data/raw/psi/, lancer d'abord `python -m src.data.download_psi`)
+PSI_DOC_FOLDERS = ("Reports", "Science Documents", "Presentations")   # + articles publiés rangés dans « Raw Data »
+PSI_MAX_MB = 40
+PSI_TOPICS = {"FLEX": "flex", "CFI": "cfi", "ACME": "acme", "SPICE": "spice", "BASS": "bass", "SAFFIRE": "saffire", "SAME": "same"}
+
 CATALOG_COLUMNS = ["id", "title", "authors", "year", "sti_type", "report_numbers", "topics", "source", "url", "pdf_url",
                    "pdf_path", "size_mb", "n_pages", "n_pages_text", "status", "downloaded_at"]
 
@@ -261,7 +272,77 @@ def taskbook_ids():
     return ids
 
 
-def collect(per_topic, priority_only, with_taskbook=True):
+def _norm(title):
+    return re.sub(r"[^a-z0-9]+", " ", title.lower()).strip()
+
+
+def psi_docs(known):
+    """Documents texte des investigations PSI téléchargées : une fiche par investigation (investigation.json)
+    + rapports, documents scientifiques, présentations et articles publiés (PDF ≤ PSI_MAX_MB).
+    `known` : documents déjà au catalogue (pour écarter les doublons d'articles NTRS)."""
+    index = RAW_PSI / "psi_index.csv"
+    if not index.exists():
+        print("  PSI : data/raw/psi absent, lancer `python -m src.data.download_psi`")
+        return []
+    known_titles = {_norm(d["title"]) for d in known.values()}
+    docs = []
+    with open(index, encoding="utf-8") as f:
+        investigations = list(csv.DictReader(f))
+    for inv in investigations:
+        folder = next(RAW_PSI.glob(f"{inv['psi_id']}_*"))
+        topic = next((t for k, t in PSI_TOPICS.items() if k in inv["acronym"].upper()), "psi")
+        base = {"authors": "", "sti_type": "", "report_numbers": inv["doi"], "topics": [topic, "psi"],
+                "url": f"https://psi.nasa.gov/physci/repo/data/investigations/{inv['psi_id']}", "pdf_url": None,
+                "abstract": "", "keywords": [], "psi_id": inv["psi_id"]}
+        docs.append({**base, "id": f"psi-{inv['psi_id']}-fiche", "kind": "psi_fiche", "sti_type": "PSI_INVESTIGATION",
+                     "title": f"Fiche PSI {inv['psi_id']} : {inv['title']}", "year": "", "source": "PSI (investigation.json)",
+                     "path": folder / "investigation.json"})
+        with open(folder / "files_manifest.csv", encoding="utf-8") as f:
+            files = list(csv.DictReader(f))
+        for i, fm in enumerate(files):
+            name = fm["file_name"]
+            if not name.lower().endswith(".pdf") or int(fm["size_bytes"] or 0) > PSI_MAX_MB * 1e6:
+                continue
+            citation_ = re.match(r"Legacy/(\d{4})\s*-\s*(.*)", html_lib.unescape(fm["subcategory"] or ""))
+            if fm["folder"] == "Raw Data" and not citation_:
+                continue  # planches d'images, données de mesure
+            if fm["folder"] not in PSI_DOC_FOLDERS + ("Raw Data",):
+                continue
+            if citation_:
+                quoted = re.search(r"\"(.+?)\"", citation_.group(2))
+                title, year, authors = (quoted.group(1) if quoted else citation_.group(2)), citation_.group(1), citation_.group(2).split('"')[0].strip(" .")
+            else:
+                title = re.sub(rf"^{inv['psi_id']}_{re.escape(fm['folder'])}_", "", name)[:-4].replace("_", " ")
+                year, authors = "", ""
+            ntrs = re.match(r"(\d{11})_", name)
+            if (ntrs and ntrs.group(1) in known) or _norm(title) in known_titles:
+                continue  # déjà au catalogue via NTRS
+            docs.append({**base, "id": f"psi-{inv['psi_id']}-{i:04d}", "kind": "psi", "title": title.strip(), "year": year,
+                         "authors": authors, "sti_type": f"PSI_{fm['folder'].upper().replace(' ', '_')}",
+                         "source": f"PSI {inv['psi_id']} ({fm['folder']})", "psi_file": name,
+                         "path": folder / "documents" / safe_name(name)})
+    print(f"  PSI             : {len(docs)} document(s) ({len(investigations)} fiches d'investigation)")
+    return docs
+
+
+def psi_fiche_text(path):
+    """Texte d'une fiche d'investigation PSI : titre, objectifs, hypothèse, approche, retombées, publications."""
+    j = json.loads(path.read_text(encoding="utf-8"))
+    clean = lambda s: re.sub(r"\s+", " ", html_lib.unescape(re.sub(r"<[^>]+>", " ", str(s or "")))).strip()
+    parts = [f"{j.get('accession')} {j.get('investigationAcronym', '')} : {clean(j.get('title'))}",
+             f"Programme : {clean(j.get('flightProgram'))} ; matériel : {clean(j.get('experimentHardware'))} ; "
+             f"dates : {j.get('investigationStartDate', '')} à {j.get('investigationEndDate', '')} ; DOI : {j.get('doi', '')}"]
+    for key, label in (("objective", "Objectifs"), ("hypothesis", "Hypothèse"), ("approach", "Approche"),
+                       ("description", "Description"), ("researchImpacts", "Retombées")):
+        if clean(j.get(key)):
+            parts.append(f"{label} : {clean(j.get(key))}")
+    pubs = [f"- {clean(p.get('authorList'))}. {clean(p.get('title'))}" for p in j.get("publications") or [] if p.get("title")]
+    if pubs:
+        parts.append("Publications :\n" + "\n".join(pubs))
+    return "\n".join(parts)
+
+
+def collect(per_topic, priority_only, with_taskbook=True, with_psi=True):
     """Liste des documents à télécharger (dédoublonnés, thèmes fusionnés)."""
     docs = {}
 
@@ -291,6 +372,9 @@ def collect(per_topic, priority_only, with_taskbook=True):
                  "report_numbers": "", "topics": ["taskbook"], "source": "NASA Task Book (COMBUSTION SCIENCE)",
                  "url": f"{TASKBOOK}?action=public_query_taskbook_content&TASKID={tid}", "pdf_url": None,
                  "abstract": "", "keywords": []})
+    if with_psi:
+        for doc in psi_docs(docs):
+            add(doc)
     return list(docs.values())
 
 
@@ -351,6 +435,13 @@ def html_text(html):
 
 
 def download(doc, max_mb):
+    if doc["kind"] == "psi_fiche":
+        return doc["path"], "ok"  # déjà local (téléchargé par src.data.download_psi)
+    if doc["kind"] == "psi":
+        if doc["path"].exists():
+            return doc["path"], "already_present"
+        status, _ = download_psi_file(doc["psi_id"], doc["psi_file"], doc["path"])  # URL signée de l'API PSI
+        return (doc["path"], status) if status in ("ok", "already_present") else (None, status)
     if doc["kind"] == "video":
         return None, "video_sans_texte"  # pas de transcription disponible : gardé au catalogue seulement
     if doc["kind"] in ("html", "taskbook"):
@@ -414,6 +505,10 @@ def split_pages(doc, path):
     """pages/<id>.jsonl ; renvoie (nb de pages, nb de pages avec du texte). Une page web = une page."""
     out = OUT / "pages" / f"{doc['id']}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
+    if doc["kind"] == "psi_fiche":
+        text = psi_fiche_text(path)
+        out.write_text(json.dumps({"page": 1, "label": None, "text": text}, ensure_ascii=False) + "\n", encoding="utf-8")
+        return 1, int(len(text) > 50)
     if path.suffix == ".html":
         html = path.read_text(encoding="utf-8")
         text = taskbook_text(doc, html) if doc["kind"] == "taskbook" else html_text(html)
@@ -435,11 +530,12 @@ def main():
     parser.add_argument("--max-mb", type=float, default=80, help="taille maximale d'un PDF (défaut 80 Mo)")
     parser.add_argument("--priority-only", action="store_true", help="seulement les documents prioritaires")
     parser.add_argument("--no-taskbook", action="store_true", help="sans les fiches du NASA Task Book")
+    parser.add_argument("--no-psi", action="store_true", help="sans les documents des investigations PSI")
     args = parser.parse_args()
 
     OUT.mkdir(parents=True, exist_ok=True)
     print("Recherche des documents...")
-    docs = collect(args.per_topic, args.priority_only, with_taskbook=not args.no_taskbook)
+    docs = collect(args.per_topic, args.priority_only, with_taskbook=not args.no_taskbook, with_psi=not args.no_psi)
     print(f"{len(docs)} documents à traiter")
 
     today = datetime.date.today().isoformat()
@@ -465,7 +561,7 @@ def main():
         writer.writerows({**d, "topics": "; ".join(d["topics"])} for d in docs)
     with open(OUT / "catalog.jsonl", "w", encoding="utf-8") as f:
         for d in docs:
-            f.write(json.dumps(d, ensure_ascii=False) + "\n")
+            f.write(json.dumps({k: v for k, v in d.items() if k != "path"}, ensure_ascii=False) + "\n")
     with open(OUT / "download_log.csv", "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["date", "id", "status", "pdf_url"])
         if f.tell() == 0:
