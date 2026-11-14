@@ -82,9 +82,9 @@ def run_gp(T):
         m = FlexModel(flex[~flex["key"].isin(out)].reset_index(drop=True), n_bootstrap=0)
         test = flex[flex["key"].isin(T["droplets"]["folds"][f][0])]
         pred = m.predict_frame(flex_features(test))
-        for k, p, kp, ks in zip(test["key"], pred["p_extinction"], pred["k_mm2_s"], pred["k_std"]):
+        for k, p, kp, lo, hi in zip(test["key"], pred["p_extinction"], pred["k_mm2_s"], pred["k_low"], pred["k_high"]):
             res["droplets"][k] = (p, p >= 0.5)
-            res["k"][k] = (kp, kp - 1.96 * ks, kp + 1.96 * ks)
+            res["k"][k] = (kp, lo, hi)  # intervalle à 95 % calibré
         g = GasModel(gas[~gas["key"].isin(out)].reset_index(drop=True), n_bootstrap=0, min_length=MIN_LENGTH_SCALE)
         test = gas[gas["key"].isin(T["gas"]["folds"][f][0])]
         for k, p in zip(test["key"], g.predict_frame(gas_features(test))["p_self_extinguished"]):

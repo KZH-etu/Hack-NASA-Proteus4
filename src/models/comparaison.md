@@ -21,7 +21,7 @@ Mêmes essais et mêmes 5 plis par **jour d'essai** pour tous les modèles : à 
 
 | Modèle | Essais | R² | Erreur absolue moyenne | Couverture de l'intervalle à 95 % |
 |---|---:|---:|---:|---:|
-| model_gp | 257 | 0.677 | 0.047 | 92.6% |
+| model_gp | 257 | 0.677 | 0.047 | 94.9% |
 | model_rf | 257 | 0.622 | 0.053 | 95.3% |
 | model_catboost | — | pas de prédiction de K | | |
 | model_catboost sans d_ext_mm | — | pas de prédiction de K | | |

@@ -22,7 +22,7 @@ N_FOLDS = 5
 def cross_validate(df):
     """Prédictions hors échantillon pour chaque essai (5 plis, regroupés par jour d'essai)."""
     out = df.copy()
-    for col in ("p_extinction", "k_pred", "k_std", "base_p", "base_k"):
+    for col in ("p_extinction", "k_pred", "k_std", "k_low", "k_high", "k_scale", "base_p", "base_k"):
         out[col] = np.nan
     for train_idx, test_idx in GroupKFold(n_splits=N_FOLDS).split(df, groups=df["session"]):
         train, test = df.iloc[train_idx], df.iloc[test_idx]
@@ -31,6 +31,9 @@ def cross_validate(df):
         out.loc[test.index, "p_extinction"] = pred["p_extinction"].to_numpy()
         out.loc[test.index, "k_pred"] = pred["k_mm2_s"].to_numpy()
         out.loc[test.index, "k_std"] = pred["k_std"].to_numpy()
+        out.loc[test.index, "k_low"] = pred["k_low"].to_numpy()
+        out.loc[test.index, "k_high"] = pred["k_high"].to_numpy()
+        out.loc[test.index, "k_scale"] = model.k_scale
         # Références naïves : taux d'extinction et K moyen du combustible dans le pli d'entraînement
         for fuel, flag in (("heptane", 1.0), ("methanol", 0.0)):
             rows = test.index[test["is_heptane"] == flag]
@@ -66,6 +69,8 @@ def main():
         "coverage_90": float((np.abs(yk - mk) <= 1.645 * sk).mean()),
         "coverage_68": float((np.abs(yk - mk) <= 1.0 * sk).mean()),
         "coverage_95": float((np.abs(yk - mk) <= 1.96 * sk).mean()),
+        "coverage_95_calibrated": float(((yk >= k["k_low"].to_numpy()) & (yk <= k["k_high"].to_numpy())).mean()),
+        "k_scales": sorted(round(float(v), 2) for v in cv["k_scale"].dropna().unique()),
         "rmse": float(mean_squared_error(yk, mk) ** 0.5), "rmse_base": float(mean_squared_error(yk, k["base_k"]) ** 0.5),
         "mean_std": float(sk.mean()),
     }
@@ -118,6 +123,10 @@ def main():
         f"| ± 1 écart-type (68 %) | {k_metrics['coverage_68']:.1%} | 68 % |",
         f"| ± 1,645 écart-type (90 %) | {k_metrics['coverage_90']:.1%} | 90 % |",
         f"| ± 1,96 écart-type (95 %) | {k_metrics['coverage_95']:.1%} | 95 % |",
+        f"| **Intervalle à 95 % calibré** (`burning_rate_k_interval_95`) | **{k_metrics['coverage_95_calibrated']:.1%}** | 95 % |",
+        "",
+        "Calibration : l'écart-type est élargi d'un facteur appris par validation croisée interne par jour d'essai, "
+        f"sur les seules données d'entraînement de chaque pli (facteurs obtenus : {', '.join(map(str, k_metrics['k_scales']))}).",
         "",
         "## Importance des variables (longueurs de corrélation du noyau, données normalisées ; petite = influente)",
         "",
