@@ -1,0 +1,27 @@
+# Secrets
+.env
+
+# Environnements virtuels
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Données brutes NASA (non versionnées) et index vectoriel
+data/raw/*
+!data/raw/.gitkeep
+chroma/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
