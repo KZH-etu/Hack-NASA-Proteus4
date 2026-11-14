@@ -4,11 +4,11 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from src.rag.config import RagConfig
-from src.rag.db import TrackingDB
+from src.rag.ingestion.db import TrackingDB
+from src.rag.ingestion.source_adapter import SourceDocument
+from src.rag.ingestion.stage2_metadata import run as run_stage2
+from src.rag.ingestion.text_utils import html_to_clean_markdown, strip_html_tags
 from src.rag.llm_client import DocumentMetadata
-from src.rag.source_adapter import SourceDocument
-from src.rag.stage2_metadata import run as run_stage2
-from src.rag.text_utils import html_to_clean_markdown, strip_html_tags
 
 
 class TestStage2Metadata(unittest.TestCase):
