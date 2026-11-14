@@ -24,17 +24,16 @@ from collections import Counter
 import pandas as pd
 
 from src.common.schema import COLUMNS, FUEL_TYPES, GRAVITY_LEVELS, OUTCOMES, QC_REASONS, check_qc_flags
-from src.data import droplets, gas, solids
+from src.data import aerosols, droplets, gas, solids
 from src.data.common import PROCESSED, RAW_PSI, psi_index
 
 # Familles traitées : nom -> module (chaque module expose build() et FAMILY_COLUMNS)
-FAMILIES = {"droplets": droplets, "gas": gas, "solids": solids}
+FAMILIES = {"droplets": droplets, "gas": gas, "solids": solids, "aerosols": aerosols}
+# Familles hors table catalogue (pas de combustion : fumées pour la détection)
+OUT_OF_CATALOGUE = {"aerosols"}
 
 # Investigations pas encore traitées (affichées comme « à faire » dans campaigns.csv et qc_report.md)
-PENDING = {
-    "PSI-39": "droplets",
-    "PSI-101": "aerosols", "PSI-102": "aerosols",
-}
+PENDING = {}
 
 UNIFIED_DOCS = {
     "experiment": ("", "Nom de l'expérience"),
@@ -162,7 +161,7 @@ def write_qc_report(unified, families, skipped, campaigns):
            "| PSI | Expérience | Famille | Lignes | Avec marques | Statut |", "|---|---|---|---:|---:|---|"]
     for c in campaigns:
         rows = unified[unified["psi_id"] == c["psi_id"]]
-        out.append(f"| {c['psi_id']} | {c['experiment']} | {c['family']} | {len(rows)} | {int(rows['qc_flags'].notna().sum())} | {c['status']} |")
+        out.append(f"| {c['psi_id']} | {c['experiment']} | {c['family']} | {len(rows) or c['n_rows_family']} | {int(rows['qc_flags'].notna().sum())} | {c['status']} |")
     out += ["", f"Lignes écartées : {len(skipped)} (détail dans `skipped_rows.csv`).", ""]
     for name, df in families.items():
         out += [f"## families/{name}.parquet ({len(df)} lignes)", "", "Marques les plus fréquentes :", ""]
@@ -185,11 +184,12 @@ def write_data_dictionary():
     (PROCESSED / "data_dictionary.md").write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
-def campaigns_table(unified):
+def campaigns_table(unified, families):
     rows = []
     for psi_id, meta in psi_index().items():
         info = json.loads(next(RAW_PSI.glob(f"{psi_id}_*/investigation.json")).read_text(encoding="utf-8"))
         n = int((unified["psi_id"] == psi_id).sum())
+        n_family = sum(int((df["psi_id"] == psi_id).sum()) for df in families.values())
         rows.append({
             "psi_id": psi_id,
             "experiment": meta["acronym"].replace("_", " "),
@@ -203,7 +203,8 @@ def campaigns_table(unified):
             "start": info.get("investigationStartDate"),
             "end": info.get("investigationEndDate"),
             "n_rows": n,
-            "status": "traité" if n else f"à faire ({PENDING.get(psi_id, '?')})",
+            "n_rows_family": n_family,
+            "status": "traité" if n else "traité (famille seulement, hors catalogue)" if n_family else f"à faire ({PENDING.get(psi_id, '?')})",
         })
     return rows
 
@@ -226,7 +227,8 @@ def main():
     for name, module in FAMILIES.items():
         family_df, unified_df, skipped_rows = module.build()
         families[name] = family_df
-        unified_parts.append(unified_df)
+        if name not in OUT_OF_CATALOGUE:
+            unified_parts.append(unified_df)
         skipped += skipped_rows
 
     unified = pd.concat(unified_parts, ignore_index=True)[list(COLUMNS)].astype(COLUMNS)
@@ -242,7 +244,7 @@ def main():
     for name, df in families.items():
         df.to_parquet(PROCESSED / "families" / f"{name}.parquet", index=False)
 
-    campaigns = campaigns_table(unified)
+    campaigns = campaigns_table(unified, families)
     pd.DataFrame(campaigns).to_csv(PROCESSED / "campaigns.csv", index=False)
     pd.DataFrame(skipped, columns=["psi_id", "source_file", "source_line", "reason"]).to_csv(PROCESSED / "skipped_rows.csv", index=False)
     for file_name, header in ANNOTATION_TEMPLATES.items():
@@ -256,7 +258,7 @@ def main():
     print(f"unified.parquet : {len(unified)} lignes")
     for name, df in families.items():
         print(f"families/{name}.parquet : {len(df)} lignes")
-    print(f"Investigations traitées : {sum(1 for c in campaigns if c['n_rows'])} / {len(campaigns)}")
+    print(f"Investigations traitées : {sum(1 for c in campaigns if c['status'].startswith('traité'))} / {len(campaigns)}")
 
 
 if __name__ == "__main__":

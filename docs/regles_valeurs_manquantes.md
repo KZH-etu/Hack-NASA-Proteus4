@@ -48,9 +48,13 @@ Référence des colonnes : NASA/TP-2015-216046 (NTRS 20150023456), Table IX, p. 
 - **Vitesse de propagation** : notion des solides, sans objet pour une gouttelette → `spread_rate_mm_s:sans_objet` dans la table unifiée.
 
 ### CFI (PSI-39)
-- **`Fiber` vide (9 lignes)** : **A**. Ne pas supposer « No ».
-- Une ligne (Flex 1220) a O2 + N2 + He = 0,97 : **F**.
-- Les pressions sont du texte avec unité (« 1 atm », « 1.25 atm ») : convertir.
+Chiffres vérifiés par `build_unified.py` (`families/droplets.parquet`, `experiment = CFI`).
+- **Table des conditions seulement** : pas d'issue, de diamètre ni de K dans la source → vides (**A**).
+- **8 copies exactes** (mêmes « Flex Number », date, CIR, conditions) → écartées dans `skipped_rows.csv`. Reste 79 essais.
+- **`Fiber` vide (9 lignes)** : **A**. Ne pas supposer « No » (`fiber_supported` vide).
+- **4 lignes avec O2 + N2 + He = 0,97** : `x_o2:incoherent`.
+- Pressions écrites avec leur unité (« 1 atm », « 1.25 atm », de 0,5 à 5 atm) → kPa.
+- Combustible « [.60]/[.40] C12H26/iso-dodecane » → `fuel = n-dodecane`, `fuel_main_fraction = 0,60` ; « C12H26 » seul → 1.
 
 ### Flammes gazeuses : conventions communes (`families/gas.parquet`)
 Chiffres vérifiés par `build_unified.py`. Dans `qc_report.md`, chaque case vide est classée : sans objet, faux zéro vidé, autre marque, colonne absente du fichier source (ex. buse SPICE pour ACME), ou vraiment manquante.
@@ -111,8 +115,13 @@ Chiffres vérifiés par `build_unified.py`.
 - **« Fan display » vide (13 lignes)** : réglage au potentiomètre, **A** sans conséquence (la vitesse est dans « Air display »).
 - **O2 final très bas** (B2 : 1,6 % ; P22a : 0,6 % ; T28a : 0,9 %) : `x_o2_final:incoherent`. Utiliser l'O2 initial.
 - **CO négatif** (jusqu'à −3 ppm) : dérive du capteur, valeur gardée + `incoherent`.
-- **Issue déduite (23 essais)** : « ext », « extinguished » ou « blowoff » écrit dans « Air display » ou « Fan display » (ex. « 5 3 2 ext », « 10 blowoff ») → `extinguished` + `outcome:deduit`. L'absence de ces mots ne veut **pas** dire que la flamme a tenu (vide). Idée reprise de Krypton-N.
-- **Issue et sens de l'écoulement complets** : annexe A du rapport (pp. 103–113, texte libre) → à saisir dans `annotations/bass_outcomes.csv` (colonnes `outcome`, `flow_direction`, `source_page`). Une annotation remplace l'issue déduite (marque `doc`).
+- **Annexe A du rapport extraite automatiquement** (`python -m src.data.extract_bass2_appendix` → `annotations/bass2_appendix.csv`) : 126 essais sur 129 (O20–O22, essais de 2016, ne sont pas dans le rapport).
+  - **Sens de l'écoulement** (colonne du tableau) : 120 essais (67 opposed, 38 concurrent, 15 stagnation pour les bougies) → `flow_direction:doc`.
+  - **Observations** recopiées dans `observations`.
+  - **Issue** déduite des observations **seulement si elle y est écrite** (« extinguished », « blew out », « flame out at 0.28 », « burned entire sample », « did not ignite ») → `outcome:deduit`. Les tournures négatives sont retirées avant de classer (« did not blowoff », « no blowoff attained », « still did not extinguish »). Une flamme qui ne tient qu'avec l'allumeur (« died upon igniter removal », « no sustained flame at any flow ») → `no_ignition`.
+  - Ordre de priorité : saisie manuelle (`annotations/bass_outcomes.csv`, marque `doc`) > annexe extraite > mots écrits dans « Air display » / « Fan display » (« 5 3 2 ext », « 10 blowoff », « out .275 », « no ign »).
+  - Résultat : 102 issues sur 129 (89 extinguished, 10 burned, 3 no_ignition). Les 27 autres ont des observations sans issue explicite (« Steady burn », « Mostly blue ») : vides, à relire si besoin.
+  - Comparaison avec Krypton-N : ils ont 25 issues (mots des colonnes de débit) ; les 3 désaccords (O12, P9, O6) ont été relus un par un et corrigés de notre côté.
 
 ### Saffire I, II, III (PSI-98, 99, 100)
 - **Lignes de visualisation d'écoulement** (`F1C1/F1C2`…) et **lignes « Note 1…4 »** : écartées (`skipped_rows.csv`) ; le texte des notes est recopié dans `observations` / `notes` des échantillons qui y renvoient (la Note 1, « O2 déduit de la production de CO2 », concerne la colonne O2 de tous les essais en vol de Saffire-II).
@@ -131,8 +140,11 @@ Chiffres vérifiés par `build_unified.py`.
 - Issue : longueur brûlée > 0 ou « Complete » → `burned` ; ~ 0 ou cas mixte PMMA / Nomex (2-7) → `other` ; Saffire-I : durée de combustion > 0 → `burned`.
 
 ### SAME (PSI-102) et SAME-R (PSI-101), hors modèle
-- SAME, échantillons 5 à 8 : la source dit explicitement « same conditions as 1-4 ». **D** : chaque matériau a 4 conditions, à dupliquer depuis les lignes 1 à 4.
-- SAME-R, lignes « a » (61a, 62a…) : mesure du **même** échantillon après vieillissement. Durée et temps de vieillissement primaire viennent de la ligne parente (61, 62…) : **D**.
+Fumées de matériaux chauffés, sans flamme : `families/aerosols.parquet` seulement, **pas dans `unified.parquet`** (catalogue des essais de combustion).
+- SAME, échantillons 5 à 8 : la source dit explicitement « same conditions as 1-4 ». **D** : une ligne par condition des essais 1 à 4 (`test_id` « 5-c1 »…), marque `recopie`. 8 lignes source → 20 lignes.
+- SAME-R, lignes « a » (61a, 62a…) : mesure du **même** échantillon après vieillissement. Durée, vieillissement et mélange primaires recopiés de la ligne parente (`parent_test`) : **D**, marque `recopie`.
+- SAME-R : dates sans année dans la source (« 21-Jul ») → gardées telles quelles dans `date_raw`.
+- Le n° d'essai 57 existe pour deux matériaux (Lampwick et Teflon) : la clé est (matériau, n° d'essai).
 - SAME-R, « Inlet velocity = 0 » (22 lignes) : vrais zéros (essais « No flow run »).
 
 ## Correspondance des issues vers `outcome`
@@ -150,7 +162,8 @@ Valeurs autorisées : `OUTCOMES` dans `src/common/schema.py`. Le texte d'origine
 | ACME CFI-G | Hot ignition = no + `FT` (1 ligne, Normal Flames) | `no_ignition` + `outcome:a_verifier` |
 | Saffire I–III | longueur brûlée > 0 ou « Complete » | `burned` |
 | Saffire-II | longueur brûlée µg « ~ 0 » (silicone 2-1 à 2-4, Nomex de 2-7) | `other`, avec la note « pas de propagation » (on ne sait pas s'il y a eu un allumage bref) |
-| BASS, BASS-II | observations en texte libre | vide tant que `data/processed/annotations/` n'est pas rempli ; ensuite issue annotée + `outcome:doc` + page |
+| BASS-II | observations de l'annexe A du rapport, puis mots des colonnes de débit | issue écrite explicitement → `outcome:deduit` (voir BASS-II) ; saisie manuelle → `outcome:doc` |
+| BASS | mots des colonnes de débit (« ext ») ; observations As Run en texte libre | `outcome:deduit` (2 essais) ; le reste à annoter |
 | ACME Flame Design, SPICE, CFI, SAME, SAME-R | pas d'issue enregistrée dans la table | vide (**A**) |
 
 ## Ce que ça change pour le schéma

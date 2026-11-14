@@ -88,13 +88,15 @@ Générés par `python -m src.data.build_unified` à partir de `data/raw/psi/`. 
 |---|---|---|
 | `unified.parquet` | table catalogue, une ligne par essai (schéma `src/common/schema.py`) | tables expérimentales PSI listées ci-dessus |
 | `experiments_all.csv` | la table catalogue en CSV, lisible sur GitHub, avec liens PSI et DOI | idem |
-| `families/droplets.parquet` | FLEX (CFI à venir) | PSI-69 |
+| `families/droplets.parquet` | FLEX, CFI | PSI-69, PSI-39 |
 | `families/gas.parquet` | ACME CFI-G, ACME Flame Design, SPICE | PSI-159, PSI-10, PSI-107 |
 | `families/solids.parquet` | BASS, BASS-II, Saffire I–III (Saffire-II : vol + sol 1g) | PSI-26 (+ matrice As Run), PSI-25, PSI-98, PSI-99, PSI-100 |
 | `campaigns.csv` | une ligne par investigation (DOI, plateforme, statut) | `psi_index.csv`, `investigation.json` |
 | `skipped_rows.csv` | lignes sources écartées et raison | — |
 | `data_dictionary.md`, `qc_report.md` | colonnes et unités ; contrôle qualité | — |
-| `annotations/bass_outcomes.csv` | issues BASS / BASS-II saisies à la main (avec page) | NASA/TM-20210011385, annexe A |
+| `families/aerosols.parquet` | SAME, SAME-R (fumées, hors catalogue) | PSI-102, PSI-101 |
+| `annotations/bass2_appendix.csv` | annexe A du rapport BASS-II extraite (`python -m src.data.extract_bass2_appendix`) : sens d'écoulement, observations, issue écrite | NASA/TM-20210011385, pp. 103–113 (PDF dans `data/raw/ntrs/pdf/`) |
+| `annotations/bass_outcomes.csv` | saisies manuelles BASS / BASS-II (prioritaires sur l'extraction) | NASA/TM-20210011385, annexe A |
 
 ## Documents NASA (NTRS)
 

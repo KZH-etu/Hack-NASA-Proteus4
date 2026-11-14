@@ -148,7 +148,7 @@ Comparaison ligne à ligne de nos tables `data/processed/families/` avec leurs `
 - Vitesse d'air en rampe : ils prennent la première valeur ; nous laissons `flow_cm_s` vide et donnons min / max.
 - Saffire-II 2-7 (« 0.85 and 0.37 mm ») : ils prennent 0,85 ; nous laissons vide (`qualitatif`).
 
-**Ce qui leur reste en plus** : CFI (79 gouttelettes), SAME / SAME-R / DAFT (aérosols), journaux par jour ACME, et l'indicateur « allumé » de SPICE.
+**Ce qui leur reste en plus** : DAFT (2 lignes), journaux par jour ACME, et l'indicateur « allumé » de SPICE (CFI et SAME / SAME-R : traités depuis, voir section 11).
 
 ## 10. Prêt pour le hackathon ?
 
@@ -160,3 +160,17 @@ Comparaison ligne à ligne de nos tables `data/processed/families/` avec leurs `
 | Scénario lunaire (≈ 34 % O2, ≈ 56 kPa) | **seulement 15 essais**, tous des flammes gazeuses ACME CFI-G à 51 kPa ; **aucune gouttelette** (FLEX ≥ 70 kPa) ; **aucun solide au-dessus de 22,7 % d'O2** |
 
 Le dernier point est l'argument central du pitch : les matériaux de cabine (solides) n'ont jamais été testés en microgravité dans une atmosphère enrichie en O2. C'est précisément l'expérience que l'onglet « Prochaine expérience » doit recommander.
+
+## 11. Mise à jour : toutes les investigations traitées (comparaison refaite)
+
+Le build traite les **12 investigations** : 1 720 essais dans `unified.parquet` (+ 129 lignes d'aérosols dans `families/aerosols.parquet`, hors catalogue).
+
+| Point | Nous | Krypton-N | Verdict |
+|---|---|---|---|
+| CFI | 79 essais (8 copies écartées) | 79 (8 exclues) | **identiques** : 0 écart sur pression, O2, He, fibre ; nous ajoutons la part du combustible principal |
+| BASS-II : issues | **102 / 129** (annexe A extraite + colonnes de débit) | 25 (colonnes de débit) | nous plus complets ; 3 désaccords relus, **leur lecture était la bonne**, corrigée chez nous (O12 → no_ignition, P9 → extinguished, O6 « out .275 » → extinguished) |
+| BASS-II : sens d'écoulement | **120 / 129** (annexe A) | 0 | nous |
+| BASS-II : observations | 126 (annexe A) | 0 | nous |
+| SAME « same conditions as 1-4 » | conditions recopiées (20 lignes, `recopie`) | vides + marque | choix différents ; nous suivons le texte de la source |
+| SAME-R lignes « a » | durée recopiée du parent (0 vide) | 41 durées vides | nous |
+| DAFT (PSI-47) | non traité | 2 lignes de conditions | eux ; faible intérêt (2 lignes, pas d'issue) |

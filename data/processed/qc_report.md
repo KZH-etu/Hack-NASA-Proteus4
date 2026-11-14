@@ -8,7 +8,7 @@ Règles : `docs/regles_valeurs_manquantes.md`.
 | PSI | Expérience | Famille | Lignes | Avec marques | Statut |
 |---|---|---|---:|---:|---|
 | PSI-69 | FLEX | droplet | 274 | 274 | traité |
-| PSI-39 | CFI | droplet | 0 | 0 | à faire (droplets) |
+| PSI-39 | CFI | droplet | 79 | 79 | traité |
 | PSI-159 | ACME CFI-G | gas | 333 | 333 | traité |
 | PSI-10 | ACME Flame Design | gas | 327 | 327 | traité |
 | PSI-107 | SPICE | gas | 435 | 435 | traité |
@@ -17,17 +17,18 @@ Règles : `docs/regles_valeurs_manquantes.md`.
 | PSI-98 | SAFFIRE-I | solid | 2 | 2 | traité |
 | PSI-99 | SAFFIRE-II | solid | 18 | 18 | traité |
 | PSI-100 | SAFFIRE-III | solid | 2 | 2 | traité |
-| PSI-101 | SAME-R | aerosol | 0 | 0 | à faire (aerosols) |
-| PSI-102 | SAME | aerosol | 0 | 0 | à faire (aerosols) |
+| PSI-101 | SAME-R | aerosol | 109 | 0 | traité (famille seulement, hors catalogue) |
+| PSI-102 | SAME | aerosol | 20 | 0 | traité (famille seulement, hors catalogue) |
 
-Lignes écartées : 43 (détail dans `skipped_rows.csv`).
+Lignes écartées : 51 (détail dans `skipped_rows.csv`).
 
-## families/droplets.parquet (274 lignes)
+## families/droplets.parquet (353 lignes)
 
 Marques les plus fréquentes :
 
 - `d_ext_mm:sans_objet` × 58
 - `d_ext_mm:zero_fictif` × 8
+- `x_o2:incoherent` × 4
 - `cir_identifier:a_verifier` × 2
 - `burn_time_s:approx` × 2
 - `pressure_kpa:zero_fictif` × 1
@@ -36,12 +37,16 @@ Cases vides :
 
 | Colonne | Vides | sans objet | faux zéro vidé | autre marque | absente du fichier source | vraiment manquants |
 |---|---:|---:|---:|---:|---:|---:|
-| `test_time_gmt` | 1 / 274 | 0 | 0 | 0 | 0 | 1 |
-| `pressure_kpa` | 1 / 274 | 0 | 1 | 0 | 0 | 0 |
-| `d0_mm` | 12 / 274 | 0 | 0 | 0 | 0 | 12 |
-| `d_ext_mm` | 85 / 274 | 58 | 0 | 0 | 0 | 27 |
-| `burning_rate_mm2_s` | 16 / 274 | 0 | 0 | 0 | 0 | 16 |
-| `burn_time_s` | 6 / 274 | 0 | 0 | 0 | 0 | 6 |
+| `test_time_gmt` | 80 / 353 | 0 | 0 | 0 | 79 | 1 |
+| `fiber_supported` | 283 / 353 | 0 | 0 | 0 | 274 | 9 |
+| `pressure_kpa` | 1 / 353 | 0 | 1 | 0 | 0 | 0 |
+| `x_co2` | 79 / 353 | 0 | 0 | 0 | 79 | 0 |
+| `d0_mm` | 91 / 353 | 0 | 0 | 0 | 79 | 12 |
+| `d_ext_mm` | 164 / 353 | 58 | 0 | 0 | 79 | 27 |
+| `burning_rate_mm2_s` | 95 / 353 | 0 | 0 | 0 | 79 | 16 |
+| `burn_time_s` | 85 / 353 | 0 | 0 | 0 | 79 | 6 |
+| `test_end_raw` | 79 / 353 | 0 | 0 | 0 | 79 | 0 |
+| `outcome` | 79 / 353 | 0 | 0 | 0 | 79 | 0 |
 
 ## families/gas.parquet (1095 lignes)
 
@@ -102,16 +107,16 @@ Marques les plus fréquentes :
 - `flow_cm_s:rampe` × 128
 - `width_cm:sans_objet` × 124
 - `thickness_mm:sans_objet` × 124
+- `flow_direction:doc` × 120
+- `outcome:deduit` × 104
 - `material:doc` × 91
 - `flow_cm_s:qualitatif` × 30
-- `outcome:deduit` × 25
 - `co_initial_ppm:incoherent` × 13
 - `x_o2:approx` × 11
 - `flow_min_cm_s:approx` × 10
 - `flow_cm_s:a_verifier` × 9
 - `co_final_ppm:qualitatif` × 8
 - `burn_length_cm:approx` × 8
-- `spread_rate_mm_s:sans_objet` × 7
 
 Cases vides :
 
@@ -127,7 +132,7 @@ Cases vides :
 | `diameter_mm` | 169 / 272 | 148 | 0 | 0 | 0 | 21 |
 | `color` | 218 / 272 | 0 | 0 | 0 | 143 | 75 |
 | `sides_burning` | 266 / 272 | 0 | 0 | 0 | 143 | 123 |
-| `flow_direction` | 256 / 272 | 0 | 0 | 0 | 129 | 127 |
+| `flow_direction` | 136 / 272 | 0 | 0 | 0 | 0 | 136 |
 | `flow_cm_s` | 183 / 272 | 0 | 0 | 158 | 0 | 25 |
 | `flow_min_cm_s` | 28 / 272 | 0 | 0 | 0 | 0 | 28 |
 | `flow_max_cm_s` | 28 / 272 | 0 | 0 | 0 | 0 | 28 |
@@ -149,19 +154,46 @@ Cases vides :
 | `burn_complete` | 256 / 272 | 0 | 0 | 0 | 254 | 2 |
 | `spread_rate_mm_s` | 268 / 272 | 7 | 0 | 7 | 254 | 0 |
 | `spread_mode` | 267 / 272 | 0 | 0 | 0 | 254 | 13 |
-| `observations` | 125 / 272 | 0 | 0 | 0 | 4 | 121 |
-| `outcome` | 227 / 272 | 0 | 0 | 0 | 2 | 225 |
+| `observations` | 10 / 272 | 0 | 0 | 0 | 4 | 6 |
+| `outcome` | 148 / 272 | 0 | 0 | 0 | 2 | 146 |
 
-## unified.parquet
+## families/aerosols.parquet (129 lignes)
 
-1641 lignes.
+Marques les plus fréquentes :
+
+- `primary_aging_s:recopie` × 42
+- `primary_mixing_s:recopie` × 42
+- `duration_s:recopie` × 41
+- `flow_cm_s:recopie` × 16
+- `weight_loss_mg_min:recopie` × 16
+- `aging_s:recopie` × 16
+- `net_aging_s:qualitatif` × 5
+
+Cases vides :
 
 | Colonne | Vides | sans objet | faux zéro vidé | autre marque | absente du fichier source | vraiment manquants |
 |---|---:|---:|---:|---:|---:|---:|
-| `material` | 3 / 1641 | 0 | 0 | 0 | 0 | 3 |
-| `o2_percent` | 22 / 1641 | 0 | 0 | 11 | 2 | 9 |
-| `pressure_kpa` | 23 / 1641 | 0 | 1 | 0 | 22 | 0 |
-| `flow_cm_s` | 1145 / 1641 | 660 | 0 | 166 | 274 | 45 |
-| `outcome` | 989 / 1641 | 0 | 0 | 0 | 764 | 225 |
-| `spread_rate_mm_s` | 1637 / 1641 | 1376 | 0 | 7 | 254 | 0 |
-| `burning_rate` | 1383 / 1641 | 1367 | 0 | 0 | 0 | 16 |
+| `parent_test` | 87 / 129 | 0 | 0 | 0 | 20 | 67 |
+| `date_raw` | 20 / 129 | 0 | 0 | 0 | 20 | 0 |
+| `description` | 20 / 129 | 0 | 0 | 0 | 20 | 0 |
+| `weight_loss_mg_min` | 109 / 129 | 0 | 0 | 0 | 109 | 0 |
+| `aging_s` | 109 / 129 | 0 | 0 | 46 | 63 | 0 |
+| `rt_r0` | 20 / 129 | 0 | 0 | 0 | 20 | 0 |
+| `duration_s` | 20 / 129 | 0 | 0 | 0 | 20 | 0 |
+| `primary_aging_s` | 20 / 129 | 0 | 0 | 0 | 20 | 0 |
+| `primary_mixing_s` | 20 / 129 | 0 | 0 | 0 | 20 | 0 |
+| `net_aging_s` | 25 / 129 | 0 | 0 | 5 | 20 | 0 |
+
+## unified.parquet
+
+1720 lignes.
+
+| Colonne | Vides | sans objet | faux zéro vidé | autre marque | absente du fichier source | vraiment manquants |
+|---|---:|---:|---:|---:|---:|---:|
+| `material` | 3 / 1720 | 0 | 0 | 0 | 0 | 3 |
+| `o2_percent` | 22 / 1720 | 0 | 0 | 11 | 2 | 9 |
+| `pressure_kpa` | 23 / 1720 | 0 | 1 | 0 | 22 | 0 |
+| `flow_cm_s` | 1224 / 1720 | 660 | 0 | 166 | 353 | 45 |
+| `outcome` | 989 / 1720 | 0 | 0 | 0 | 843 | 146 |
+| `spread_rate_mm_s` | 1716 / 1720 | 1455 | 0 | 7 | 254 | 0 |
+| `burning_rate` | 1462 / 1720 | 1367 | 0 | 0 | 79 | 16 |

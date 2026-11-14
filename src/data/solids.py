@@ -36,7 +36,7 @@ FAMILY_COLUMNS = {
     "diameter_mm": ("Float64", "mm", "Diamètre (tiges, sphères)"),
     "color": ("string", "", "black / clear (PMMA)"),
     "sides_burning": ("Int64", "", "Échantillon allumé sur 1 ou 2 faces (« 1 sided »)"),
-    "flow_direction": ("string", "", "opposed / concurrent"),
+    "flow_direction": ("string", "", "opposed / concurrent / stagnation (bougies) ; BASS-II : annexe A du rapport"),
     "flow_cm_s": ("Float64", "cm/s", "Vitesse d'air si une seule valeur ; vide si rampe (voir flow_min / flow_max)"),
     "flow_min_cm_s": ("Float64", "cm/s", "Plus petite vitesse d'air affichée pendant l'essai (hors réglages en « pot »)"),
     "flow_max_cm_s": ("Float64", "cm/s", "Plus grande vitesse d'air affichée pendant l'essai"),
@@ -58,7 +58,7 @@ FAMILY_COLUMNS = {
     "burn_complete": ("boolean", "", "Échantillon entièrement brûlé (« Complete »)"),
     "spread_rate_mm_s": ("Float64", "mm/s", "Vitesse de propagation (Saffire-II)"),
     "spread_mode": ("string", "", "Mode de propagation noté (ex. « acceleratory » : pas de vitesse unique)"),
-    "observations": ("string", "", "Observations d'origine (BASS) et textes qualitatifs"),
+    "observations": ("string", "", "Observations d'origine (BASS : matrice As Run ; BASS-II : annexe A du rapport) et textes qualitatifs"),
     "outcome": ("string", "", "Issue normalisée ; BASS / BASS-II : depuis annotations/bass_outcomes.csv"),
     "gravity": ("string", "", "micro (vol) ou 1g (essais au sol de Saffire-II)"),
     "source_file": ("string", "", "Fichier PSI d'origine"),
@@ -186,12 +186,18 @@ def parse_flow(text, row, target="flow_cm_s"):
         row.flag(target, "approx")
 
 
-EXTINCTION_WORDS = re.compile(r"(?<![a-z])(ext|extinct|extinguish|blow ?off)")
+# « 5 3 2 ext », « 10 blowoff », « out .275 » (flamme éteinte au réglage 0.275) ; « no ign » = pas d'allumage
+EXTINCTION_WORDS = re.compile(r"(?<![a-z])(ext|extinct|extinguish|blow ?off|out(?=\s*\.?\d))")
+NO_IGNITION_WORDS = re.compile(r"(?<![a-z])no ign")
 
 
 def outcome_from_text(row, *texts):
-    """Issue écrite en toutes lettres dans les colonnes de débit (« 5 3 2 ext », « 10 blowoff »)."""
+    """Issue écrite en toutes lettres dans les colonnes de débit, si l'annexe n'en a pas donné."""
     joined = " ".join(t for t in texts if t).lower()
+    if row.values["outcome"] is None and NO_IGNITION_WORDS.search(joined):
+        row.values["outcome"] = "no_ignition"
+        row.flag("outcome", "deduit")
+        return "absence d'allumage notée dans les colonnes de débit"
     m = EXTINCTION_WORDS.search(joined)
     if m and row.values["outcome"] is None:
         row.values["outcome"] = "extinguished"
@@ -229,30 +235,52 @@ def set_unit(row, column, text, scale=1.0):
     return value
 
 
+ANNOTATION_FILES = (  # du moins prioritaire au plus prioritaire
+    ("bass2_appendix.csv", True),   # extrait automatiquement de l'annexe A (src/data/extract_bass2_appendix.py)
+    ("bass_outcomes.csv", False),   # saisies manuelles : remplacent l'extraction automatique
+)
+
+
 def load_annotations():
-    """Issues et sens d'écoulement saisis à la main pour BASS / BASS-II (avec leur page)."""
-    path = PROCESSED / "annotations" / "bass_outcomes.csv"
-    if not path.exists():
-        return {}
-    with open(path, encoding="utf-8") as f:
-        rows = [r for r in csv.DictReader(f) if r.get("test_id")]
-    for r in rows:
-        if r["outcome"] and r["outcome"] not in OUTCOMES:
-            raise ValueError(f"annotations : issue « {r['outcome']} » non autorisée ({r['experiment']} {r['test_id']})")
-    return {(r["experiment"], r["test_id"]): r for r in rows}
+    """Issue, sens d'écoulement et observations BASS / BASS-II, avec leur page. Clé : (expérience, n° d'essai)."""
+    merged = {}
+    for name, automatic in ANNOTATION_FILES:
+        path = PROCESSED / "annotations" / name
+        if not path.exists():
+            continue
+        with open(path, encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                if not r.get("test_id"):
+                    continue
+                if r["outcome"] and r["outcome"] not in OUTCOMES:
+                    raise ValueError(f"{name} : issue « {r['outcome']} » non autorisée ({r['experiment']} {r['test_id']})")
+                current = merged.setdefault((r["experiment"], r["test_id"]), {})
+                for field in ("outcome", "flow_direction", "note"):
+                    if r.get(field):
+                        current[field] = r[field]
+                        current[f"{field}_auto"] = automatic
+                        current[f"{field}_source"] = f"{r['source_doc']} p. {r['source_page']}"
+    return merged
 
 
 def apply_annotation(row, annotations):
+    """Applique une annotation ; renvoie la note de source (ou None). Issue extraite automatiquement : marque deduit."""
     a = annotations.get((row.values["experiment"], row.values["test_id"]))
     if not a:
         return None
-    if a["outcome"]:
+    sources = set()
+    if a.get("outcome"):
         row.values["outcome"] = a["outcome"]
-        row.flag("outcome", "doc")
+        row.flag("outcome", "deduit" if a["outcome_auto"] else "doc")
+        sources.add(a["outcome_source"])
     if a.get("flow_direction"):
         row.values["flow_direction"] = a["flow_direction"]
         row.flag("flow_direction", "doc")
-    return f"annotation : {a['source_doc']} p. {a['source_page']}"
+        sources.add(a["flow_direction_source"])
+    if a.get("note"):
+        row.values["observations"] = a["note"]
+        sources.add(a["note_source"])
+    return "annexe / annotation : " + ", ".join(sorted(sources)) if sources else None
 
 
 # ---------- Sortie unifiée ----------
@@ -350,9 +378,9 @@ def build_bass2(annotations):
         v["pressure_kpa"] = ATM_TO_KPA
         row.flag("pressure_kpa", "nominal")
         note = apply_annotation(row, annotations)
-        deduced = None if note else outcome_from_text(row, r["Air display"], r["Fan display"])
+        deduced = outcome_from_text(row, r["Air display"], r["Fan display"])  # seulement si l'annexe n'a rien donné
         notes = [f"échantillon : {r['Fuel Sample Material']}", f"pression nominale 1 atm ({BASS2_REPORT} p. 11, 41)",
-                 note or deduced, None if note else "sens d'écoulement et issue détaillée : annexe A du rapport (à annoter)"]
+                 note, deduced, None if note else "absent de l'annexe A du rapport"]
         if "material:doc" in row.flags.items:
             notes.append(f"matériau PMMA : {BASS2_REPORT} p. 47 (tiges de PMMA coulé) / {BASS_DRAWINGS}")
         flag_shape(row)

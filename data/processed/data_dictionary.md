@@ -29,15 +29,18 @@ Généré par `python -m src.data.build_unified` à partir du code. Ne pas édit
 
 | Colonne | Type | Unité | Description |
 |---|---|---|---|
-| `experiment` | string |  | Nom de l'expérience (FLEX) |
+| `experiment` | string |  | FLEX ou CFI |
 | `psi_id` | string |  | Investigation PSI |
-| `test_id` | string |  | Numéro d'essai de l'équipe scientifique (« FLEX Test # ») |
+| `test_id` | string |  | Numéro d'essai de l'équipe scientifique (FLEX : « FLEX Test # » ; CFI : « Flex Number ») |
 | `cir_identifier` | string |  | Identifiant de l'équipe ingénierie CIR (« FLEX Identifier »), pas toujours unique |
 | `test_date` | string | AAAA-MM-JJ | Date de l'essai |
 | `test_time_gmt` | string | HH:MM:SS | Heure de l'essai (GMT) |
 | `session` | string |  | Groupe pour la validation croisée : jour d'essai (les essais d'un même jour partagent l'atmosphère de la chambre) |
-| `fuel` | string |  | Combustible (heptane, methanol) |
-| `pressure_kpa` | Float64 | kPa | Pression ambiante (source en mmHg, × 0.133322) |
+| `fuel` | string |  | Combustible principal (heptane, methanol, n-dodecane) |
+| `fuel_label_raw` | string |  | Libellé d'origine (ex. « [.60]/[.40] C12H26/iso-dodecane ») |
+| `fuel_main_fraction` | Float64 | fraction | Part du combustible principal dans le mélange (1 = pur ; CFI : n-dodécane / iso-dodécane) |
+| `fiber_supported` | boolean |  | Gouttelette sur fibre (CFI) ; vide = non renseigné (FLEX : non donné par essai) |
+| `pressure_kpa` | Float64 | kPa | Pression ambiante (FLEX : mmHg × 0.133322 ; CFI : atm × 101.325) |
 | `x_o2` | Float64 | fraction molaire | O2 initial |
 | `x_n2` | Float64 | fraction molaire | N2 initial |
 | `x_co2` | Float64 | fraction molaire | CO2 initial (0 = pas de CO2, vrai zéro) |
@@ -117,7 +120,7 @@ Généré par `python -m src.data.build_unified` à partir du code. Ne pas édit
 | `diameter_mm` | Float64 | mm | Diamètre (tiges, sphères) |
 | `color` | string |  | black / clear (PMMA) |
 | `sides_burning` | Int64 |  | Échantillon allumé sur 1 ou 2 faces (« 1 sided ») |
-| `flow_direction` | string |  | opposed / concurrent |
+| `flow_direction` | string |  | opposed / concurrent / stagnation (bougies) ; BASS-II : annexe A du rapport |
 | `flow_cm_s` | Float64 | cm/s | Vitesse d'air si une seule valeur ; vide si rampe (voir flow_min / flow_max) |
 | `flow_min_cm_s` | Float64 | cm/s | Plus petite vitesse d'air affichée pendant l'essai (hors réglages en « pot ») |
 | `flow_max_cm_s` | Float64 | cm/s | Plus grande vitesse d'air affichée pendant l'essai |
@@ -139,9 +142,34 @@ Généré par `python -m src.data.build_unified` à partir du code. Ne pas édit
 | `burn_complete` | boolean |  | Échantillon entièrement brûlé (« Complete ») |
 | `spread_rate_mm_s` | Float64 | mm/s | Vitesse de propagation (Saffire-II) |
 | `spread_mode` | string |  | Mode de propagation noté (ex. « acceleratory » : pas de vitesse unique) |
-| `observations` | string |  | Observations d'origine (BASS) et textes qualitatifs |
+| `observations` | string |  | Observations d'origine (BASS : matrice As Run ; BASS-II : annexe A du rapport) et textes qualitatifs |
 | `outcome` | string |  | Issue normalisée ; BASS / BASS-II : depuis annotations/bass_outcomes.csv |
 | `gravity` | string |  | micro (vol) ou 1g (essais au sol de Saffire-II) |
+| `source_file` | string |  | Fichier PSI d'origine |
+| `source_line` | Int64 |  | Ligne dans le fichier d'origine (en-tête = 1) |
+| `qc_flags` | string |  | Marques qualité « colonne:motif;... » |
+
+## families/aerosols.parquet
+
+| Colonne | Type | Unité | Description |
+|---|---|---|---|
+| `experiment` | string |  | SAME ou SAME-R |
+| `psi_id` | string |  | Investigation PSI |
+| `test_id` | string |  | SAME : n° d'échantillon (+ « -c<k> » pour les conditions recopiées) ; SAME-R : n° d'essai (« 61a » = mesure vieillie de 61) |
+| `parent_test` | string |  | SAME-R : essai parent d'une mesure vieillie |
+| `session` | string |  | Groupe pour la validation croisée : date (SAME-R) ou expérience (SAME) |
+| `date_raw` | string |  | Date telle qu'écrite (sans année pour SAME-R) |
+| `material` | string |  | Matériau chauffé (kapton, silicone, lampwick, teflon, pyrell, dibutyl phthalate) |
+| `description` | string |  | Description de l'essai (SAME-R) |
+| `flow_cm_s` | Float64 | cm/s | Vitesse d'air (SAME : « Air Flow » ; SAME-R : « Inlet velocity », 0 = essai sans écoulement) |
+| `weight_loss_mg_min` | Float64 | mg/min | Perte de masse de l'échantillon (SAME) |
+| `aging_s` | Float64 | s | Durée de vieillissement de la fumée (SAME : minutes × 60) |
+| `rt_r0` | Float64 |  | Rapport de résistance du chauffage Rt/R0 (SAME-R, lié à la température) |
+| `duration_s` | Float64 | s | Durée de chauffage (SAME-R) |
+| `primary_aging_s` | Float64 | s | Temps de vieillissement primaire (SAME-R) |
+| `primary_mixing_s` | Float64 | s | Temps de mélange primaire (SAME-R) |
+| `net_aging_s` | Float64 | s | Temps de vieillissement net (SAME-R) |
+| `gravity` | string |  | micro (ISS) |
 | `source_file` | string |  | Fichier PSI d'origine |
 | `source_line` | Int64 |  | Ligne dans le fichier d'origine (en-tête = 1) |
 | `qc_flags` | string |  | Marques qualité « colonne:motif;... » |
