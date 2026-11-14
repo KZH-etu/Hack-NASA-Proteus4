@@ -142,15 +142,14 @@ def parse_sample(desc, row):
         v["flow_direction"] = "opposed"
 
 
-def parse_flow(text, row, target="flow_cm_s"):
-    """Vitesse d'air affichée (cm/s). « 10, 5, 3 » -> min 3, max 10, rampe ; « 5 » -> 5.
+def flow_sequence(text):
+    """Vitesses d'air affichées, dans l'ordre de la source, et mots qui les suivent.
 
+    Renvoie une liste de (vitesse en cm/s, mots écrits juste après, borne_haute) ; borne_haute = True pour « <1 ».
     Les réglages du potentiomètre ne sont pas des vitesses : « 5 3 pot 0.4 » (pot devant), « 3 0.5 pot 0.4 pot »
     (pot derrière), « 5 pots 0.4 0.36 0.32 » (tous les nombres qui suivent « pots »), « (pot .9, .5) ».
-    « <1 » compte pour 1 dans le minimum (marque approx).
+    Exemple : « 5 3 2 ext » -> [(5, [], False), (3, [], False), (2, ['ext'], False)].
     """
-    v = row.values
-    v["flow_raw"] = text or None
     t = re.sub(r"\([^)]*\)", " ", (text or "").lower())
     tokens = re.findall(r"[a-z]+|<?\s*\d*\.?\d+\??", t)
     is_num = lambda tok: bool(re.fullmatch(r"<?\s*\d*\.?\d+\??", tok))
@@ -168,15 +167,28 @@ def parse_flow(text, row, target="flow_cm_s"):
                 pot.add(i + 1)
             elif i > 0 and is_num(tokens[i - 1]):
                 pot.add(i - 1)
-    numbers, words, below = [], [], False
+    sequence = []
     for i, tok in enumerate(tokens):
         if i in pot or tok in ("pot", "pots"):
             continue
         if is_num(tok):
-            below = below or tok.startswith("<")
-            numbers.append(float(tok.lstrip("< ").rstrip("?")))
-        else:
-            words.append(tok)
+            sequence.append((float(tok.lstrip("< ").rstrip("?")), [], tok.startswith("<")))
+        elif sequence:
+            sequence[-1][1].append(tok)
+    return sequence
+
+
+def parse_flow(text, row, target="flow_cm_s"):
+    """Vitesse d'air affichée (cm/s). « 10, 5, 3 » -> min 3, max 10, rampe ; « 5 » -> 5.
+    Lecture des vitesses : flow_sequence(). « <1 » compte pour 1 dans le minimum (marque approx).
+    """
+    v = row.values
+    v["flow_raw"] = text or None
+    t = re.sub(r"\([^)]*\)", " ", (text or "").lower())
+    sequence = flow_sequence(text)
+    numbers = [speed for speed, _, _ in sequence]
+    below = any(upper for _, _, upper in sequence)
+    words = [w for w in re.findall(r"[a-z]+", t) if w not in ("pot", "pots")]
     if not numbers:
         if text:
             row.flag(target, "qualitatif")
