@@ -35,7 +35,7 @@ from src.api import predict as predict_module
 LOGGER = logging.getLogger("hephaistos")
 ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = ROOT / "app" / "frontend_hephaistos"
-FRONTEND_PAGE = "HEPHAISTOS_interface_v5_modeles.html"
+FRONTEND_PAGE = "index.html"
 RAG_ROUTES = {"/health", "/retrieve"}
 
 

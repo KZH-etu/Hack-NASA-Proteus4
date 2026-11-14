@@ -4,9 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HEPHAISTOS</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%A5%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%}
@@ -79,7 +82,7 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
 .pred .muted{color:#aaa}
 
 /* Chat */
-.chat{flex:1;min-height:0;display:flex;flex-direction:column;width:100%;max-width:820px;margin:0 auto}
+.chat{flex:1;min-height:0;display:flex;flex-direction:column;width:100%;max-width:800px;margin:0 auto}
 #log{flex:1;overflow:auto;padding:22px 22px 8px;display:flex;flex-direction:column;gap:16px}
 .msg{max-width:78%;padding:11px 14px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
 .msg.u{align-self:flex-end;background:#000;color:#fff}
@@ -100,6 +103,108 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
   .left{border-right:0;border-bottom:1px solid #000}
   .right{grid-template-rows:auto auto}
 }
+
+/* Transitions entre les fenêtres */
+.view{animation:windowEnter .48s cubic-bezier(.2,.7,.2,1) both}
+.view.window-leaving{animation:windowExit .23s ease-in both;pointer-events:none}
+@keyframes windowEnter{from{opacity:0;transform:translateY(12px);filter:blur(3px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
+@keyframes windowExit{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-8px)}}
+/* Chat : fond blanc, largeur viewport <= 800 px, header sombre contrasté (style carré) */
+#chat{background:#fff;padding:0}
+#chat .top{background:#05080e;color:#fff;margin:0;border-bottom:1px solid #000}
+#chat .top .back{color:#fff}
+#chat .top .back:focus-visible{outline-color:#fff}
+#chat .top .logo-pair{background:#fff;color:#000;padding:4px 10px;border:1px solid #000}
+#chat .chat{background:#fff;width:100%;max-width:800px;margin:0 auto;min-height:0}
+#chat #log{background:#fff;padding-bottom:24px}
+#chat .bar{position:relative;background:#fff;border-top:0}
+#chat .bar::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:26px;pointer-events:none;background:linear-gradient(to top,#fff,rgba(255,255,255,0))}
+/* Palette NASA : saisies en bleu, résultats de prédiction en dégradé bleu-rouge */
+#predict .field input,#predict .field select{color:#0b3d91;font-weight:600}
+#predict .field input:focus,#predict .field select:focus{outline-color:#0b3d91}
+#predict .pred .big-num,#predict .pred p:not(.muted),#predict .pred .tag{color:var(--risk-color,#0b3d91)}
+#predict .pred .tag{border-color:var(--risk-color,#0b3d91)}
+@media(max-width:600px){#chat{padding:0}#chat .top{margin:0}#chat .chat{margin-top:0}}
+@media(prefers-reduced-motion:reduce){.view,.view.window-leaving{animation:none!important}}
+/* Prédiction : scénarios, aides de saisie, jauge d'intervalle, fiabilité */
+#predict .presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+#predict .presets-label{width:100%;font-size:11px;text-transform:uppercase;letter-spacing:.18em;color:#666}
+#predict .preset{padding:7px 11px;background:#fff;border:1px solid #000;font-size:12px;font-weight:600;cursor:pointer}
+#predict .preset:hover{background:#000;color:#fff}
+#predict .hint{display:block;margin-top:4px;font-size:11px;color:#666}
+#predict .field.out input{border-color:#fc3d21}
+#predict .field.out .hint{color:#fc3d21;font-weight:600}
+#predict .pred h2{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+#predict .pred p.recap{color:#aaa;font-size:12px;margin:-6px 0 6px}
+#predict .pred p.nodata{color:#ffb547;font-weight:600}
+#predict .pred p.loading{color:#ddd}
+.model-metric{padding:16px 0;border-bottom:1px solid #2a2a2a}
+.metric-label{font-weight:600;color:#fff}
+.metric-value{font-size:clamp(28px,3.4vw,44px);font-weight:800;line-height:1.15}
+.metric-sub{margin-top:4px;font-size:12px;color:#aaa}
+.range-bar{position:relative;height:8px;margin:12px 0 5px;background:#262626}
+.range-bar .band{position:absolute;top:0;bottom:0;background:var(--risk-color);opacity:.45}
+.range-bar .dot{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;background:var(--risk-color);border:2px solid #fff;border-radius:50%}
+.range-scale{display:flex;justify-content:space-between;font-size:10px;color:#777}
+.badge{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid currentColor}
+.badge.good{color:#6fb1ff}.badge.medium{color:#ffb547}.badge.low{color:#fc3d21}
+.warn{margin-top:16px;border-left:3px solid #fc3d21;padding:10px 12px;background:#1c0f0c;color:#f3d6d0;font-size:13px}
+.warn ul{margin:6px 0 0;padding-left:18px}
+.warn li{margin-top:4px}
+.spinner{display:inline-block;width:12px;height:12px;margin-right:8px;border:2px solid #555;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.src .outcome{font-weight:700}
+@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
+/* Colonne de résultats : la prédiction prend la hauteur dont elle a besoin, la colonne défile d'un bloc */
+#predict .right{display:flex;flex-direction:column;overflow:auto;min-height:0}
+#predict .pred{flex:0 0 auto;overflow:visible}
+#predict .src{flex:1 0 auto;overflow:visible}
+#predict .preset.active{background:#000;color:#fff}
+.legend{display:flex;align-items:center;gap:6px;margin:2px 0 4px;font-size:11px;color:#888}
+.legend i{display:inline-block;width:46px;height:6px;background:linear-gradient(90deg,rgb(79,141,255),rgb(252,61,33))}
+/* Téléphone : une seule colonne qui défile normalement (pas de zones de défilement imbriquées) */
+@media(max-width:800px){#predict .split{display:block;overflow:auto}#predict .left,#predict .right,#predict .pred,#predict .src{overflow:visible}#predict .right{display:block}}
+/* Réponses et sources enrichies du chatbot */
+#chat .chat-answer{white-space:normal;display:grid;gap:8px;line-height:1.55}
+#chat .chat-answer p,#chat .chat-answer h3,#chat .chat-answer ul,#chat .chat-answer ol{margin:0}
+#chat .chat-answer h3{font-size:14px;font-weight:700;color:#0b3d91;margin-top:4px}
+#chat .chat-answer ul,#chat .chat-answer ol{padding-left:20px;display:grid;gap:4px}
+#chat .chat-code{font-family:ui-monospace,Consolas,monospace;font-size:.9em;background:#e6ebf2;padding:1px 4px}
+#chat .chat-math-block{overflow-x:auto;padding:6px 0;text-align:center}
+#chat .chat-math-fallback{font-family:ui-monospace,Consolas,monospace;font-size:.94em}
+#chat .chat-thinking{display:inline-flex;align-items:baseline;gap:2px;font-weight:800;font-size:18px;line-height:1;letter-spacing:1px;color:#0b3d91}
+#chat .chat-thinking span{display:inline-block;animation:chat-dot .55s ease-in-out infinite}
+#chat .chat-thinking span:nth-child(2){animation-delay:.1s}
+#chat .chat-thinking span:nth-child(3){animation-delay:.2s}
+@keyframes chat-dot{0%,75%,100%{opacity:.25;transform:translateY(0)}35%{opacity:1;transform:translateY(-4px)}}
+@media(prefers-reduced-motion:reduce){#chat .chat-thinking span{animation-duration:2.4s}}
+#chat .cite-ref{display:inline-block;margin:0 1px;padding:0 5px;background:#e8effa;color:#0b3d91;font-size:11px;font-weight:700;text-decoration:none;vertical-align:baseline;border:1px solid #c6d6f0;cursor:pointer}
+#chat .cite-ref:hover,#chat .cite-ref:focus-visible{background:#0b3d91;color:#fff;border-color:#0b3d91;outline:none}
+#chat .s{margin-top:12px;padding-top:10px;border-top:1px solid #e4e4e4;font-size:13px}
+#chat .s-title{display:block;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#0b3d91;margin-bottom:8px}
+#chat .chat-sources{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+#chat .src-item{background:#f7f9fc;border:1px solid #dde5f2;border-left:3px solid #0b3d91;padding:8px 10px}
+#chat .src-item:target,#chat .src-item.src-highlight{border-color:#fc3d21;box-shadow:0 0 0 2px rgba(252,61,33,.18)}
+#chat .src-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;margin-bottom:3px}
+#chat .src-idx{font-weight:800;color:#0b3d91;font-size:12px}
+#chat .src-meta{color:#444;font-size:12px;line-height:1.4}
+#chat .src-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:5px;font-size:12px}
+#chat .src-links a{color:#0b3d91;font-weight:600;text-decoration:underline}
+#chat .src-links a:hover{color:#fc3d21}
+#chat .src-excerpt{margin-top:7px;padding-top:6px;border-top:1px dashed #cfd9ea}
+#chat .src-excerpt > summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-size:12px;font-weight:600;color:#0b3d91;user-select:none}
+#chat .src-excerpt > summary::-webkit-details-marker{display:none}
+#chat .src-excerpt > summary::before{content:"";width:0;height:0;border-left:5px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;transform:rotate(0deg)}
+#chat .src-excerpt[open] > summary::before{transform:rotate(90deg)}
+#chat .src-excerpt > summary:hover,#chat .src-excerpt > summary:focus-visible{color:#fc3d21;outline:none}
+#chat .src-excerpt-body{margin-top:6px;display:grid;gap:6px}
+#chat .src-excerpt-text{margin:0;padding:8px 10px;background:#fff;border:1px solid #dde5f2;font-size:12px;line-height:1.45;color:#222;white-space:pre-wrap;word-break:break-word}
+#chat .src-excerpt::details-content{interpolate-size:allow-keywords;overflow:clip;contain:layout}
+#chat .src-excerpt:not([open])::details-content{block-size:0}
+@media(prefers-reduced-motion:no-preference){
+  #chat .src-excerpt > summary::before{transition:transform .2s ease}
+  #chat .src-excerpt::details-content{transition:block-size .22s ease,content-visibility .22s allow-discrete,display .22s allow-discrete}
+}
 </style>
 </head>
 <body>
@@ -110,6 +215,7 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
   <div class="menu-panel">
   <div class="menu-brand"><div class="logo-slot" data-logo="nasa"></div><h1>HEPHAISTOS</h1><div class="logo-slot" data-logo="partner"></div></div>
   <p class="menu-subtitle">Menu principal</p>
+  <p id="modelsStatus" role="status" aria-live="polite" style="font-size:13px;margin:12px 0;color:#0b3d91">Vérification des trois modèles…</p>
   <div class="opts">
     <button class="opt" data-go="predict">Prédiction</button>
     <button class="opt" data-go="chat">Chat</button>
@@ -127,26 +233,21 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
     <!-- Moitié gauche : variables d'entrée -->
     <div class="left">
       <h2>Conditions de l’essai</h2>
-      <!--
-        VARIABLES D'EXEMPLE : à remplacer par la liste définitive.
-        Elles suivent le schéma src/common/schema.py (fuel_type, material, o2_percent,
-        pressure_kpa, flow_cm_s, gravity). Pour en ajouter une : copier un bloc .field,
-        garder l'attribut name= : sa valeur est envoyée telle quelle à l'IA Python.
-      -->
+      <div class="presets" aria-label="Scénarios de mission">
+        <span class="presets-label">Scénarios de mission</span>
+        <button type="button" class="preset" data-preset="iss">Cabine ISS</button>
+        <button type="button" class="preset" data-preset="lune">Habitat lunaire</button>
+        <button type="button" class="preset" data-preset="pauvre">Atmosphère pauvre en O₂</button>
+        <button type="button" class="preset" data-preset="cabine">Matériau de cabine</button>
+      </div>
       <form id="form" autocomplete="off">
-        <div class="field"><label for="fuel_type">Type de combustible</label>
-          <select id="fuel_type" name="fuel_type"><option value="solid">Solide</option><option value="droplet">Gouttelette</option><option value="gas">Gaz</option></select></div>
-        <div class="field"><label for="material">Matériau</label>
-          <input id="material" name="material" type="text" value="PMMA" required></div>
-        <div class="field"><label for="o2_percent">Oxygène (%)</label>
-          <input id="o2_percent" name="o2_percent" type="number" step="0.1" min="0" max="100" value="21" required></div>
-        <div class="field"><label for="pressure_kpa">Pression (kPa)</label>
-          <input id="pressure_kpa" name="pressure_kpa" type="number" step="0.1" min="0" value="101.3" required></div>
-        <div class="field"><label for="flow_cm_s">Débit d’air (cm/s)</label>
-          <input id="flow_cm_s" name="flow_cm_s" type="number" step="0.1" min="0" value="10" required></div>
-        <div class="field"><label for="gravity">Gravité</label>
-          <select id="gravity" name="gravity"><option value="micro">Microgravité</option><option value="1g">1 g (comparaison)</option></select></div>
-        <button class="go" id="goPredict" type="submit">Lancer la prédiction</button>
+        <div class="field"><label for="fuel_type">État du combustible</label>
+          <select id="fuel_type" name="fuel_type" required>
+            <option value="" selected disabled>Choisir un état…</option>
+            <option value="solid">Solide</option><option value="gas">Gaz</option><option value="droplet">Gouttelette</option>
+          </select></div>
+        <div id="dynamicFields" hidden></div>
+        <button class="go" id="goPredict" type="submit" hidden>Lancer la prédiction</button>
       </form>
     </div>
 
@@ -157,8 +258,8 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
         <p class="muted">Renseignez les conditions puis lancez la prédiction.</p>
       </div>
       <div class="src" id="srcOut">
-        <h2>Sources</h2>
-        <p class="muted">Les essais NASA jugés proches apparaîtront ici.</p>
+        <h2>Essais NASA les plus proches</h2>
+        <p class="muted">Les essais réels les plus proches de vos conditions apparaîtront ici, avec leur source.</p>
       </div>
     </div>
   </div>
@@ -187,28 +288,39 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
 /* =====================================================================
    CONFIGURATION : POINTS DE BRANCHEMENT DES IA PYTHON
    ===================================================================== */
+// Servie par le serveur HEPHAISTOS (python -m src.api) : mêmes adresses que la page. Ouverte en local (file://) : localhost:8000.
+const API_BASE = location.protocol === "file:" ? "http://localhost:8000" : "";
 const CONFIG = {
   // >>> ZONE À MODIFIER 1 : logo NASA.
   // Placer le fichier officiel du logo à cet emplacement (SVG ou PNG).
   // Tant qu'il est absent, un logo provisoire est affiché.
-  LOGO_URL: "logo-nasa-sur-fond-blanc.PNG",
+  LOGO_URL: "assets/logo-nasa-sur-fond-blanc.PNG",
 
   // >>> ZONE À MODIFIER : logo du partenaire, affiché à droite du ×.
   // Exemple : "./assets/logo-partenaire.png" ou une URL https://...
   // Laisser vide pour afficher un emplacement provisoire.
-  PARTNER_LOGO_URL: "logo_proteus_3.png",
+  PARTNER_LOGO_URL: "assets/logo_proteus_3.png",
 
   // >>> ZONE À MODIFIER 2 : IA de PRÉDICTION (Python).
   // URL de l'API qui appelle predict(conditions) (src/models/predict.py).
-  PREDICT_URL: "http://localhost:8000/predict",
+  PREDICT_URL: API_BASE + "/predict",
+
+  // >>> MODÈLES PYTHON : modifier uniquement les noms ci-dessous.
+  // Le backend doit utiliser le champ "model" reçu pour sélectionner le module.
+  MODEL_BY_STATE: {
+    droplet: "model_flex",
+    gas: "model_gas",
+    solid: "model_solids"
+  },
 
   // >>> ZONE À MODIFIER 3 : IA du CHAT (Python).
   // URL de l'API qui appelle ask(question) (src/rag/ask.py).
-  CHAT_URL: "http://localhost:8000/ask",
+  CHAT_URL: API_BASE + "/ask",
 
   // true = réponses factices étiquetées DEMO (aucune URL appelée).
   // Passer à false dès que les API Python tournent.
-  USE_DEMO: true,
+  USE_DEMO: false,
+  STATUS_URL: API_BASE + "/models/status",
 };
 
 const NO_SOURCE = "Aucun test de la NASA n’a été effectué sur une situation similaire";
@@ -253,8 +365,27 @@ intro.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventD
 setTimeout(closeIntro,2500);
 
 /* ---------- Navigation (menu / prédiction / chat) ---------- */
+let navigationPending = false;
 function show(id){
-  document.querySelectorAll(".view").forEach(v => v.hidden = v.id !== id);
+  const next = document.getElementById(id);
+  const current = document.querySelector('.view:not([hidden])');
+  if(!next || next === current || navigationPending) return;
+  if(!current || window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    document.querySelectorAll('.view').forEach(v => v.hidden = v !== next);
+    return;
+  }
+  navigationPending = true;
+  current.classList.add('window-leaving');
+  setTimeout(() => {
+    current.hidden = true;
+    current.classList.remove('window-leaving');
+    next.hidden = false;
+    // Relancer l'animation d'entrée à chaque visite.
+    next.style.animation = 'none';
+    void next.offsetWidth;
+    next.style.animation = '';
+    navigationPending = false;
+  }, 230);
 }
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-go]");
@@ -265,66 +396,243 @@ document.addEventListener("click", e => {
 // Format attendu : tout champ est optionnel, seuls ceux présents sont affichés.
 // { experiment, psi_id, test_id, o2_percent, pressure_kpa, flow_cm_s, material,
 //   source_doc, source_page, doi, title, ntrs_id, page, url, demo }
+const OUTCOME_FR = {extinguished:"extinction", burned:"a brûlé", completion:"brûlée jusqu’au bout",
+                    disruption:"goutte éclatée", no_ignition:"ne s’est pas allumée"};
+const fr = v => (v == null || v === "") ? v : Number(v).toLocaleString("fr-FR", {maximumFractionDigits: 3});
+function safeHttpUrl(raw){
+  if(!raw) return null;
+  try{
+    const parsed = new URL(String(raw), window.location.href);
+    return (parsed.protocol === "http:" || parsed.protocol === "https:") ? parsed.href : null;
+  }catch{
+    return null;
+  }
+}
 function renderSource(s){
   const parts = [];
-  const head = [s.experiment, s.psi_id && "(" + s.psi_id + ")", s.test_id && "essai " + s.test_id, s.title, s.ntrs_id && "NTRS " + s.ntrs_id].filter(Boolean).join(" ");
+  const head = [s.index != null && "[" + s.index + "]", s.experiment, s.psi_id && "(" + s.psi_id + ")", s.test_id && "essai " + s.test_id, s.title, s.year && "(" + s.year + ")", s.ntrs_id && "NTRS " + s.ntrs_id].filter(Boolean).join(" ");
   if(head) parts.push("<strong>" + esc(head) + "</strong>");
-  const cond = [s.material, s.o2_percent != null && "O₂ " + s.o2_percent + " %", s.pressure_kpa != null && s.pressure_kpa + " kPa", s.flow_cm_s != null && s.flow_cm_s + " cm/s"].filter(Boolean).join(", ");
+  const cond = [s.material, s.o2_percent != null && "O₂ " + fr(s.o2_percent) + " %", s.pressure_kpa != null && fr(s.pressure_kpa) + " kPa", s.flow_cm_s != null && fr(s.flow_cm_s) + " cm/s"].filter(Boolean).join(", ");
   if(cond) parts.push(esc(cond));
+  if(s.outcome) parts.push('Issue : <span class="outcome">' + esc(OUTCOME_FR[s.outcome] || s.outcome) + "</span>");
+  const metaLine = [s.authors, s.mission_program && "Mission : " + s.mission_program, s.headers_path && "Section : " + s.headers_path, s.source_type && s.source_type.toUpperCase()].filter(Boolean).join(" • ");
+  if(metaLine) parts.push(esc(metaLine));
   const doc = [s.source_doc, (s.source_page || s.page) && "p. " + (s.source_page || s.page)].filter(Boolean).join(", ");
   if(doc) parts.push(esc(doc));
-  const link = s.url || (s.doi && "https://doi.org/" + s.doi);
-  if(link) parts.push('<a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(s.doi || "lien") + "</a>");
+  const pdfHref = safeHttpUrl(s.pdf_url);
+  const expHref = safeHttpUrl(s.experiment_url || s.url || (s.doi && "https://doi.org/" + s.doi));
+  const links = [];
+  const pdfLooksLikePdf = pdfHref && (pdfHref.toLowerCase().includes(".pdf") || (expHref && pdfHref !== expHref));
+  if(pdfHref){
+    const primaryLabel = pdfLooksLikePdf ? "Ouvrir le PDF" : (String(pdfHref).includes("psi.nasa.gov") ? "Source NASA PSI" : "Source NASA");
+    links.push('<a href="' + esc(pdfHref) + '" target="_blank" rel="noopener noreferrer">' + esc(primaryLabel) + "</a>");
+  }
+  if(expHref && expHref !== pdfHref){
+    const linkText = s.doi || (String(expHref).includes("psi.nasa.gov") ? "Source NASA PSI" + (s.psi_id ? " (" + s.psi_id + ")" : "") : (s.ntrs_id ? "Fiche NTRS (" + s.ntrs_id + ")" : "Fiche document"));
+    links.push('<a href="' + esc(expHref) + '" target="_blank" rel="noopener noreferrer">' + esc(linkText) + "</a>");
+  }
+  if(links.length) parts.push(links.join(" · "));
   if(s.demo) parts.push('<span class="muted">DEMO : donnée factice</span>');
   return "<li>" + parts.join("<br>") + "</li>";
 }
 
 /* =====================================================================
-   PRÉDICTION
-   Contrat de l'API (JSON) :
-   ENVOI    : { fuel_type, material, o2_percent, pressure_kpa, flow_cm_s, gravity }
-   RÉPONSE  : { probability: 0.73,          // entre 0 et 1
-                uncertainty: 0.08,          // optionnel, entre 0 et 1
-                sources: [ {...}, ... ] }   // essais NASA proches ; [] si aucun
+   PRÉDICTION : formulaire conditionnel selon l'état du combustible.
+   Champs envoyés à Python : uniquement ceux de l'état sélectionné.
    ===================================================================== */
-async function callPredict(conditions){
-  if(CONFIG.USE_DEMO){
-    // >>> ZONE DEMO : valeurs factices, à supprimer une fois l'IA branchée.
-    await new Promise(r => setTimeout(r, 500));
-    const o2 = conditions.o2_percent;
-    const p = Math.min(0.97, Math.max(0.03, 0.2 + (o2 - 21) * 0.04));
-    return { probability: p, uncertainty: 0.1, demo: true,
-             sources: o2 > 40 ? [] : [{ experiment: "Exemple", psi_id: "DEMO", material: conditions.material, o2_percent: o2, demo: true }] };
+const MATERIALS = {
+  solid: [["pmma_flat","PMMA (plaque)"],["pmma_rod_sphere","PMMA (tige ou sphère)"],["fabric_other","Tissu / autre"]],
+  gas: [["ethane","Éthane"],["propane","Propane"],["n-butane","n-Butane"]],
+  droplet: [["heptane","Heptane"],["methanol","Méthanol"]]
+};
+// range : plage testée par la NASA (affichée sous le champ ; en dehors, le modèle extrapole).
+const FIELD_DEFINITIONS = {
+  solid: [{key:"flow_cm_s",label:"Vitesse de l’air (cm/s)",min:0,value:10,range:[0.5,53],unit:"cm/s"}],
+  gas: [{key:"pressure_kpa",label:"Pression (kPa)",min:0,value:101.3,range:[51,304],unit:"kPa"},
+        {key:"x_fuel",label:"Part du combustible dans le jet",min:0,max:1,value:0.3,range:[0.02,1],unit:""},
+        {key:"hc_rate_mg_s",label:"Débit de combustible (mg/s)",min:0,value:1,range:[0.1,3.2],unit:"mg/s"}],
+  droplet: [{key:"pressure_kpa",label:"Pression (kPa)",min:0,value:101.3,range:[70,309],unit:"kPa"},
+            {key:"d0_mm",label:"Diamètre de la goutte (mm)",min:0.000001,value:3,range:[1.1,4.7],unit:"mm"},
+            {key:"co2_percent",label:"CO₂ (%)",min:0,max:100,value:0,range:[0,70],unit:"%"},
+            {key:"he_percent",label:"Hélium (%)",min:0,max:100,value:0,range:[0,45],unit:"%"}]
+};
+const O2_RANGE = {droplet:[12,34], solid:[14.2,22.2], gas:[18,40]};
+let LAST_STATUS = {};
+const fmtRange = (r, unit) => r[0].toLocaleString("fr-FR") + " – " + r[1].toLocaleString("fr-FR") + (unit ? " " + unit : "");
+function numericField(def){
+  const attrs = ['type="number"','step="any"','required', 'id="'+def.key+'"','name="'+def.key+'"'];
+  if(def.min !== undefined) attrs.push('min="'+def.min+'"');
+  if(def.max !== undefined) attrs.push('max="'+def.max+'"');
+  if(def.value !== undefined) attrs.push('value="'+def.value+'"');
+  let hint = '';
+  if(def.range){
+    attrs.push('data-lo="'+def.range[0]+'"','data-hi="'+def.range[1]+'"','data-unit="'+(def.unit||"")+'"','aria-describedby="h_'+def.key+'"');
+    hint = '<small class="hint" id="h_'+def.key+'">Testé par la NASA : '+fmtRange(def.range, def.unit)+'</small>';
   }
-  // >>> ZONE PYTHON 1 : appel de predict(conditions) via PREDICT_URL.
-  const r = await fetch(CONFIG.PREDICT_URL, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(conditions)
-  });
-  if(!r.ok) throw new Error("Le serveur a répondu " + r.status);
+  return '<div class="field"><label for="'+def.key+'">'+def.label+'</label><input '+attrs.join(' ')+'>'+hint+'</div>';
+}
+// Signale une valeur hors des essais NASA (le modèle répond quand même, en extrapolant).
+function checkRange(input){
+  const field = input.closest(".field"), hint = field && field.querySelector(".hint");
+  if(!hint || input.dataset.lo === undefined) return;
+  const lo = Number(input.dataset.lo), hi = Number(input.dataset.hi), v = Number(input.value);
+  const out = input.value !== "" && (v < lo || v > hi);
+  field.classList.toggle("out", out);
+  hint.textContent = out ? "Hors des essais NASA (" + fmtRange([lo, hi], input.dataset.unit) + ") : extrapolation"
+                         : "Testé par la NASA : " + fmtRange([lo, hi], input.dataset.unit);
+}
+function updateFields(){
+  const type = $("#fuel_type").value;
+  const target = $("#dynamicFields");
+  target.hidden = !MATERIALS[type];
+  $("#goPredict").hidden = !MATERIALS[type];
+  if(!MATERIALS[type]){target.innerHTML="";return;}
+  target.innerHTML = '<div class="field"><label for="material">Nom du matériau</label><select id="material" name="material" required><option value="" selected disabled>Choisir un matériau…</option>' +
+    MATERIALS[type].map(([value,label])=>'<option value="'+esc(value)+'">'+esc(label)+'</option>').join('') + '</select></div>' +
+    numericField({key:"o2_percent",label:"Oxygène O₂ (%)",min:0,max:100,value:21,range:O2_RANGE[type],unit:"%"}) +
+    FIELD_DEFINITIONS[type].map(numericField).join('');
+  target.querySelectorAll("input[data-lo]").forEach(input => { checkRange(input); input.addEventListener("input", () => checkRange(input)); });
+  $("#predOut").innerHTML='<h2>Prédiction</h2><p class="muted">Renseignez les conditions puis lancez la prédiction.</p>';
+  $("#srcOut").innerHTML='<h2>Essais NASA les plus proches</h2><p class="muted">Les essais réels les plus proches de vos conditions apparaîtront ici, avec leur source.</p>';
+}
+$("#fuel_type").addEventListener("change",updateFields);
+
+const PRESETS = {
+  iss:    {fuel_type:"droplet", material:"heptane", o2_percent:21, pressure_kpa:101.3, d0_mm:3, co2_percent:0, he_percent:0},
+  lune:   {fuel_type:"droplet", material:"heptane", o2_percent:34, pressure_kpa:55, d0_mm:3, co2_percent:0, he_percent:0},
+  pauvre: {fuel_type:"droplet", material:"heptane", o2_percent:15, pressure_kpa:101.3, d0_mm:3, co2_percent:0, he_percent:0},
+  cabine: {fuel_type:"solid", material:"pmma_flat", o2_percent:21, flow_cm_s:10}
+};
+document.querySelectorAll("[data-preset]").forEach(button => button.addEventListener("click", () => {
+  const preset = PRESETS[button.dataset.preset];
+  document.querySelectorAll("[data-preset]").forEach(b => { b.classList.toggle("active", b === button); b.setAttribute("aria-pressed", b === button); });
+  $("#fuel_type").value = preset.fuel_type;
+  updateFields();
+  for(const [key, value] of Object.entries(preset)){
+    const el = $("#form").elements.namedItem(key);
+    if(!el || key === "fuel_type") continue;
+    el.value = value;
+    if(el.dataset && el.dataset.lo !== undefined) checkRange(el);
+  }
+  $("#form").requestSubmit();
+}));
+$("#form").addEventListener("input", () => document.querySelectorAll("[data-preset]").forEach(b => { b.classList.remove("active"); b.setAttribute("aria-pressed", "false"); }));
+
+// Interpolation linéaire entre bleu NASA et rouge NASA.
+function riskColor(probability){
+  const t=Math.min(1,Math.max(0,Number(probability)));
+  const blue=[79,141,255],red=[252,61,33]; // bleu NASA éclairci : lisible sur fond noir
+  return 'rgb('+blue.map((v,i)=>Math.round(v+(red[i]-v)*t)).join(',')+')';
+}
+const fmtPct = v => v == null ? "Non disponible" : (100 * Number(v)).toLocaleString("fr-FR",{maximumFractionDigits:1})+" %";
+const fmtNum = v => v == null ? "Non disponible" : Number(v).toLocaleString("fr-FR",{maximumFractionDigits:3});
+const interval = (arr,unit="prob") => Array.isArray(arr) && arr.length===2 ? (unit==="prob" ? fmtPct(arr[0])+" – "+fmtPct(arr[1]) : fmtNum(arr[0])+" – "+fmtNum(arr[1])) : "Non disponible";
+const RELIABILITY = {
+  droplet: ["good", "Fiabilité bonne", "Modèle validé sur des jours d’essai FLEX jamais vus à l’entraînement."],
+  gas: ["medium", "Fiabilité moyenne", "Auto-extinction : fiabilité moyenne ; allumage : fiabilité faible."],
+  solid: ["low", "Fiabilité faible", "Indication seulement : les données ne suffisent pas à prédire de façon fiable."]
+};
+// Jauge 0–100 % : fourchette (bande) et valeur annoncée (point), couleur selon le risque.
+function rangeBar(p, iv, colorValue){
+  if(p == null) return "";
+  const pct = x => Math.min(100, Math.max(0, 100 * Number(x)));
+  const hasIv = Array.isArray(iv) && iv.length === 2;
+  const band = hasIv ? '<span class="band" style="left:'+pct(iv[0])+'%;width:'+(pct(iv[1]) - pct(iv[0]))+'%"></span>' : "";
+  const label = "Probabilité " + fmtPct(p) + (hasIv ? ", intervalle " + interval(iv) : "");
+  return '<div class="range-bar" style="--risk-color:'+riskColor(colorValue)+'" role="img" aria-label="'+esc(label)+'">'+band+
+         '<span class="dot" style="left:'+pct(p)+'%"></span></div><div class="range-scale"><span>0 %</span><span>50 %</span><span>100 %</span></div>';
+}
+function metric(label, value, colorValue=null, subtitle="", bar=""){
+  const color = colorValue == null ? "#6fb1ff" : riskColor(colorValue);
+  return '<div class="model-metric"><div class="metric-label">'+esc(label)+'</div><div class="metric-value" style="color:'+color+'">'+esc(value)+'</div>'+
+         bar+(subtitle ? '<div class="metric-sub">'+esc(subtitle)+'</div>' : '')+'</div>';
+}
+function conditionsRecap(c, type){
+  const name = ((MATERIALS[type] || []).find(([v]) => v === c.material) || [null, c.material])[1];
+  const parts = [name, "O₂ " + fr(c.o2_percent) + " %"];
+  if(c.pressure_kpa != null) parts.push(fr(c.pressure_kpa) + " kPa");
+  if(c.flow_cm_s != null) parts.push("air " + fr(c.flow_cm_s) + " cm/s");
+  if(c.d0_mm != null) parts.push("goutte de " + fr(c.d0_mm) + " mm");
+  if(c.co2_percent) parts.push("CO₂ " + fr(c.co2_percent) + " %");
+  if(c.he_percent) parts.push("He " + fr(c.he_percent) + " %");
+  if(c.x_fuel != null) parts.push("part de combustible " + fr(c.x_fuel));
+  if(c.hc_rate_mg_s != null) parts.push(fr(c.hc_rate_mg_s) + " mg/s");
+  return parts.join(" · ") + " · microgravité";
+}
+function renderPrediction(res, type, c){
+  const warnings = Array.isArray(res.warnings) ? res.warnings : [];
+  const [rel, relLabel, relText] = RELIABILITY[type];
+  let html = '<h2>Résultats · '+esc(res.experiment || type)+'<span class="badge '+rel+'" title="'+esc(relText)+'">'+relLabel+'</span></h2>';
+  if(c) html += '<p class="recap">'+esc(conditionsRecap(c, type))+'</p>';
+  html += '<div class="legend">Couleur :<span>faible risque d’incendie</span><i aria-hidden="true"></i><span>fort risque</span></div>';
+  if(type === "solid"){
+    const p = res.p_flame_sustained;
+    html += metric("Probabilité que la flamme se maintienne", fmtPct(p), p, "Intervalle à 90 % : "+interval(res.p_flame_sustained_interval_90), rangeBar(p, res.p_flame_sustained_interval_90, p));
+    if(p == null) html += '<p class="nodata">Pas de donnée NASA dans ces conditions : aucune probabilité n’est donnée.</p>';
+    if(res.n_observations_same_group != null) html += '<p class="muted">Observations du même groupe de matériau : '+esc(res.n_observations_same_group)+'</p>';
+  }else if(type === "gas"){
+    const pi = res.p_hot_ignition, se = res.p_self_extinction_if_ignited, risk = se == null ? null : 1 - se;
+    html += metric("Probabilité d’allumage", fmtPct(pi), pi, "Intervalle à 90 % : "+interval(res.p_hot_ignition_interval_90), rangeBar(pi, res.p_hot_ignition_interval_90, pi));
+    html += metric("Si elle s’allume, probabilité qu’elle s’éteigne seule", fmtPct(se), risk, "Intervalle à 90 % : "+interval(res.p_self_extinction_interval_90), rangeBar(se, res.p_self_extinction_interval_90, risk));
+    if(res.p_hot_ignition_reliability) html += '<p class="muted">Allumage : '+esc(res.p_hot_ignition_reliability)+'</p>';
+    if(res.p_self_extinction_reliability) html += '<p class="muted">Auto-extinction : '+esc(res.p_self_extinction_reliability)+'</p>';
+  }else if(type === "droplet"){
+    const p = res.p_extinction, risk = p == null ? null : 1 - p;
+    html += metric("Probabilité que la flamme s’éteigne d’elle-même", fmtPct(p), risk, "Intervalle à 90 % : "+interval(res.p_extinction_interval_90), rangeBar(p, res.p_extinction_interval_90, risk));
+    html += metric("Vitesse de combustion K", fmtNum(res.burning_rate_k_mm2_s)+" mm²/s", null, "Intervalle à 95 % : "+interval(res.burning_rate_k_interval_95,"num")+" mm²/s · écart-type "+fmtNum(res.burning_rate_k_std)+" mm²/s");
+    if(res.near_data === false) html += '<p class="nodata">Pas d’essai NASA dans des conditions voisines : prédiction peu fiable.</p>';
+  }
+  if(warnings.length) html += '<div class="warn"><strong>Limites et avertissements</strong><ul>'+warnings.map(w => '<li>'+esc(w)+'</li>').join('')+'</ul></div>';
+  html += '<p class="muted">'+esc(relText)+(res.n_training_tests != null ? ' Essais d’entraînement : '+esc(res.n_training_tests)+'.' : '')+'</p>';
+  $("#predOut").innerHTML = html;
+  const sources = Array.isArray(res.sources) ? res.sources : [];
+  const near = Array.isArray(res.nearest_tests) ? res.nearest_tests : [];
+  let src = '<h2>Essais NASA les plus proches'+(sources.length ? ' <span class="muted">('+sources.length+')</span>' : '')+'</h2>';
+  if(sources.length) src += '<ul>'+sources.map(renderSource).join('')+'</ul>';
+  if(near.length) src += '<ul>'+near.map(t => '<li>'+esc([t.test_id && "Essai "+t.test_id, t.fuel, "O₂ "+t.o2_percent+" %", t.pressure_kpa+" kPa"].filter(Boolean).join(' · '))+'</li>').join('')+'</ul>';
+  if(!sources.length && !near.length) src += '<p class="muted">'+NO_SOURCE+'</p>';
+  $("#srcOut").innerHTML = src;
+}
+async function callPredict(conditions){
+  const model=CONFIG.MODEL_BY_STATE[conditions.fuel_type];
+  if(!model)throw new Error("Aucun modèle configuré pour cet état : "+conditions.fuel_type);
+  const payload={...conditions,model};
+  const r=await fetch(CONFIG.PREDICT_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  if(!r.ok){let msg="Le serveur a répondu "+r.status;try{const d=await r.json();msg=d.detail||msg}catch(_){}throw new Error(typeof msg==="string"?msg:JSON.stringify(msg));}
   return await r.json();
 }
-
-$("#form").addEventListener("submit", async e => {
+$("#form").addEventListener("submit",async e=>{
   e.preventDefault();
-  const f = new FormData(e.target), c = {};
-  for(const [k, v] of f.entries()) c[k] = (e.target[k].type === "number") ? Number(v) : v;
-  const btn = $("#goPredict"); btn.disabled = true; btn.textContent = "Calcul en cours…";
-  try{
-    const res = await callPredict(c);
-    const pct = Math.round(res.probability * 100);
-    $("#predOut").innerHTML = "<h2>Probabilité d’incendie</h2>" +
-      (res.demo ? '<span class="tag">DEMO</span><br>' : "") +
-      '<div class="big-num">' + pct + " %</div>" +
-      (res.uncertainty != null ? "<p>Incertitude : ± " + Math.round(res.uncertainty * 100) + " points</p>" : "") +
-      "<p>" + esc(c.material) + " · O₂ " + c.o2_percent + " % · " + c.pressure_kpa + " kPa · " + c.flow_cm_s + " cm/s · " + (c.gravity === "micro" ? "microgravité" : "1 g") + "</p>";
-    const list = res.sources || [];
-    $("#srcOut").innerHTML = "<h2>Sources</h2>" + (list.length ? "<ul>" + list.map(renderSource).join("") + "</ul>" : '<p>' + NO_SOURCE + "</p>");
-  }catch(err){
-    $("#predOut").innerHTML = "<h2>Erreur</h2><p>Impossible de joindre l’IA de prédiction (" + esc(err.message) + ").</p>";
-    $("#srcOut").innerHTML = "<h2>Sources</h2>";
+  const c={};
+  for(const [k,v] of new FormData(e.currentTarget).entries()){
+    const el=e.currentTarget.elements.namedItem(k);
+    c[k]=el.type==="number"?Number(v):v;
   }
-  btn.disabled = false; btn.textContent = "Lancer la prédiction";
+  if(c.fuel_type==="droplet" && c.o2_percent+c.co2_percent+c.he_percent>100+1e-9){
+    $("#predOut").innerHTML='<h2>Conditions invalides</h2><p>La somme des pourcentages O₂, CO₂ et hélium ne peut pas dépasser 100 %.</p>';
+    return;
+  }
+  const btn=$("#goPredict");btn.disabled=true;btn.textContent="Calcul en cours…";
+  const ready=(LAST_STATUS[c.fuel_type]||{}).status==="ready";
+  $("#predOut").innerHTML='<h2>Prédiction</h2><p class="loading"><span class="spinner" aria-hidden="true"></span>Calcul en cours…'+(ready?'':' Premier calcul pour cet état : jusqu’à 30 s.')+'</p>';
+  try{const res=await callPredict(c);renderPrediction(res,c.fuel_type,c)}
+  catch(err){$("#predOut").innerHTML='<h2>Erreur</h2><p>'+esc(err.message)+'</p>';$("#srcOut").innerHTML='<h2>Sources</h2>'}
+  finally{btn.disabled=false;btn.textContent="Lancer la prédiction";}
 });
+async function checkModels(){
+  const el=$("#modelsStatus");
+  try{
+    const r=await fetch(CONFIG.STATUS_URL,{cache:"no-store"});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const data=await r.json();
+    LAST_STATUS=data.models||{};
+    const names={solid:"Solide",gas:"Gaz",droplet:"Gouttelette"};
+    el.textContent=Object.entries(names).map(([k,n])=>n+" : "+({ready:"prêt",loading:"chargement…",error:"erreur"}[data.models?.[k]?.status]||"en attente")).join(" · ");
+    const pending=Object.values(data.models||{}).some(v=>v.status==="loading"||v.status==="pending");
+    if(pending)setTimeout(checkModels,1800);
+  }catch(_){el.textContent="Serveur Python indisponible — lancez le backend pour activer les modèles.";}
+}
+checkModels();
 
 /* =====================================================================
    CHAT
@@ -345,31 +653,368 @@ async function callChat(question){
   const r = await fetch(CONFIG.CHAT_URL, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, history })
   });
-  if(!r.ok) throw new Error("Le serveur a répondu " + r.status);
+  if(!r.ok){
+    let msg = "Le serveur a répondu " + r.status;
+    try{
+      const errBody = await r.json();
+      if(errBody && errBody.detail) msg = errBody.detail;
+    }catch{}
+    throw new Error(msg);
+  }
   return await r.json();
 }
 
-function addMsg(cls, html){
+function addMsg(cls, text){
   $("#chatEmpty")?.remove();
   const d = document.createElement("div");
-  d.className = "msg " + cls; d.innerHTML = html;
-  $("#log").appendChild(d); $("#log").scrollTop = 1e9;
+  d.className = "msg " + cls;
+  d.textContent = text;
+  $("#log").appendChild(d);
+  $("#log").scrollTop = 1e9;
   return d;
+}
+
+let chatMsgSeq = 0;
+
+function addThinkingMsg(){
+  $("#chatEmpty")?.remove();
+  const d = document.createElement("div");
+  d.className = "msg a";
+  d.setAttribute("role", "status");
+  d.setAttribute("aria-label", "Le modèle réfléchit");
+  const dots = document.createElement("span");
+  dots.className = "chat-thinking";
+  dots.setAttribute("aria-hidden", "true");
+  for(let i = 0; i < 3; i++){
+    const dot = document.createElement("span");
+    dot.textContent = ".";
+    dots.appendChild(dot);
+  }
+  d.appendChild(dots);
+  $("#log").appendChild(d);
+  $("#log").scrollTop = 1e9;
+  return d;
+}
+
+function appendMathFallback(el, latex){
+  const greekMap = {
+    "\\alpha":"α","\\beta":"β","\\gamma":"γ","\\delta":"δ","\\epsilon":"ε","\\theta":"θ",
+    "\\lambda":"λ","\\mu":"μ","\\nu":"ν","\\pi":"π","\\rho":"ρ","\\sigma":"σ","\\tau":"τ",
+    "\\phi":"φ","\\psi":"ψ","\\omega":"ω","\\Delta":"Δ","\\Omega":"Ω","\\Sigma":"Σ",
+    "\\approx":"≈","\\le":"≤","\\ge":"≥","\\neq":"≠","\\times":"×","\\cdot":"·",
+    "\\pm":"±","\\to":"→","\\rightarrow":"→","\\infty":"∞"
+  };
+  const replaced = String(latex || "")
+    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, "($1)/($2)")
+    .replace(/\\(?:text|mathrm|mathbf)\{([^{}]+)\}/g, "$1")
+    .replace(/\\(?:alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|pi|rho|sigma|tau|phi|psi|omega|Delta|Omega|Sigma|approx|le|ge|neq|times|cdot|pm|to|rightarrow|infty)/g, m => greekMap[m] || m)
+    .replace(/\\([a-zA-Z]+)/g, "$1");
+  const parts = replaced.split(/(\^\{[^{}]+\}|\^[A-Za-z0-9+-]+|_\{[^{}]+\}|_[A-Za-z0-9+-]+)/g);
+  parts.forEach(p => {
+    if(!p) return;
+    if(p.startsWith("^")){
+      const sup = document.createElement("sup");
+      sup.textContent = p.startsWith("^{") ? p.slice(2, -1) : p.slice(1);
+      el.appendChild(sup);
+    }else if(p.startsWith("_")){
+      const sub = document.createElement("sub");
+      sub.textContent = p.startsWith("_{") ? p.slice(2, -1) : p.slice(1);
+      el.appendChild(sub);
+    }else{
+      el.appendChild(document.createTextNode(p.replace(/[{}]/g, "")));
+    }
+  });
+}
+
+function renderLatexInto(el, latex, displayMode){
+  const clean = String(latex || "").trim();
+  if(window.katex && typeof window.katex.render === "function"){
+    try{
+      window.katex.render(clean, el, { displayMode: !!displayMode, throwOnError: false, strict: false });
+      return;
+    }catch(_){}
+  }
+  el.classList.add("chat-math-fallback");
+  appendMathFallback(el, clean);
+}
+
+function appendInlineFormatted(parent, text, msgId, availableIndices){
+  const re = /(\$\$[^$\n]+\$\$|(?<!\\)\$(?!\s)([^$\n]+?)(?<!\s)\$|\\\([^\n]+?\\\)|\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[\d+\])/g;
+  let last = 0;
+  let match;
+  while((match = re.exec(text)) !== null){
+    if(match.index > last){
+      parent.appendChild(document.createTextNode(text.slice(last, match.index)));
+    }
+    const token = match[0];
+    if((token.startsWith("$$") && token.endsWith("$$")) || (token.startsWith("\\(") && token.endsWith("\\)"))){
+      const math = document.createElement("span");
+      math.className = "chat-math-inline";
+      renderLatexInto(math, token.slice(2, -2), false);
+      parent.appendChild(math);
+    }else if(token.startsWith("$") && token.endsWith("$")){
+      const math = document.createElement("span");
+      math.className = "chat-math-inline";
+      renderLatexInto(math, token.slice(1, -1), false);
+      parent.appendChild(math);
+    }else if(token.startsWith("**") && token.endsWith("**")){
+      const strong = document.createElement("strong");
+      appendInlineFormatted(strong, token.slice(2, -2), msgId, availableIndices);
+      parent.appendChild(strong);
+    }else if(token.startsWith("*") && token.endsWith("*")){
+      const em = document.createElement("em");
+      appendInlineFormatted(em, token.slice(1, -1), msgId, availableIndices);
+      parent.appendChild(em);
+    }else if(token.startsWith("`") && token.endsWith("`")){
+      const code = document.createElement("code");
+      code.className = "chat-code";
+      code.textContent = token.slice(1, -1);
+      parent.appendChild(code);
+    }else{
+      const num = Number(token.slice(1, -1));
+      if(availableIndices.has(num)){
+        const targetId = "chat-src-" + msgId + "-" + num;
+        const a = document.createElement("a");
+        a.className = "cite-ref";
+        a.href = "#" + targetId;
+        a.textContent = token;
+        a.setAttribute("aria-label", "Voir la source " + num);
+        a.addEventListener("click", e => {
+          e.preventDefault();
+          const target = document.getElementById(targetId);
+          if(!target) return;
+          target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          target.classList.add("src-highlight");
+          setTimeout(() => target.classList.remove("src-highlight"), 1600);
+        });
+        parent.appendChild(a);
+      }else{
+        parent.appendChild(document.createTextNode(token));
+      }
+    }
+    last = re.lastIndex;
+  }
+  if(last < text.length){
+    parent.appendChild(document.createTextNode(text.slice(last)));
+  }
+}
+
+function appendFormattedAnswer(container, rawText, msgId, availableIndices){
+  const normalized = String(rawText || "").replace(/\r\n?/g, "\n");
+  const segments = normalized.split(/(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\])/g);
+
+  const appendMarkdownSegment = chunk => {
+    const lines = chunk.split("\n");
+    let listEl = null;
+    let listTag = null;
+    let paraLines = [];
+
+    const flushParagraph = () => {
+      if(!paraLines.length) return;
+      const p = document.createElement("p");
+      appendInlineFormatted(p, paraLines.join(" "), msgId, availableIndices);
+      container.appendChild(p);
+      paraLines = [];
+    };
+    const flushList = () => {
+      listEl = null;
+      listTag = null;
+    };
+
+    for(const rawLine of lines){
+      const line = rawLine.trim();
+      if(!line){
+        flushParagraph();
+        flushList();
+        continue;
+      }
+      const headingMatch = line.match(/^#{1,4}\s+(.+)$/);
+      if(headingMatch){
+        flushParagraph();
+        flushList();
+        const h = document.createElement("h3");
+        appendInlineFormatted(h, headingMatch[1], msgId, availableIndices);
+        container.appendChild(h);
+        continue;
+      }
+      const ulMatch = line.match(/^[-*•]\s+(.+)$/);
+      if(ulMatch){
+        flushParagraph();
+        if(listTag !== "ul"){
+          listEl = document.createElement("ul");
+          listTag = "ul";
+          container.appendChild(listEl);
+        }
+        const li = document.createElement("li");
+        appendInlineFormatted(li, ulMatch[1], msgId, availableIndices);
+        listEl.appendChild(li);
+        continue;
+      }
+      const olMatch = line.match(/^\d+[.)]\s+(.+)$/);
+      if(olMatch){
+        flushParagraph();
+        if(listTag !== "ol"){
+          listEl = document.createElement("ol");
+          listTag = "ol";
+          container.appendChild(listEl);
+        }
+        const li = document.createElement("li");
+        appendInlineFormatted(li, olMatch[1], msgId, availableIndices);
+        listEl.appendChild(li);
+        continue;
+      }
+      flushList();
+      paraLines.push(line);
+    }
+    flushParagraph();
+  };
+
+  segments.forEach(seg => {
+    if(!seg) return;
+    if((seg.startsWith("$$") && seg.endsWith("$$")) || (seg.startsWith("\\[") && seg.endsWith("\\]"))){
+      const block = document.createElement("div");
+      block.className = "chat-math-block";
+      renderLatexInto(block, seg.slice(2, -2), true);
+      container.appendChild(block);
+    }else{
+      appendMarkdownSegment(seg);
+    }
+  });
+}
+
+function renderChatSourceItem(s, idx, msgId){
+  const sourceIndex = s.index != null ? s.index : idx + 1;
+  const li = document.createElement("li");
+  li.className = "src-item";
+  li.id = "chat-src-" + msgId + "-" + sourceIndex;
+
+  const head = document.createElement("div");
+  head.className = "src-head";
+  const badge = document.createElement("span");
+  badge.className = "src-idx";
+  badge.textContent = "[" + sourceIndex + "]";
+  head.appendChild(badge);
+
+  const titleEl = document.createElement("strong");
+  const titleParts = [
+    s.title || s.experiment || "Document NASA",
+    s.year ? "(" + s.year + ")" : null
+  ].filter(Boolean);
+  titleEl.textContent = titleParts.join(" ");
+  head.appendChild(titleEl);
+  li.appendChild(head);
+
+  const metaParts = [
+    s.authors ? "Auteurs : " + s.authors : null,
+    s.mission_program ? "Mission : " + s.mission_program : null,
+    s.headers_path ? "Section : " + s.headers_path : null,
+    (s.source_page || s.page) ? "p. " + (s.source_page || s.page) : null,
+    s.ntrs_id ? "NTRS " + s.ntrs_id : null,
+    s.source_type ? String(s.source_type).toUpperCase() : null
+  ].filter(Boolean);
+  if(metaParts.length){
+    const meta = document.createElement("div");
+    meta.className = "src-meta";
+    meta.textContent = metaParts.join(" · ");
+    li.appendChild(meta);
+  }
+
+  const pdfHref = safeHttpUrl(s.pdf_url);
+  const expHref = safeHttpUrl(s.experiment_url || s.url || (s.doi && "https://doi.org/" + s.doi));
+  const pdfLooksLikePdf = pdfHref && (pdfHref.toLowerCase().includes(".pdf") || (expHref && pdfHref !== expHref));
+  if(pdfHref || expHref){
+    const links = document.createElement("div");
+    links.className = "src-links";
+    if(pdfHref){
+      const aPdf = document.createElement("a");
+      aPdf.href = pdfHref;
+      aPdf.target = "_blank";
+      aPdf.rel = "noopener noreferrer";
+      aPdf.textContent = pdfLooksLikePdf ? "Ouvrir le PDF" : (String(pdfHref).includes("psi.nasa.gov") ? "Source NASA PSI" : "Ouvrir le document");
+      links.appendChild(aPdf);
+    }
+    if(expHref && expHref !== pdfHref){
+      const aDoc = document.createElement("a");
+      aDoc.href = expHref;
+      aDoc.target = "_blank";
+      aDoc.rel = "noopener noreferrer";
+      aDoc.textContent = s.ntrs_id ? "Fiche NTRS (" + s.ntrs_id + ")" : "Fiche NASA";
+      links.appendChild(aDoc);
+    }
+    li.appendChild(links);
+  }
+
+  const excerpts = Array.isArray(s.excerpts)
+    ? s.excerpts.map(t => String(t || "").trim()).filter(Boolean)
+    : (s.excerpt ? [String(s.excerpt).trim()] : []);
+  if(excerpts.length){
+    const details = document.createElement("details");
+    details.className = "src-excerpt";
+    const summary = document.createElement("summary");
+    summary.textContent = excerpts.length > 1
+      ? "Voir les " + excerpts.length + " extraits exacts"
+      : "Voir l’extrait exact";
+    details.appendChild(summary);
+
+    const body = document.createElement("div");
+    body.className = "src-excerpt-body";
+    excerpts.forEach(text => {
+      const quote = document.createElement("blockquote");
+      quote.className = "src-excerpt-text";
+      quote.textContent = text;
+      body.appendChild(quote);
+    });
+    details.appendChild(body);
+    li.appendChild(details);
+  }
+  return li;
+}
+
+function renderChatReply(container, res){
+  container.className = "msg a";
+  container.removeAttribute("role");
+  container.removeAttribute("aria-label");
+  container.replaceChildren();
+  const msgId = ++chatMsgSeq;
+  const sources = Array.isArray(res.sources) ? res.sources : [];
+  const availableIndices = new Set(sources.map((s, idx) => Number(s.index != null ? s.index : idx + 1)));
+
+  const ans = document.createElement("div");
+  ans.className = "chat-answer";
+  appendFormattedAnswer(ans, res.answer || "", msgId, availableIndices);
+  container.appendChild(ans);
+
+  if(sources.length){
+    const wrap = document.createElement("div");
+    wrap.className = "s";
+    const heading = document.createElement("strong");
+    heading.className = "s-title";
+    heading.textContent = "Sources (" + sources.length + ")";
+    wrap.appendChild(heading);
+
+    const ul = document.createElement("ul");
+    ul.className = "chat-sources";
+    sources.forEach((s, idx) => ul.appendChild(renderChatSourceItem(s, idx, msgId)));
+    wrap.appendChild(ul);
+    container.appendChild(wrap);
+  }
+  $("#log").scrollTop = 1e9;
 }
 
 async function sendChat(){
   const q = $("#q").value.trim();
   if(!q || $("#send").disabled) return;
   $("#q").value = ""; $("#send").disabled = true;
-  addMsg("u", esc(q));
-  const wait = addMsg("a", "…");
+  addMsg("u", q);
+  const wait = addThinkingMsg();
   try{
     const res = await callChat(q);
     history.push({ role: "user", content: q }, { role: "assistant", content: res.answer });
-    const src = (res.sources || []).length ? '<div class="s"><strong>Sources</strong><ul style="list-style:none;padding:0">' + res.sources.map(renderSource).join("") + "</ul></div>" : "";
-    wait.innerHTML = esc(res.answer) + src;
+    renderChatReply(wait, res);
   }catch(err){
     wait.className = "msg err";
+    wait.removeAttribute("role");
+    wait.removeAttribute("aria-label");
     wait.textContent = "Impossible de joindre l’IA du chat (" + err.message + ").";
   }
   $("#send").disabled = false; $("#q").focus();
