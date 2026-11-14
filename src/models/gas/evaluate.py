@@ -1,8 +1,8 @@
 """Validation du modèle ACME CFI-G (flammes normales) : validation croisée par jour d'essai, références naïves,
-comparaison longueur de corrélation libre / contrainte. Écrit docs/modele_gaz_validation.md.
+comparaison longueur de corrélation libre / contrainte. Écrit src/models/gas/validation.md.
 
 Usage :
-    python -m src.models.evaluate_gas
+    python -m src.models.gas.evaluate
 """
 
 import datetime
@@ -11,11 +11,10 @@ from pathlib import Path
 import numpy as np
 from sklearn.model_selection import GroupKFold
 
-from src.models.evaluate_flex import classification_metrics
-from src.models.gas import FEATURES, GasModel, MIN_LENGTH_SCALE, features, load_data
+from src.models.metrics import classification_metrics
+from src.models.gas.model import FEATURES, GasModel, MIN_LENGTH_SCALE, features, load_data
 
-ROOT = Path(__file__).resolve().parents[2]
-REPORT = ROOT / "docs" / "modele_gaz_validation.md"
+REPORT = Path(__file__).resolve().parent / "validation.md"
 N_FOLDS = 5
 LABELS = {"ignited": "Allumage d'une flamme chaude", "self_extinguished": "Auto-extinction (essais allumés)"}
 
@@ -47,14 +46,14 @@ def main():
     lines = [
         "# Validation du modèle ACME CFI-G (flammes normales)",
         "",
-        f"Généré par `python -m src.models.evaluate_gas` le {datetime.date.today().isoformat()}. Ne pas éditer à la main.",
+        f"Généré par `python -m src.models.gas.evaluate` le {datetime.date.today().isoformat()}. Ne pas éditer à la main.",
         "",
         f"- Données : {len(df)} flammes normales (jet de gaz dans une atmosphère contenant l'O2) sur {df['session'].nunique()} jours d'essai ; "
         f"variables : {', '.join(FEATURES)}.",
         f"- O2 de {df['x_o2'].min():.0%} à {df['x_o2'].max():.0%} ; pression de {df['pressure_kpa'].min():.0f} à {df['pressure_kpa'].max():.0f} kPa.",
         f"- Validation croisée **par jour d'essai** ({N_FOLDS} plis) ; référence : taux observé par combustible dans l'entraînement.",
         f"- Deux réglages comparés : longueur de corrélation libre (≥ 0,01) et contrainte (≥ 1, pour que l'O2, qui baisse au fil "
-        f"d'une journée, ne serve pas d'identifiant du jour). Réglage retenu dans `src/models/gas.py` : ≥ {MIN_LENGTH_SCALE:g}.",
+        f"d'une journée, ne serve pas d'identifiant du jour). Réglage retenu dans `src/models/gas/model.py` : ≥ {MIN_LENGTH_SCALE:g}.",
         "",
     ]
     for target in GasModel.TARGETS:

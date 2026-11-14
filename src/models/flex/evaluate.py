@@ -1,21 +1,21 @@
 """Validation du modèle FLEX : validation croisée par jour d'essai (les essais d'un même jour ne sont jamais
-à la fois en entraînement et en test), comparée à des références naïves. Écrit docs/modele_flex_validation.md.
+à la fois en entraînement et en test), comparée à des références naïves. Écrit src/models/flex/validation.md.
 
 Usage :
-    python -m src.models.evaluate_flex
+    python -m src.models.flex.evaluate
 """
 
 import datetime
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import brier_score_loss, log_loss, mean_absolute_error, r2_score, roc_auc_score
+from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import GroupKFold
 
-from src.models.flex import FEATURES, FlexModel, features, load_data
+from src.models.flex.model import FEATURES, FlexModel, features, load_data
+from src.models.metrics import classification_metrics
 
-ROOT = Path(__file__).resolve().parents[2]
-REPORT = ROOT / "docs" / "modele_flex_validation.md"
+REPORT = Path(__file__).resolve().parent / "validation.md"
 N_FOLDS = 5
 
 
@@ -38,16 +38,6 @@ def cross_validate(df):
             out.loc[rows, "base_p"] = same["extinguished"].mean()
             out.loc[rows, "base_k"] = same["burning_rate_mm2_s"].mean()
     return out
-
-
-def classification_metrics(y, p):
-    return {
-        "n": int(len(y)),
-        "auc": roc_auc_score(y, p) if len(set(y)) == 2 else float("nan"),
-        "brier": brier_score_loss(y, p),
-        "log_loss": log_loss(y, np.clip(p, 1e-6, 1 - 1e-6), labels=[0, 1]),
-        "accuracy": float(((p >= 0.5) == y).mean()),
-    }
 
 
 def main():
@@ -85,7 +75,7 @@ def main():
     lines = [
         "# Validation du modèle FLEX",
         "",
-        f"Généré par `python -m src.models.evaluate_flex` le {datetime.date.today().isoformat()}. Ne pas éditer à la main.",
+        f"Généré par `python -m src.models.flex.evaluate` le {datetime.date.today().isoformat()}. Ne pas éditer à la main.",
         "",
         f"- Données : {len(df)} essais FLEX utilisables (toutes les variables présentes) sur {df['session'].nunique()} jours d'essai ; "
         f"variables : {', '.join(FEATURES)}.",

@@ -12,7 +12,7 @@ débit d'hydrocarbure. Incertitude : ré-échantillonnage par jour d'essai (inte
 
 ACME CFI-G est la seule famille avec des essais réels près de l'atmosphère d'exploration (51 kPa, 33–39 % d'O2).
 Limites : 11 jours d'essai seulement ; l'O2 de la chambre baisse au fil des essais d'une même journée ; pas de vitesse
-d'air ambiant (brûleur sphérique en chambre calme). Validation : python -m src.models.evaluate_gas.
+d'air ambiant (brûleur sphérique en chambre calme). Validation : python -m src.models.gas.evaluate.
 """
 
 from functools import lru_cache
@@ -30,7 +30,7 @@ FUELS = ("ethane", "propane", "n-butane")
 FEATURES = [f"is_{f.replace('-', '_')}" for f in FUELS] + ["x_o2", "pressure_kpa", "x_fuel", "hc_rate_mg_s"]
 N_BOOTSTRAP = 20
 SEED = 0
-MIN_LENGTH_SCALE = 1.0  # contrainte : un peu meilleure en validation par jour d'essai (voir evaluate_gas)
+MIN_LENGTH_SCALE = 1.0  # contrainte : un peu meilleure en validation par jour d'essai (voir evaluate.py)
 RELIABILITY = {
     "ignited": "faible : AUC ≈ 0,66 en validation par jour d'essai, exactitude sous la classe majoritaire",
     "self_extinguished": "moyenne : AUC ≈ 0,76 en validation par jour d'essai (exactitude 82 % contre 77 %)",

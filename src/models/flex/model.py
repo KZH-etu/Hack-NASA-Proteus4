@@ -16,7 +16,7 @@ uniforme) ; uniquement heptane et méthanol ; pression de 70 à 309 kPa ; aucune
 Dans ces données, la pression n'influence presque pas l'extinction (longueur de corrélation au maximum) : sous 70 kPa
 (atmosphère d'exploration ≈ 55 kPa), le modèle prolonge cette absence d'effet sans pouvoir la vérifier.
 
-Validation : python -m src.models.evaluate_flex (résultats dans docs/modele_flex_validation.md).
+Validation : python -m src.models.flex.evaluate (résultats dans src/models/flex/validation.md).
 L'entraînement complet prend ~25 s (20 ré-échantillonnages) : à mettre en cache dans l'app (st.cache_resource).
 """
 
