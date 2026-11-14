@@ -15,7 +15,7 @@
 
 Chaque fichier de `data/raw/` et `data/processed/` doit être listé ici.
 
-`data/raw/` n'est pas versionné : on le regénère avec les scripts ci-dessous. Le détail machine (statut HTTP, taille, chemin local) est dans `data/raw/download_log.csv` et dans le `files_manifest.csv` de chaque investigation.
+`data/raw/` n'est pas versionné (sauf le catalogue du corpus RAG, `data/raw/ntrs/catalog.*`) : on le regénère avec les scripts ci-dessous. Le détail machine (statut HTTP, taille, chemin local) est dans `data/raw/download_log.csv` et dans le `files_manifest.csv` de chaque investigation.
 
 ## Structure
 
@@ -29,7 +29,11 @@ data/
 │   │       ├── files_manifest.csv        # tous les fichiers de l'investigation, téléchargés ou non
 │   │       ├── experimental_table/       # CSV « Experimental table », tels quels
 │   │       └── documents/                # matrices d'essais, calibration (tels quels)
-│   ├── ntrs/                             # articles NTRS pour le RAG (branche rag)
+│   ├── ntrs/                             # corpus du RAG : python -m src.rag.fetch_ntrs
+│   │   ├── catalog.csv / catalog.jsonl   # versionnés : 1 ligne par document (id, titre, auteurs, année, thèmes, pages)
+│   │   ├── pdf/<id>.pdf                  # documents NASA (≈ 360 Mo, non versionnés)
+│   │   ├── pages/<id>.jsonl              # texte page par page {page, label, text} -> citations avec page
+│   │   └── download_log.csv
 │   └── download_log.csv
 ├── processed/                            # versionné, généré par src/data/
 │   ├── unified.parquet                   # table catalogue (schéma src/common/schema.py)
@@ -98,7 +102,35 @@ Générés par `python -m src.data.build_unified` à partir de `data/raw/psi/`. 
 | `annotations/bass2_appendix.csv` | annexe A du rapport BASS-II extraite (`python -m src.data.extract_bass2_appendix`) : sens d'écoulement, observations, issue écrite | NASA/TM-20210011385, pp. 103–113 (PDF dans `data/raw/ntrs/pdf/`) |
 | `annotations/bass_outcomes.csv` | saisies manuelles BASS / BASS-II (prioritaires sur l'extraction) | NASA/TM-20210011385, annexe A |
 
-## Documents NASA (NTRS)
+## Corpus du RAG (NASA NTRS + ressources du challenge)
+
+Script : `python -m src.data.download_psi` puis `python -m src.rag.fetch_ntrs` (API publique https://ntrs.nasa.gov/api, sans compte). Par défaut, le script **reproduit exactement les documents du catalogue versionné**, sans refaire les recherches, et vérifie à la fin que chaque document a le même nombre de pages ; `--refresh` refait les recherches et réécrit le catalogue. Test d'une installation à vide (`--out` vers un dossier vide, le 2026-11-14) : 399 / 399 documents identiques, 390 / 390 fichiers de pages identiques octet par octet. Téléchargé le 2026-11-14 : **399 documents, 387 avec du texte, 5 295 pages** (dont 138 fiches du NASA Task Book et 67 documents PSI). Liste complète : `data/raw/ntrs/catalog.csv` (versionné).
+
+- **Documents prioritaires** choisis à la main :
+  - rapports des expériences PSI (FLEX, BASS-II, ACME, Saffire) ;
+  - atmosphère d'exploration (8 psia / 32–34 % d'O2 : NTRS 20130013505, 20150021491, 20060013463, 20050185597) ;
+  - incidents : rapports des Review Boards d'Apollo 1 (Apollo 204, NTRS 19930078717) et d'Apollo 13 (19700076776, 20110015690), essais d'inflammabilité pour Apollo 13 (19720016150) ;
+  - norme d'inflammabilité NASA-STD-6001B : Test 1 et O2 maximal (20170004702), scénarios d'incendie et limites du Test 1 (20040084156), analyse de configuration JSC-29353 (20150020937) ;
+  - articles complets des 3 spinoffs cités par le challenge (20070018916, 20030005480, 20030002834).
+- **21 thèmes de recherche** (BASS, Saffire, FLEX, ACME, flammes froides, SAME, SPICE, sécurité incendie, inflammabilité, propagation de flamme, gouttelettes, atmosphère, SoFIE, suppression, feux couvants, détection, suie, allumage, incidents, SLICE / co-courant, particules) ; un résultat n'est gardé que si son titre, son résumé ou ses mots-clés contiennent les mots du thème (et un contexte spatial pour les thèmes généraux).
+- **Ressources du challenge hors NTRS** :
+  - guide « A Researcher's Guide to: ISS Combustion Science » (NP-2015-10-034-JSC) ;
+  - 8 fiches d'investigation de la page « NASA Combustion Science » de Glenn (ACME, BASS, DAFT, FLEX, SAME, SPICE, Saffire, SLICE) ;
+  - norme NASA-STD-6001B avec Change 3 (2025, standards.nasa.gov) ;
+  - rapport du Sénat n° 956 sur l'accident d'Apollo 204 ;
+  - pages web converties en texte (`data/raw/ntrs/web/`, une « page » par document) : NASA Combustion Science, guide du chercheur, Apollo 1, résumé du Review Board Apollo 204, Apollo 13, incendie de Mir (1997), 3 spinoffs (Fireman's Air Tanks, Fire Detector, Fire Attire) ;
+  - vidéo NASA ScienceCasts : au catalogue seulement (pas de transcription).
+- **NASA Task Book** (https://taskbook.nasaprs.com) : les **138 projets** « Physical Sciences > COMBUSTION SCIENCE », obtenus par la recherche du site officiel (formulaire + pagination). Une fiche = un document (`taskbook-<TASKID>`) : période, discipline, chercheur principal, description, avancement annuel, bibliographie. **Les coordonnées personnelles (adresse, e-mail, téléphone) sont retirées du texte.**
+- **Documents des 12 investigations PSI** (après `python -m src.data.download_psi`) :
+  - une **fiche par investigation** (`psi-<PSI-xx>-fiche`) tirée de `investigation.json` : programme, matériel, dates, DOI, objectifs, hypothèse, approche, retombées, liste des publications ;
+  - les PDF des dossiers **Reports**, **Science Documents**, **Presentations** et les **articles publiés** rangés dans « Raw Data » (sous-catégorie « Legacy/AAAA - auteurs, titre ») ; ≤ 40 Mo ; enregistrés dans `data/raw/psi/<investigation>/documents/` ;
+  - les articles déjà présents via NTRS sont écartés (même id NTRS dans le nom de fichier ou même titre) ;
+  - résultat : 12 fiches + 55 PDF, dont 48 téléchargés (1 549 pages avec texte) et 7 absents du serveur PSI (404 : anciens fichiers BASS, SPICE et présentations Saffire) ;
+  - non repris : plans et documents d'ingénierie, planches d'images, fichiers de mesures, fichiers Word / PowerPoint.
+- **Écartés ou sans texte** : 1 PDF de 126 Mo (actes de conférence de 1972) ; 3 documents sans couche texte (2 ACME d'une page, l'article du spinoff Fireman's Air Tanks) ; 2 liens cassés de la page Apollo 13 (rapport de mission, annexes du Review Board : 404 sur nasa.gov).
+- **Comparaison avec un autre projet du challenge** (277 documents NTRS, normes, NASA Task Book) : 133 documents en commun. Nous avons en plus les ressources du challenge (Apollo 1 / 13, Mir, guide du chercheur, fiches Glenn : quasiment absentes chez eux), l'atmosphère d'exploration et le découpage par page. Task Book : mêmes 138 projets des deux côtés (retrouvés indépendamment par la recherche du site) ; leur fichier publié contient les e-mails et téléphones des chercheurs, le nôtre non. Eux ont en plus des actes de workshops généraux que notre filtre écarte. Documents PSI : ils les téléchargent aussi, mais leur RAG n'indexe que leur catalogue NTRS ; chez nous ils sont dans le corpus.
+
+## Documents NASA (NTRS) utilisés pour les données
 
 | Document | NTRS | Utilisé pour | Notes |
 |---|---|---|---|
