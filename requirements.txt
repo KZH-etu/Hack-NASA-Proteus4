@@ -11,3 +11,8 @@ python-dotenv
 plotly
 openpyxl
 pymupdf
+marker-pdf
+langchain-text-splitters
+openai
+pydantic
+tqdm
