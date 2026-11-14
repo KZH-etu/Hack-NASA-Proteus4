@@ -17,3 +17,5 @@ langchain-text-splitters
 openai
 pydantic
 tqdm
+fastapi
+uvicorn

@@ -61,7 +61,7 @@ class LMStudioClient:
         base_url: str = "http://localhost:1234/v1",
         api_key: str = "lm-studio",
         metadata_model: str = "phi-3.5-mini-instruct",
-        embedding_model: str = "qwen3-embedding-0.6b",
+        embedding_model: str = "text-embedding-qwen3-embedding-0.6b",
         embedding_batch_size: int = 32,
         client: Any | None = None,
     ) -> None:

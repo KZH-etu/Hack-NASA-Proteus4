@@ -37,25 +37,28 @@ class TestStage3Index(unittest.TestCase):
         mission_program: str | None = "ISS",
         experiment_year: int | None = 2020,
         authors: str | None = "Jane Doe",
-    ) -> int:
-        doc_id = self.db.upsert_source_document(
+    ) -> str:
+        id_pdf = self.db.upsert_source_document(
             f"{name}.pdf",
             f"https://nasa.gov/{name}.pdf",
             f"https://nasa.gov/exp/{name}",
+            source_id=name,
+            title=f"Title {name}",
+            source_type="ntrs",
         )
-        (self.config.md_dir / f"{name}.md").write_text(md_content, encoding="utf-8")
-        self.db.mark_stage_done(doc_id, stage=1, md_filename=f"{name}.md")
+        (self.config.md_dir / f"{id_pdf}.md").write_text(md_content, encoding="utf-8")
+        self.db.mark_stage_done(id_pdf, stage=1, md_filename=f"{id_pdf}.md")
         self.db.mark_stage_done(
-            doc_id,
+            id_pdf,
             stage=2,
             mission_program=mission_program,
             experiment_year=experiment_year,
             authors=authors,
         )
-        return doc_id
+        return id_pdf
 
-    def test_chunk_markdown_builds_breadcrumb_and_context_format(self) -> None:
-        md = "# 1. Intro\n\n## 1.2 Objectifs\n\nEtude de flamme en microgravite."
+    def test_chunk_markdown_builds_breadcrumb_and_strips_html_tags(self) -> None:
+        md = "# 1. Intro\n\n## 1.2 Objectifs\n\nEtude de <b>flamme</b> en microgravite."
         chunks = chunk_markdown(md, chunk_size=1000, chunk_overlap=200)
         self.assertEqual(len(chunks), 1)
         self.assertEqual(chunks[0]["headers_path"], "1. Intro > 1.2 Objectifs")
@@ -80,9 +83,11 @@ class TestStage3Index(unittest.TestCase):
             self.assertEqual(ch["headers_path"], "Section Longue")
             self.assertLessEqual(len(ch["content"]), 1000)
 
-    def test_build_chroma_metadata_sanitizes_none_values(self) -> None:
+    def test_build_chroma_metadata_sanitizes_none_values_without_document_id(self) -> None:
         doc_row = {
-            "document_id": 7,
+            "id_pdf": "uuid-7",
+            "title": None,
+            "source_type": None,
             "mission_program": None,
             "experiment_year": None,
             "authors": None,
@@ -91,7 +96,9 @@ class TestStage3Index(unittest.TestCase):
         }
         meta = build_chroma_metadata(doc_row, chunk_index=0, headers_path="Intro")
         expected_keys = {
-            "document_id",
+            "id_pdf",
+            "title",
+            "source_type",
             "chunk_index",
             "headers_path",
             "mission_program",
@@ -101,12 +108,13 @@ class TestStage3Index(unittest.TestCase):
             "experiment_url",
         }
         self.assertEqual(set(meta.keys()), expected_keys)
+        self.assertNotIn("document_id", meta)
         for val in meta.values():
             self.assertIsNotNone(val)
             self.assertIsInstance(val, (str, int, float, bool))
 
     def test_indexes_chunks_into_real_chromadb_with_uuid_and_metadata(self) -> None:
-        doc_id = self._seed_ready_doc(
+        id_pdf = self._seed_ready_doc(
             "apollo_flame",
             "# 1. Intro\n\n## 1.1 Setup\n\nTexte un.\n\n## 1.2 Results\n\nTexte deux.",
             mission_program="Apollo",
@@ -130,28 +138,27 @@ class TestStage3Index(unittest.TestCase):
         result = collection.get(include=["documents", "metadatas", "embeddings"])
         self.assertEqual(len(result["ids"]), 2)
         for cid in result["ids"]:
-            uuid.UUID(cid)  # Must be valid UUID
+            uuid.UUID(cid)
 
-        self.assertEqual(result["metadatas"][0]["document_id"], doc_id)
+        self.assertEqual(result["metadatas"][0]["id_pdf"], id_pdf)
         self.assertEqual(result["metadatas"][0]["chunk_index"], 0)
         self.assertEqual(result["metadatas"][0]["headers_path"], "1. Intro > 1.1 Setup")
         self.assertEqual(result["metadatas"][1]["chunk_index"], 1)
         self.assertEqual(result["metadatas"][1]["headers_path"], "1. Intro > 1.2 Results")
         self.assertEqual(result["metadatas"][0]["mission_program"], "Apollo")
         self.assertEqual(result["metadatas"][0]["experiment_year"], 1971)
-        self.assertEqual(self.db.get_document(doc_id)["index_status"], "done")  # type: ignore[index]
+        self.assertEqual(self.db.get_document(id_pdf)["index_status"], "done")  # type: ignore[index]
 
     def test_reindexing_same_document_replaces_old_chunks_without_duplicates(self) -> None:
-        doc_id = self._seed_ready_doc("doc_reindex", "# Intro\n\nFirst version.")
+        id_pdf = self._seed_ready_doc("doc_reindex", "# Intro\n\nFirst version.")
         llm_client = MagicMock()
         llm_client.embed_texts.side_effect = lambda texts: [[0.5, 0.5] for _ in texts]
         chroma_client = chromadb.PersistentClient(path=str(self.config.chroma_dir))
 
         run_stage3(self.config, db=self.db, llm_client=llm_client, chroma_client=chroma_client)
 
-        # Simulate error & retry on the same document with updated markdown
-        self.db.mark_stage_error(doc_id, stage=3, error_message="Force reindex")
-        (self.config.md_dir / "doc_reindex.md").write_text(
+        self.db.mark_stage_error(id_pdf, stage=3, error_message="Force reindex")
+        (self.config.md_dir / f"{id_pdf}.md").write_text(
             "# Intro\n\nSecond version.", encoding="utf-8"
         )
         run_stage3(
@@ -163,7 +170,7 @@ class TestStage3Index(unittest.TestCase):
         )
 
         collection = chroma_client.get_collection(self.config.chroma_collection)
-        result = collection.get(where={"document_id": doc_id})
+        result = collection.get(where={"id_pdf": id_pdf})
         self.assertEqual(len(result["ids"]), 1)
         self.assertIn("Second version.", result["documents"][0])
 
