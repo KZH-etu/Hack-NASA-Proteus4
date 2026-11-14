@@ -15,6 +15,7 @@ m.recommend_next_experiment({"fuel": "heptane", "o2_percent": 34, "pressure_kpa"
 | Dossier | Contenu |
 |---|---|
 | `model_gp/` | Processus gaussiens : `flex/` (gouttelettes FLEX), `solids/` (BASS / BASS-II), `gas/` (ACME CFI-G) ; `recommend.py` (prochaine expérience). Rapports de validation dans `<famille>/validation.md`. |
+| `model_catboost/` | Un seul CatBoost à 3 classes (extinction / combustion / intermédiaire) pour gouttelettes, solides et gaz. `train.py` (entraînement, écrit `catboost_fire_3classes.cbm`), `evaluate.py` → `validation.md`. Pas de recommandation. |
 
 ## Ajouter un modèle
 

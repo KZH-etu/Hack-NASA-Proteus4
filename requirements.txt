@@ -2,6 +2,7 @@ pandas
 pyarrow
 requests
 scikit-learn
+catboost
 streamlit
 llama-index
 llama-index-vector-stores-chroma
