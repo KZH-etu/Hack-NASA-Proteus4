@@ -7,7 +7,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "models", "official_thermodynamic_models.joblib")
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "models", "pim_flammability_gbt_v1.joblib")
 
 # Chargement paresseux au premier appel
 _BUNDLE = None
