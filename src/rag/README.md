@@ -67,3 +67,34 @@ Pour y parvenir, l'architecture repose sur un pipeline en **3 étapes asynchrone
 *(Note : L'approche par vecteur creux/sparse vector a été écartée pour se concentrer sur la densité sémantique via Qwen3).*
 
 ---
+
+## 📦 Stockage & Synchronisation ChromaDB (GitHub Releases)
+
+La base vectorielle `data/rag/chroma_db/` est exclue de Git (`.gitignore`) et distribuée sous forme d'archive `.tar.gz` avec manifeste SHA-256 via **GitHub Releases** (en utilisant le CLI `gh` authentifié) :
+
+- **Compresser et publier une nouvelle snapshot :**
+  ```bash
+  python -m src.rag.publish_chroma_release
+  # Option test sans upload :
+  python -m src.rag.publish_chroma_release --dry-run
+  ```
+- **Télécharger et décompresser la dernière release dans `data/rag/chroma_db/` :**
+  ```bash
+  python -m src.rag.download_chroma_release
+  # Option vérification seule :
+  python -m src.rag.download_chroma_release --check-only
+  ```
+
+## 🌐 Serveur Web RAG (`FastAPI` + `Uvicorn`)
+
+Au démarrage (`lifespan`), le serveur vérifie automatiquement si `data/rag/chroma_db/` est présent et à jour par rapport à la dernière release GitHub (`chroma-db-*`), et la télécharge si nécessaire avant d'exposer l'API :
+
+```bash
+python -m src.rag.server --host 127.0.0.1 --port 8000
+# ou
+uvicorn src.rag.server:app --host 127.0.0.1 --port 8000
+```
+
+Endpoints disponibles :
+- `GET /health` : statut du serveur, tag de release actif et nombre de chunks indexés.
+- `POST /retrieve` : recherche sémantique (`{"query": "...", "top_k": 5, "where": null}`) retournant les chunks avec leurs métadonnées complètes (`id_pdf`, `title`, `authors`, `experiment_year`, `mission_program`, `source_type`, `pdf_url`, `experiment_url`, `headers_path`, `chunk_index`).

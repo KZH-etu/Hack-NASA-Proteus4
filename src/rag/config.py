@@ -18,6 +18,9 @@ class RagConfig:
     chroma_dir: Path = Path("data/rag/chroma_db")
     chroma_collection: str = "nasa_scientific_reports"
     source_manifest_path: Path = Path("data/rag/source_manifest.json")
+    github_repo: str = "KZH-etu/Hack-NASA-Proteus4"
+    chroma_release_prefix: str = "chroma-db-"
+    chroma_sync_strict: bool = False
 
     lm_studio_base_url: str = "http://localhost:1234/v1"
     lm_studio_api_key: str = "lm-studio"
@@ -44,6 +47,10 @@ class RagConfig:
             source_manifest_path=Path(
                 os.getenv("RAG_SOURCE_MANIFEST", "data/rag/source_manifest.json")
             ),
+            github_repo=os.getenv("RAG_GITHUB_REPO", "KZH-etu/Hack-NASA-Proteus4"),
+            chroma_release_prefix=os.getenv("RAG_CHROMA_RELEASE_PREFIX", "chroma-db-"),
+            chroma_sync_strict=os.getenv("RAG_CHROMA_SYNC_STRICT", "false").lower()
+            in {"1", "true", "yes"},
             lm_studio_base_url=os.getenv("LM_STUDIO_BASE_URL", "http://localhost:1234/v1"),
             lm_studio_api_key=os.getenv("LM_STUDIO_API_KEY", "lm-studio"),
             metadata_model=os.getenv("RAG_METADATA_MODEL", "phi-3.5-mini-instruct"),
