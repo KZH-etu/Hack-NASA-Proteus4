@@ -138,7 +138,9 @@ class SolidsModel:
     def predict_frame(self, X):
         p = self.classifier.predict_proba(X)[:, 1]
         boot = np.array([m.predict_proba(X)[:, 1] for m in self.ensemble]) if self.ensemble else p[None, :]
-        return pd.DataFrame({"p_sustained": p, "p_low": np.quantile(boot, 0.05, axis=0), "p_high": np.quantile(boot, 0.95, axis=0)})
+        # l'intervalle contient toujours la valeur annoncée
+        return pd.DataFrame({"p_sustained": p, "p_low": np.minimum(np.quantile(boot, 0.05, axis=0), p),
+                             "p_high": np.maximum(np.quantile(boot, 0.95, axis=0), p)})
 
 
 @lru_cache(maxsize=1)

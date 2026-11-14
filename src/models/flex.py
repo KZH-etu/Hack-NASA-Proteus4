@@ -107,8 +107,8 @@ class FlexModel:
         nn = np.sqrt(((Z[:, None, :] - self.Z[None, :, :]) ** 2).sum(-1)).min(axis=1)
         return pd.DataFrame({
             "p_extinction": p,
-            "p_low": np.quantile(boot, 0.05, axis=0),
-            "p_high": np.quantile(boot, 0.95, axis=0),
+            "p_low": np.minimum(np.quantile(boot, 0.05, axis=0), p),  # l'intervalle contient toujours la valeur annoncée
+            "p_high": np.maximum(np.quantile(boot, 0.95, axis=0), p),
             "k_mm2_s": k_mean,
             "k_std": k_std,
             "nn_distance": nn,
