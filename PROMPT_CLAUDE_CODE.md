@@ -86,7 +86,7 @@ flame-in-freefall/
 
 ## CONVENTIONS DE TRAVAIL
 
-- Une branche par personne/tâche (`data/…`, `ml/…`, `rag/…`, `app/…`), Pull Request vers `main`, `main` doit toujours tourner.
+- Une branche par tâche (ex. `rag`, `ml`, `dashboard`, `data`), Pull Request vers `main`, `main` doit toujours tourner.
 - Commits courts et explicites. Pas de commit de `.env` ni de fichiers > 50 Mo.
 - Chaque module expose des fonctions simples que l'app appelle (ex. `load_unified_table()`, `predict(conditions)`, `recommend_next_experiment(scenario)`, `ask(question)`).
 - Le samedi à 19 h : intégration de bout en bout (version 1 en ligne). Dimanche 18 h : gel du code.
@@ -115,6 +115,28 @@ Fais exactement ceci, en me montrant chaque commande avant de l'exécuter :
 6. Vérifie en local : `python -m venv .venv`, installation des dépendances, `streamlit run app/streamlit_app.py` démarre.
 
 Ne commence aucune autre tâche avant que je valide la tâche 1.
+
+**État :** tâche 1 terminée (dépôt créé, collaborateurs invités, app vérifiée en local le samedi 14 novembre).
+
+---
+
+## ORGANISATION PROPOSÉE (indicative, à ajuster librement)
+
+Rien de figé : chacun reste libre de changer de tâche, d'aider ailleurs ou de réorganiser selon l'avancement.
+
+| Branche | Qui (proposition) | Contenu |
+|---|---|---|
+| `rag` | 2 personnes (dont moi) | Tâche 4 : récupération NTRS, index hybride, `ask()`, évaluation |
+| `ml` | 1 personne | Tâche 3 : `predict()`, `recommend_next_experiment()` |
+| `dashboard` | à définir | Tâche 5 : les 4 pages Streamlit |
+
+La tâche data (2) et le pitch (6) restent à répartir selon les disponibilités.
+
+**Travailler en parallèle sans attendre les données :**
+- Le RAG ne dépend pas de la table unifiée (il travaille sur les PDF NTRS) : il peut démarrer tout de suite.
+- Le ML peut écrire son code en se basant sur les colonnes de `src/common/schema.py` et le tester sur une petite table factice **dans un fichier de test uniquement** (jamais dans `data/` ni dans l'app). Une fois `unified.parquet` prêt, on ajuste : colonnes vraiment remplies, valeurs de `outcome`, hyperparamètres, métriques.
+- Le dashboard avance avec des données « DEMO » clairement étiquetées, puis branche les vraies fonctions.
+- Si quelqu'un a besoin de modifier le schéma (nouvelle colonne, nouvelle valeur), il prévient l'équipe et le change dans une petite PR dédiée, plutôt que chacun de son côté.
 
 ---
 
