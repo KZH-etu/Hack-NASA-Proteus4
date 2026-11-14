@@ -117,3 +117,46 @@ Dépôt public d'une autre équipe, préparé en amont (commits d'octobre à dé
 1. **Ajouter CFI (PSI-39, ~87 gouttelettes) et SPICE (PSI-107, ~469 flammes gaz)** à la liste de téléchargement. FLEX-2 (PSI-68) n'a qu'une matrice de conception, pas d'essais réalisés.
 2. **Reprendre l'idée des drapeaux qualité** sous une forme simple (`outcome_method` et `notes`, cf. §6).
 3. **Mettre le trou de couverture au centre du pitch :** atmosphère d'exploration (0,57 atm, 34 % O2) contre FLEX (≥ 0,69 atm). Eux le montrent ; nous, on dit quoi tester ensuite et pourquoi.
+
+## 9. Résultats comparés avec Krypton-N (samedi 14 novembre, après nettoyage)
+
+Comparaison ligne à ligne de nos tables `data/processed/families/` avec leurs `data/clean/*.csv`, jointure sur (fichier PSI, ligne d'origine).
+
+**Accord des valeurs communes**
+- FLEX : 274 / 274 essais, **0 écart** sur O2, pression, diamètres, K et durée de combustion.
+- Gaz : 1 095 lignes appariées, **0 écart** sur O2, fraction de combustible, Zst, Tad, durée, température du brûleur, co-courant SPICE. Seul écart : la pression ACME Flame Design (initiale chez nous, moyenne chez eux ; la moyenne manque le jour 13).
+- Solides : 263 lignes appariées, 0 écart sur O2, épaisseur, diamètre ; écarts expliqués ci-dessous.
+
+**Où nous sommes plus complets ou plus justes**
+| Point | Nous | Krypton-N |
+|---|---|---|
+| BASS : O2, pression, vitesse d'air | 121 / 121 (matrice As Run jointe) | 0 |
+| FLEX : diamètre d'extinction = 0 sans extinction | vidé (`sans_objet`) | gardé à 0 (8 essais) |
+| SPICE : vitesses d'air négatives | vidées (`incoherent`) | gardées (8) |
+| SPICE : copies exactes | 34 écartées et tracées | gardées |
+| BASS-II : réglages « pot » | exclus des vitesses | parfois comptés comme vitesses (ex. B16 : 0,4) |
+| SPICE : O2 et pression | nominaux (21 %, 1 atm) et marqués | vides |
+| Saffire-II : comparaison µg / 1g | lignes séparées `gravity = 1g` | colonnes dans la même ligne |
+| Case vide | classée (sans objet, faux zéro, absente du fichier, vrai manquant) | non classée |
+
+**Ce que nous avons repris d'eux après comparaison**
+- Issues BASS / BASS-II écrites dans les colonnes de débit (« ext », « blowoff ») : 25 essais.
+- Corrections de nos bugs trouvés grâce à la comparaison : vitesses « 5 pots 0.4 0.36 » mal lues (P4, P6, P10), « <1 » ignoré (B9), tiges notées « 0.5" » sans diamètre.
+
+**Choix différents, défendables des deux côtés**
+- Saffire-I : ils permutent longueur et largeur pour suivre le document NASA ; nous gardons la table avec `a_verifier`.
+- Vitesse d'air en rampe : ils prennent la première valeur ; nous laissons `flow_cm_s` vide et donnons min / max.
+- Saffire-II 2-7 (« 0.85 and 0.37 mm ») : ils prennent 0,85 ; nous laissons vide (`qualitatif`).
+
+**Ce qui leur reste en plus** : CFI (79 gouttelettes), SAME / SAME-R / DAFT (aérosols), journaux par jour ACME, et l'indicateur « allumé » de SPICE.
+
+## 10. Prêt pour le hackathon ?
+
+| Besoin | État |
+|---|---|
+| Explorer | `unified.parquet` / `experiments_all.csv` : 1 641 lignes, 9 investigations, filtres expérience / matériau / O2 / gravité |
+| Carte des trous | O2 × pression pour gouttelettes et gaz ; O2 × vitesse d'air (min / max) pour les solides |
+| Modèle | FLEX 274 et ACME CFI-G 333 essais avec issue ; solides : 36 issues (25 déduites + Saffire), le reste après annotation |
+| Scénario lunaire (≈ 34 % O2, ≈ 56 kPa) | **seulement 15 essais**, tous des flammes gazeuses ACME CFI-G à 51 kPa ; **aucune gouttelette** (FLEX ≥ 70 kPa) ; **aucun solide au-dessus de 22,7 % d'O2** |
+
+Le dernier point est l'argument central du pitch : les matériaux de cabine (solides) n'ont jamais été testés en microgravité dans une atmosphère enrichie en O2. C'est précisément l'expérience que l'onglet « Prochaine expérience » doit recommander.

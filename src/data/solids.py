@@ -67,7 +67,7 @@ FAMILY_COLUMNS = {
 }
 
 TO_UNIFIED = {"x_o2": "o2_percent"}
-ROD_DIAMETERS_MM = {"1/4": 6.35, "3/8": 9.525, "1/2": 12.7}
+ROD_DIAMETERS_MM = {"1/4": 6.35, "3/8": 9.525, "1/2": 12.7, "0.25": 6.35, "0.375": 9.525, "0.5": 12.7}
 
 
 ROUND_SHAPES = ("rod", "sphere", "spherical section", "candle")
@@ -113,7 +113,7 @@ def parse_sample(desc, row):
                          else "film" if "film" in d or "micron" in d else "flat sample")
     # « candle » sans précision : matériau inconnu, laissé vide (vrai manquant)
 
-    rod = re.search(r"(1/4|3/8|1/2)", d)
+    rod = re.search(r"(1/4|3/8|1/2|0\.25|0\.375|0\.5)(?=\s*(\"|in|rod|black|clear))", d)
     if v["geometry"] == "rod" and rod:
         v["diameter_mm"] = ROD_DIAMETERS_MM[rod.group(1)]
     sphere = re.search(r"(\d+(?:\.\d+)?) ?cm", d)
@@ -135,26 +135,69 @@ def parse_sample(desc, row):
 
 
 def parse_flow(text, row, target="flow_cm_s"):
-    """« 10, 5, 3 » -> min 3, max 10, rampe ; « 5 » -> 5. Les réglages en « pot » et le texte (« ext ») sont ignorés."""
+    """Vitesse d'air affichée (cm/s). « 10, 5, 3 » -> min 3, max 10, rampe ; « 5 » -> 5.
+
+    Les réglages du potentiomètre ne sont pas des vitesses : « 5 3 pot 0.4 » (pot devant), « 3 0.5 pot 0.4 pot »
+    (pot derrière), « 5 pots 0.4 0.36 0.32 » (tous les nombres qui suivent « pots »), « (pot .9, .5) ».
+    « <1 » compte pour 1 dans le minimum (marque approx).
+    """
     v = row.values
     v["flow_raw"] = text or None
-    t = re.sub(r"\([^)]*\)", " ", (text or "").lower())             # « (pot .9, .5) »
-    t = re.sub(r"pot\s*\d*\.?\d+|\d*\.?\d+\s*pot", " ", t)           # réglages du potentiomètre
-    qualitative = re.sub(r"[\d.,<>?\s-]", "", t)
-    numbers = [float(n) for n in re.findall(r"(?<![<\d.])(\d*\.?\d+)", t)]
+    t = re.sub(r"\([^)]*\)", " ", (text or "").lower())
+    tokens = re.findall(r"[a-z]+|<?\s*\d*\.?\d+\??", t)
+    is_num = lambda tok: bool(re.fullmatch(r"<?\s*\d*\.?\d+\??", tok))
+    pot = set()
+    for i, tok in enumerate(tokens):
+        if tok == "pots":
+            j = i + 1
+            while j < len(tokens) and is_num(tokens[j]):
+                pot.add(j)
+                j += 1
+        elif tok == "pot":
+            after = i + 1 < len(tokens) and is_num(tokens[i + 1])
+            after_is_suffixed = i + 2 < len(tokens) and tokens[i + 2] == "pot"
+            if after and not after_is_suffixed:
+                pot.add(i + 1)
+            elif i > 0 and is_num(tokens[i - 1]):
+                pot.add(i - 1)
+    numbers, words, below = [], [], False
+    for i, tok in enumerate(tokens):
+        if i in pot or tok in ("pot", "pots"):
+            continue
+        if is_num(tok):
+            below = below or tok.startswith("<")
+            numbers.append(float(tok.lstrip("< ").rstrip("?")))
+        else:
+            words.append(tok)
     if not numbers:
         if text:
             row.flag(target, "qualitatif")
         return
     v["flow_min_cm_s"], v["flow_max_cm_s"] = min(numbers), max(numbers)
+    if below:
+        row.flag("flow_min_cm_s", "approx")  # « <1 » : borne haute
     if len(numbers) > 1:
         row.flag(target, "rampe")
-    elif qualitative or "<" in t:  # « 3 ign », « 10 max » : une valeur accompagnée de texte
+    elif words or below:  # « 3 ign », « 10 max » : une valeur accompagnée de texte
         row.flag(target, "qualitatif")
     else:
         v[target] = numbers[0]
     if "?" in t:
         row.flag(target, "approx")
+
+
+EXTINCTION_WORDS = re.compile(r"(?<![a-z])(ext|extinct|extinguish|blow ?off)")
+
+
+def outcome_from_text(row, *texts):
+    """Issue écrite en toutes lettres dans les colonnes de débit (« 5 3 2 ext », « 10 blowoff »)."""
+    joined = " ".join(t for t in texts if t).lower()
+    m = EXTINCTION_WORDS.search(joined)
+    if m and row.values["outcome"] is None:
+        row.values["outcome"] = "extinguished"
+        row.flag("outcome", "deduit")
+        return "soufflage (blowoff)" if "blow" in m.group(1) else "extinction notée dans les colonnes de débit"
+    return None
 
 
 def with_unit(text):
@@ -268,7 +311,7 @@ def build_bass(annotations):
             v["fan_raw"] = x[9] if str(x[9]) != "nan" else None
             v["flow_restrictor"] = _clean_id(x[7]) or None
             v["observations"] = str(x[29]).strip() if str(x[29]) != "nan" else None
-        note = apply_annotation(row, annotations)
+        note = apply_annotation(row, annotations) or outcome_from_text(row, v["flow_raw"], v["fan_raw"])
         notes = [f"échantillon : {r['Fuel Sample Material']}", "conditions : matrice As Run (PSI-26)", note]
         if "material:doc" in row.flags.items:
             notes.append(f"matériau PMMA : {BASS_DRAWINGS}")
@@ -307,8 +350,9 @@ def build_bass2(annotations):
         v["pressure_kpa"] = ATM_TO_KPA
         row.flag("pressure_kpa", "nominal")
         note = apply_annotation(row, annotations)
+        deduced = None if note else outcome_from_text(row, r["Air display"], r["Fan display"])
         notes = [f"échantillon : {r['Fuel Sample Material']}", f"pression nominale 1 atm ({BASS2_REPORT} p. 11, 41)",
-                 "issue et sens d'écoulement : annexe A du rapport (à annoter)" if not note else note]
+                 note or deduced, None if note else "sens d'écoulement et issue détaillée : annexe A du rapport (à annoter)"]
         if "material:doc" in row.flags.items:
             notes.append(f"matériau PMMA : {BASS2_REPORT} p. 47 (tiges de PMMA coulé) / {BASS_DRAWINGS}")
         flag_shape(row)

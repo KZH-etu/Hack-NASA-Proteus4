@@ -70,6 +70,7 @@ QC_REASON_DOCS = {
     "sans_allumage_chaud": "burn time = 0 car pas d'allumage chaud",
     "qualitatif": "texte qualitatif à la place d'un nombre (« LOW O2 ») : vide, texte gardé en commentaire",
     "erreur_excel": "erreur de formule dans la source (« #DIV/0! », « #VALUE! ») : vide",
+    "deduit": "déduit d'un texte explicite de la même ligne (ex. « 5 3 2 ext » -> extinction)",
 }
 
 ANNOTATION_TEMPLATES = {

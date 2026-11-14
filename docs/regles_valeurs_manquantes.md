@@ -16,7 +16,7 @@ Ces règles servent de spécification à `src/data/build_unified.py`.
 | **F. Incohérent** | garder la valeur et la signaler (la vider si physiquement impossible) | `<col>:incoherent` ou `<col>:a_verifier` |
 | **G. Piège : l'« évident » est faux** | **ne pas remplir** | — |
 
-Autres marques : `approx` (« ~6 »), `rampe` (« RAMP », « RAMPED », « 10, 5, 3 »), `sans_allumage_chaud` (ACME CFI-G), `qualitatif` (texte comme « LOW O2 » à la place d'un nombre, recopié dans les commentaires), `erreur_excel` (« #DIV/0! », « #VALUE! »). La liste fait foi dans `QC_REASONS` (`src/common/schema.py`), et `check_qc_flags()` vérifie une valeur.
+Autres marques : `deduit` (issue écrite en toutes lettres dans une autre colonne de la même ligne), `approx` (« ~6 »), `rampe` (« RAMP », « RAMPED », « 10, 5, 3 »), `sans_allumage_chaud` (ACME CFI-G), `qualitatif` (texte comme « LOW O2 » à la place d'un nombre, recopié dans les commentaires), `erreur_excel` (« #DIV/0! », « #VALUE! »). La liste fait foi dans `QC_REASONS` (`src/common/schema.py`), et `check_qc_flags()` vérifie une valeur.
 
 ## Colonnes du schéma absentes des tables sources
 
@@ -96,21 +96,23 @@ Chiffres vérifiés par `build_unified.py`.
   - une seule valeur → `flow_cm_s` ;
   - plusieurs valeurs (« 10, 5, 3 ») → `flow_cm_s` vide + `rampe`, avec `flow_min_cm_s` / `flow_max_cm_s` ;
   - une valeur accompagnée de texte (« 3 ign », « 10 max ») → `qualitatif` ;
-  - les réglages du potentiomètre (« pot 0.4 ») ne sont pas des vitesses : ignorés (texte brut dans `flow_raw`).
+  - les réglages du potentiomètre ne sont pas des vitesses : « 5 3 pot 0.4 », « 3 0.5 pot 0.4 pot », « 5 pots 0.4 0.36 0.32 » (tous les nombres après « pots ») sont ignorés (texte brut dans `flow_raw`) ;
+  - « <1 » compte pour 1 dans `flow_min_cm_s`, avec la marque `approx`.
 - **`spread_rate_mm_s` et `burning_rate`** : les vitesses de propagation BASS / BASS-II ne sont que dans les figures des rapports (**A**) ; `burning_rate` est `sans_objet`.
 
 ### BASS (PSI-26)
 - La table PSI (essais) est enrichie par la matrice `As Run` (O2, pression mesurée 0,97–1,01 atm, CO2, vitesse d'air, observations). **Jointure sur (n° As Run, n° d'essai)** : les 121 essais sont appariés sans ambiguïté (le n° As Run seul est en double pour 5 essais, et les dates diffèrent de format, ex. « 6/29/`12 »).
 - `test_id` = `AR<n° As Run>-T<n° d'essai>`.
 - **1 ligne « SOOT Cleaning »** sans numéro d'essai : pas un essai → `skipped_rows.csv`.
-- **Issue** : seulement dans les observations en texte libre → vide tant que `annotations/bass_outcomes.csv` n'est pas rempli.
+- **Issue** : « ext » ou « blowoff » écrit dans les colonnes de débit → `extinguished` + `outcome:deduit` (2 essais) ; sinon seulement dans les observations en texte libre → vide tant que `annotations/bass_outcomes.csv` n'est pas rempli.
 
 ### BASS-II (PSI-25)
 - **Pression** : 101,325 kPa `nominal` (rapport p. 11 et 41).
 - **« Fan display » vide (13 lignes)** : réglage au potentiomètre, **A** sans conséquence (la vitesse est dans « Air display »).
 - **O2 final très bas** (B2 : 1,6 % ; P22a : 0,6 % ; T28a : 0,9 %) : `x_o2_final:incoherent`. Utiliser l'O2 initial.
 - **CO négatif** (jusqu'à −3 ppm) : dérive du capteur, valeur gardée + `incoherent`.
-- **Issue et sens de l'écoulement** : annexe A du rapport (pp. 103–113, texte libre) → à saisir dans `annotations/bass_outcomes.csv` (colonnes `outcome`, `flow_direction`, `source_page`). Le build les reprend avec la marque `doc`.
+- **Issue déduite (23 essais)** : « ext », « extinguished » ou « blowoff » écrit dans « Air display » ou « Fan display » (ex. « 5 3 2 ext », « 10 blowoff ») → `extinguished` + `outcome:deduit`. L'absence de ces mots ne veut **pas** dire que la flamme a tenu (vide). Idée reprise de Krypton-N.
+- **Issue et sens de l'écoulement complets** : annexe A du rapport (pp. 103–113, texte libre) → à saisir dans `annotations/bass_outcomes.csv` (colonnes `outcome`, `flow_direction`, `source_page`). Une annotation remplace l'issue déduite (marque `doc`).
 
 ### Saffire I, II, III (PSI-98, 99, 100)
 - **Lignes de visualisation d'écoulement** (`F1C1/F1C2`…) et **lignes « Note 1…4 »** : écartées (`skipped_rows.csv`) ; le texte des notes est recopié dans `observations` / `notes` des échantillons qui y renvoient (la Note 1, « O2 déduit de la production de CO2 », concerne la colonne O2 de tous les essais en vol de Saffire-II).

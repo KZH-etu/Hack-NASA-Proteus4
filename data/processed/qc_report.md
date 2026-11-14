@@ -98,20 +98,20 @@ Cases vides :
 Marques les plus fréquentes :
 
 - `diameter_mm:sans_objet` × 148
-- `flow_cm_s:rampe` × 129
 - `pressure_kpa:nominal` × 129
+- `flow_cm_s:rampe` × 128
 - `width_cm:sans_objet` × 124
 - `thickness_mm:sans_objet` × 124
 - `material:doc` × 91
-- `flow_cm_s:qualitatif` × 29
+- `flow_cm_s:qualitatif` × 30
+- `outcome:deduit` × 25
 - `co_initial_ppm:incoherent` × 13
 - `x_o2:approx` × 11
+- `flow_min_cm_s:approx` × 10
 - `flow_cm_s:a_verifier` × 9
 - `co_final_ppm:qualitatif` × 8
 - `burn_length_cm:approx` × 8
 - `spread_rate_mm_s:sans_objet` × 7
-- `spread_rate_mm_s:qualitatif` × 7
-- `burn_length_cm:recopie` × 6
 
 Cases vides :
 
@@ -124,13 +124,13 @@ Cases vides :
 | `thickness_mm` | 212 / 272 | 124 | 0 | 4 | 54 | 30 |
 | `width_cm` | 145 / 272 | 124 | 0 | 0 | 0 | 21 |
 | `length_cm` | 252 / 272 | 0 | 0 | 2 | 250 | 0 |
-| `diameter_mm` | 173 / 272 | 148 | 0 | 0 | 0 | 25 |
+| `diameter_mm` | 169 / 272 | 148 | 0 | 0 | 0 | 21 |
 | `color` | 218 / 272 | 0 | 0 | 0 | 143 | 75 |
 | `sides_burning` | 266 / 272 | 0 | 0 | 0 | 143 | 123 |
 | `flow_direction` | 256 / 272 | 0 | 0 | 0 | 129 | 127 |
 | `flow_cm_s` | 183 / 272 | 0 | 0 | 158 | 0 | 25 |
-| `flow_min_cm_s` | 29 / 272 | 0 | 0 | 0 | 0 | 29 |
-| `flow_max_cm_s` | 29 / 272 | 0 | 0 | 0 | 0 | 29 |
+| `flow_min_cm_s` | 28 / 272 | 0 | 0 | 0 | 0 | 28 |
+| `flow_max_cm_s` | 28 / 272 | 0 | 0 | 0 | 0 | 28 |
 | `flow_raw` | 25 / 272 | 0 | 0 | 0 | 0 | 25 |
 | `fan_raw` | 36 / 272 | 0 | 0 | 0 | 22 | 14 |
 | `flow_restrictor` | 23 / 272 | 0 | 0 | 0 | 22 | 1 |
@@ -150,7 +150,7 @@ Cases vides :
 | `spread_rate_mm_s` | 268 / 272 | 7 | 0 | 7 | 254 | 0 |
 | `spread_mode` | 267 / 272 | 0 | 0 | 0 | 254 | 13 |
 | `observations` | 125 / 272 | 0 | 0 | 0 | 4 | 121 |
-| `outcome` | 252 / 272 | 0 | 0 | 0 | 252 | 0 |
+| `outcome` | 227 / 272 | 0 | 0 | 0 | 2 | 225 |
 
 ## unified.parquet
 
@@ -162,6 +162,6 @@ Cases vides :
 | `o2_percent` | 22 / 1641 | 0 | 0 | 11 | 2 | 9 |
 | `pressure_kpa` | 23 / 1641 | 0 | 1 | 0 | 22 | 0 |
 | `flow_cm_s` | 1145 / 1641 | 660 | 0 | 166 | 274 | 45 |
-| `outcome` | 1014 / 1641 | 0 | 0 | 0 | 1014 | 0 |
+| `outcome` | 989 / 1641 | 0 | 0 | 0 | 764 | 225 |
 | `spread_rate_mm_s` | 1637 / 1641 | 1376 | 0 | 7 | 254 | 0 |
 | `burning_rate` | 1383 / 1641 | 1367 | 0 | 0 | 0 | 16 |
