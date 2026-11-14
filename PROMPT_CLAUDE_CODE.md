@@ -90,6 +90,8 @@ flame-in-freefall/
 - Commits courts et explicites. Pas de commit de `.env` ni de fichiers > 50 Mo.
 - Chaque module expose des fonctions simples que l'app appelle (ex. `load_unified_table()`, `predict(conditions)`, `recommend_next_experiment(scenario)`, `ask(question)`).
 - Le samedi à 19 h : intégration de bout en bout (version 1 en ligne). Dimanche 18 h : gel du code.
+- Pas de labels ni d'issues GitHub : l'organisation se fait directement entre nous.
+- Rien de ce qui est visible sur GitHub (commits, PR, README, commentaires du code) ne mentionne d'outil d'IA : pas de ligne `Co-Authored-By`, pas de « Generated with… ». Le dépôt doit refléter le travail de l'équipe.
 
 ---
 
@@ -110,14 +112,13 @@ Fais exactement ceci, en me montrant chaque commande avant de l'exécuter :
    - Un `__init__.py` dans chaque dossier de `src/`.
 4. Premier commit sur `main`, push.
 5. Ajoute les collaborateurs : `gh repo edit` / `gh api` pour inviter [PSEUDOS_GITHUB].
-6. Crée les labels `data`, `ml`, `rag`, `app`, `pitch` et une **issue par tâche** ci-dessous (titre + description + label + assignee), puis donne-moi la liste des liens.
-7. Vérifie en local : `python -m venv .venv`, installation des dépendances, `streamlit run app/streamlit_app.py` démarre.
+6. Vérifie en local : `python -m venv .venv`, installation des dépendances, `streamlit run app/streamlit_app.py` démarre.
 
 Ne commence aucune autre tâche avant que je valide la tâche 1.
 
 ---
 
-## TÂCHES PAR PERSONNE (à créer en issues à l'étape 6)
+## TÂCHES PAR PERSONNE (réparties au sein de l'équipe, pas d'issues GitHub)
 
 ### Tâche 2 — Data engineer : [PRÉNOM]
 - Télécharger les « Experimental table » PSI de BASS, BASS-II, FLEX, Saffire I–III (puis ACME si le temps le permet) dans `data/raw/`, documenter chaque fichier dans `data/SOURCES.md`.
