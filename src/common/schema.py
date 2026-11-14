@@ -80,14 +80,17 @@ COLUMNS = {
 assert list(COLUMNS) == [f.name for f in fields(UnifiedRow)], "COLUMNS et UnifiedRow doivent rester alignés"
 
 
-def check_qc_flags(value):
-    """Vérifie une valeur de `qc_flags` ; renvoie la liste des erreurs (vide si tout est bon)."""
+def check_qc_flags(value, columns=COLUMNS):
+    """Vérifie une valeur de `qc_flags` ; renvoie la liste des erreurs (vide si tout est bon).
+
+    `columns` : colonnes autorisées (celles de la table unifiée par défaut, ou d'une table par famille).
+    """
     if value is None or value != value or value == "":  # None, NaN ou vide
         return []
     errors = []
     for item in str(value).split(";"):
         col, _, reason = item.partition(":")
-        if col not in COLUMNS:
+        if col not in columns:
             errors.append(f"colonne inconnue : {item!r}")
         if reason not in QC_REASONS:
             errors.append(f"motif inconnu : {item!r}")

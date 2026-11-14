@@ -80,9 +80,23 @@ Script : `python -m src.data.download_psi` (API publique https://psi.nasa.gov, s
 | `PSI-101_SAME-R/experimental_table/PSI-101_Experimental table_SAME-R.csv` | PSI-101 | |
 | `PSI-102_SAME/experimental_table/PSI-102_Experimental table_SAME.csv` | PSI-102 | |
 
+## Fichiers produits (`data/processed/`, versionnés)
+
+Générés par `python -m src.data.build_unified` à partir de `data/raw/psi/`. Ne pas éditer à la main, sauf `annotations/`.
+
+| Fichier | Contenu | Sources |
+|---|---|---|
+| `unified.parquet` | table catalogue, une ligne par essai (schéma `src/common/schema.py`) | tables expérimentales PSI listées ci-dessus |
+| `families/droplets.parquet` | FLEX (CFI à venir) | PSI-69 |
+| `campaigns.csv` | une ligne par investigation (DOI, plateforme, statut) | `psi_index.csv`, `investigation.json` |
+| `skipped_rows.csv` | lignes sources écartées et raison | — |
+| `data_dictionary.md`, `qc_report.md` | colonnes et unités ; contrôle qualité | — |
+| `annotations/bass_outcomes.csv` | issues BASS / BASS-II saisies à la main (avec page) | NASA/TM-20210011385, annexe A |
+
 ## Documents NASA (NTRS)
 
 | Document | NTRS | Utilisé pour | Notes |
 |---|---|---|---|
+| NASA/TP-2015-216046 — Detailed Results from the Flame Extinguishment Experiment (FLEX) | [20150023456](https://ntrs.nasa.gov/citations/20150023456) | sens des colonnes FLEX, unité de K (mm²/s), signification du « – » (Table IX, p. 19) | |
 | NASA/TM-20210011385 — BASS-II Summary Report | [20210011385](https://ntrs.nasa.gov/citations/20210011385) | issues BASS-II (annexe A, pp. 103–113) ; pression nominale 1 atm (pp. 11, 41) ; tiges en PMMA coulé (p. 47) | pas de vitesses de propagation dans l'annexe A |
 | The Spacecraft Fire Experiment (Saffire) — Objectives, Development and Status (2016) | [20170001636](https://ntrs.nasa.gov/citations/20170001636) | matériaux des échantillons Saffire-II (Table 1 : S6 = SIBAL, S9 = PMMA plat 10 mm), épaisseur SIBAL 0,33 mm | document d'avant le vol : débits prévus, pas forcément ceux réalisés |

@@ -34,11 +34,18 @@ Autres marques : `approx` (« ~6 »), `rampe` (« RAMPED », « 10, 5, 3 »), `s
 ## Vides dans les tables, par expérience
 
 ### FLEX (PSI-69)
-- **Diamètre d'extinction vide (49 lignes)** : 27 lignes ont une issue Disruption ou Completion. La flamme ne s'est pas éteinte, donc c'est le cas **B (sans objet)**. Les 22 lignes en Extinction sont **A (manquant)**.
-- **Diamètre d'extinction = 0 (8 lignes)** : toutes en Disruption ou Completion. Ce n'est pas une mesure, c'est **E (faux zéro) → vide**, avec la marque `sans_objet`.
+Référence des colonnes : NASA/TP-2015-216046 (NTRS 20150023456), Table IX, p. 19. Chiffres vérifiés par `build_unified.py` (voir `data/processed/qc_report.md`).
+- **Diamètre d'extinction : « – », vide ou 0 (85 lignes)**. Le rapport dit que « – » signifie « pas d'extinction (combustion complète ou éclatement) ».
+  - 58 lignes en Disruption ou Completion → **B (sans objet)**, marque `d_ext_mm:sans_objet` ; les 8 qui valaient 0 ont en plus `zero_fictif`.
+  - 27 lignes en Extinction sans diamètre → **A (manquant)** : l'investigation précise que certains diamètres d'extinction étaient trop petits pour être mesurés.
+- **Diamètre initial « – » ou vide (12 lignes)** : **A**.
 - **Pression = 0 mmHg** (essai C11M201) : **E → vide**.
-- **Burn time « ~6 »** : garder 6 avec la marque `approx`.
-- Les compositions (O2 + N2 + CO2 + He) somment bien à 1 (0,98–1,01) : OK. Les 0 de CO2 et de He sont de **vrais zéros** (pas de suppresseur).
+- **Burn time « ~6 » et « ~9 »** : 6 et 9 avec la marque `approx`.
+- **« Burning rate; mm »** : c'est la constante K en **mm²/s** (le rapport le précise), d'où `burning_rate_mm2_s`.
+- **Dates** au format `3/5/2009` et `10/24/09` : les deux formats sont gérés.
+- **Identifiant CIR `193F001` en double** (essais 70 et 73) : marque `a_verifier` ; la clé d'essai est `FLEX Test #`, qui est unique.
+- Les compositions (O2 + N2 + CO2 + He) somment bien à 1 (0,98–1,01). Les 0 de CO2 et de He sont de **vrais zéros** (pas de suppresseur).
+- **Vitesse de propagation** : notion des solides, sans objet pour une gouttelette → `spread_rate_mm_s:sans_objet` dans la table unifiée.
 
 ### CFI (PSI-39)
 - **`Fiber` vide (9 lignes)** : **A**. Ne pas supposer « No ».
