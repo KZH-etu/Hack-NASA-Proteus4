@@ -6,7 +6,7 @@
 
 ## CONTEXTE
 
-Nous sommes une équipe de [N] personnes au NASA Space Apps Challenge 2026 (Paris, 14–15 novembre). La soumission ferme **dimanche 15 novembre à 23 h 59** (heure de Paris) ; nous visons une soumission vers 22 h. Il nous faut une démo en ligne et une vidéo.
+Nous sommes une équipe de 5 personnes au NASA Space Apps Challenge 2026 (Paris, 14–15 novembre). La soumission ferme **dimanche 15 novembre à 23 h 59** (heure de Paris) ; nous visons une soumission vers 22 h. Il nous faut une démo en ligne et une vidéo.
 
 **Challenge : « Flame in Freefall: SI-Powered Fire Safety Insights from Microgravity Combustion Data ».**
 Objectif officiel : un dashboard propulsé par l'IA qui **résume, classe et explique** des décennies de résultats NASA sur la combustion en microgravité, pour éclairer la sécurité incendie des missions Lune et Mars.
@@ -27,20 +27,21 @@ Le dashboard (1) cartographie les conditions déjà testées en microgravité (m
 
 **NASA PSI (Physical Sciences Informatics)** — https://psi.nasa.gov/physci/repo — licence CC0, sans compte. Commencer par le dossier « Experimental table » de chaque investigation.
 
-| Expérience | PSI | DOI | Contenu |
-|---|---|---|---|
-| BASS | PSI-26 | 10.60555/58h4-dy80 | Matrice d'essais réalisés |
-| BASS-II | PSI-25 | 10.60555/4qc4-de67 | Essais solides : matériau, débit, O2/CO2/CO. **Pas de vitesse de propagation** (→ rapport NASA/TM-20210011385, annexe A) |
-| FLEX | PSI-69 | 10.60555/mbq8-0451 | ~274 essais gouttelettes, issue (extinction / disruption / completion) |
-| Saffire I/II/III | PSI-98/99/100 | 10.60555/0t15-1z43, /2chp-m469, /040q-4h36 | Grands feux dans Cygnus, comparaison 1g |
-| ACME Flame Design | PSI-10 | 10.60555/w4zy-bt45 | Tableaux d'essais flammes gazeuses |
-| ACME s-Flame | PSI-23 | 10.60555/k57n-p030 | Flammes sphériques |
-| ACME CFI-G | PSI-159 | — | Flammes froides gazeuses |
-| SAME / SAME-R | PSI-101/102 | — | Fumées, détecteurs |
+| Expérience        | PSI           | DOI                                        | Contenu                                                                                                                  |
+| ----------------- | ------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| BASS              | PSI-26        | 10.60555/58h4-dy80                         | Matrice d'essais réalisés                                                                                                |
+| BASS-II           | PSI-25        | 10.60555/4qc4-de67                         | Essais solides : matériau, débit, O2/CO2/CO. **Pas de vitesse de propagation** (→ rapport NASA/TM-20210011385, annexe A) |
+| FLEX              | PSI-69        | 10.60555/mbq8-0451                         | ~274 essais gouttelettes, issue (extinction / disruption / completion)                                                   |
+| Saffire I/II/III  | PSI-98/99/100 | 10.60555/0t15-1z43, /2chp-m469, /040q-4h36 | Grands feux dans Cygnus, comparaison 1g                                                                                  |
+| ACME Flame Design | PSI-10        | 10.60555/w4zy-bt45                         | Tableaux d'essais flammes gazeuses                                                                                       |
+| ACME s-Flame      | PSI-23        | 10.60555/k57n-p030                         | Flammes sphériques                                                                                                       |
+| ACME CFI-G        | PSI-159       | —                                          | Flammes froides gazeuses                                                                                                 |
+| SAME / SAME-R     | PSI-101/102   | —                                          | Fumées, détecteurs                                                                                                       |
 
 À vérifier sur PSI avant usage (identifiants relevés dans des dépôts d'autres équipes). Pièges connus : ~2 600 anciens fichiers en 404 (surtout FLEX-2) ; SoFIE et MIST absents de PSI ; aucune donnée en gravité partielle dans PSI.
 
 **NASA NTRS (articles, pour le RAG)** — API : `https://ntrs.nasa.gov/api/citations/search?q=...` (doc : https://ntrs.nasa.gov/api/openapi/). Documents prioritaires :
+
 - NASA/TP-2015-216046 — Detailed Results From FLEX (NTRS 20150023456)
 - NASA/TM-20210011385 — BASS-II (vitesses de propagation, annexe A)
 - NTRS 20160000593 — Combustion of Solids in Microgravity, BASS-II
@@ -143,18 +144,21 @@ La tâche data (2) et le pitch (6) restent à répartir selon les disponibilité
 ## TÂCHES PAR PERSONNE (réparties au sein de l'équipe, pas d'issues GitHub)
 
 ### Tâche 2 — Data engineer : [PRÉNOM]
+
 - Télécharger les « Experimental table » PSI de BASS, BASS-II, FLEX, Saffire I–III (puis ACME si le temps le permet) dans `data/raw/`, documenter chaque fichier dans `data/SOURCES.md`.
 - Écrire `src/data/build_unified.py` : nettoie et convertit chaque table vers le schéma unifié, garde la traçabilité.
 - Récupérer les vitesses de propagation BASS-II depuis le rapport NASA/TM-20210011385 (annexe A), en notant la page.
 - Livrable samedi 14 h : `data/processed/unified.parquet` + `load_unified_table()`.
 
 ### Tâche 3 — ML engineer : [PRÉNOM]
+
 - `src/models/predict.py` : modèles « extinction oui/non » (FLEX, BASS) et « vitesse de propagation » (BASS-II), avec incertitude (GaussianProcess ou ensemble + intervalle).
 - Validation honnête : découpage par expérience/campagne, pas de fuite de données ; afficher les métriques réelles, même modestes.
 - `src/models/recommend.py` : pour un scénario (ex. O2 34 %, pression réduite, débit faible), lister les conditions candidates et classer celles qui réduisent le plus l'incertitude (variance prédictive maximale près du scénario).
 - Livrable samedi 19 h : `predict(conditions)` et `recommend_next_experiment(scenario)`.
 
 ### Tâche 4 — RAG engineer : [PRÉNOM]
+
 - `src/rag/fetch_ntrs.py` : récupérer via l'API NTRS 50 à 100 documents ciblés (BASS, Saffire, FLEX, ACME, SAME, fire safety), télécharger les PDF, garder métadonnées (titre, id NTRS, année).
 - `src/rag/index.py` : découpage, embeddings, ChromaDB + BM25, fusion RRF ; option reranking si le temps le permet.
 - `src/rag/ask.py` : `ask(question)` → réponse + liste de sources (titre, id, page) ; seuil de pertinence → « je ne sais pas ».
@@ -162,11 +166,13 @@ La tâche data (2) et le pitch (6) restent à répartir selon les disponibilité
 - Livrable samedi 19 h : `ask()` utilisable par l'app.
 
 ### Tâche 5 — Frontend / dashboard : [PRÉNOM]
+
 - Pages Streamlit : **Explorer** (filtres expérience/matériau/O2/gravité + table + graphiques), **Carte des trous** (nuage O2 × débit, scénario en marqueur, zones sans données), **Prochaine expérience** (curseurs du scénario → prédiction avec incertitude + recommandation), **Assistant** (chat RAG avec sources cliquables).
 - Utiliser d'abord des données factices **clairement étiquetées « DEMO »** tant que les modules ne sont pas prêts, puis brancher les vraies fonctions.
 - Déployer sur Streamlit Community Cloud dès samedi soir.
 
 ### Tâche 6 — Chef de projet / pitch : [PRÉNOM]
+
 - Page projet Space Apps (onglet Project de l'équipe), README final, `docs/pitch.md`.
 - Scénario de démo : « Un ingénieur conçoit un habitat lunaire à atmosphère enrichie en O2… »
 - Script et tournage de la vidéo démo, captures d'écran, tests de chaque page.
