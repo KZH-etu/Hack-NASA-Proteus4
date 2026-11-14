@@ -1,7 +1,7 @@
 """Les fonctions appelées par le dashboard.
 
     from src.models.model_rf.service import MLService
-    ml = MLService()                          # charge data/processed/*.parquet et entraîne
+    ml = MLService()                          # charge data/processed/families/*.parquet et entraîne
     ml.list_families()                        # familles avec au moins un modèle
     ml.get_parameters(famille)                # paramètres + plages réelles -> curseurs
     ml.predict(famille, {...})                # prédictions + incertitude + essais proches

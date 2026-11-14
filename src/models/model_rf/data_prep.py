@@ -7,11 +7,11 @@ import pandas as pd
 from .families import FAMILIES
 
 def _find_data_dir() -> Path:
-    """Remonte depuis ce fichier jusqu'au dossier qui contient data/processed (racine du dépôt)."""
+    """Remonte depuis ce fichier jusqu'au dossier des tables par famille (data/processed/families, racine du dépôt)."""
     for parent in Path(__file__).resolve().parents:
-        if (parent / "data" / "processed").is_dir():
-            return parent / "data" / "processed"
-    return Path.cwd() / "data" / "processed"
+        if (parent / "data" / "processed" / "families").is_dir():
+            return parent / "data" / "processed" / "families"
+    return Path.cwd() / "data" / "processed" / "families"
 
 
 DATA_DIR = _find_data_dir()

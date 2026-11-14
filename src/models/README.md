@@ -15,6 +15,7 @@ m.recommend_next_experiment({"fuel": "heptane", "o2_percent": 34, "pressure_kpa"
 | Dossier | Contenu |
 |---|---|
 | `model_gp/` | Processus gaussiens : `flex/` (gouttelettes FLEX), `solids/` (BASS / BASS-II), `gas/` (ACME CFI-G) ; `recommend.py` (prochaine expérience). Rapports de validation dans `<famille>/validation.md`. |
+| `model_rf/` | Forêts aléatoires avec incertitude, une par famille ; point d'entrée `service.py` (`MLService`), voir `model_rf/README.md`. Pas encore de `FAMILIES` : `load("model_rf")` ne donne pas l'interface commune. |
 | `model_catboost/` | Un seul CatBoost à 3 classes (extinction / combustion / intermédiaire) pour gouttelettes, solides et gaz. `train.py` (entraînement, écrit `catboost_fire_3classes.cbm`), `evaluate.py` → `validation.md`. Pas de recommandation. |
 
 ## Ajouter un modèle
