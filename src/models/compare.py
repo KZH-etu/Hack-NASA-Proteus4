@@ -31,7 +31,7 @@ warnings.filterwarnings("ignore")
 ROOT = Path(__file__).resolve().parents[2]
 REPORT = Path(__file__).resolve().parent / "comparaison.md"
 N_FOLDS = 5
-MODELS = ["model_gp", "model_rf", "model_catboost", "model_catboost sans d_ext_mm", "model_nicolas"]
+MODELS = ["model_gp", "model_rf", "model_catboost", "model_catboost sans d_ext_mm", "model_thermo"]
 
 
 def key(df):
@@ -149,8 +149,8 @@ def run_catboost(T, extra_excluded=()):
 
 
 def nicolas_frames():
-    """Préparation des données de model_nicolas/train.py, à l'identique."""
-    from src.models.model_nicolas.train import DATA_PATH, DEFAULT_THERMO, THERMO_PROPERTIES
+    """Préparation des données de model_thermo/train.py, à l'identique."""
+    from src.models.model_thermo.train import DATA_PATH, DEFAULT_THERMO, THERMO_PROPERTIES
     df = pd.read_csv(DATA_PATH, dtype={"test_id": str})
     valid_outcomes = ['burned', 'completion', 'disruption', 'extinguished', 'no_ignition']
     clf_df = df[df['outcome'].isin(valid_outcomes)].copy()
@@ -248,7 +248,7 @@ def naive_k(T):
 def scenario_lines():
     from src.models.model_catboost import predict as cb_predict
     from src.models.model_gp import flex
-    from src.models.model_nicolas import predict_fire_safety
+    from src.models.model_thermo import predict_fire_safety
     from src.models.model_rf.service import MLService
     rf = MLService.load_or_train()
     cases = [("Air de l'ISS : 21 % O2, 101,3 kPa", 21.0, 101.3), ("Habitat lunaire : 34 % O2, 55 kPa", 34.0, 55.0),
@@ -256,7 +256,7 @@ def scenario_lines():
     flex_rows = load_family("droplets")
     flex_rows = flex_rows[(flex_rows["experiment"] == "FLEX") & (flex_rows["fuel"] == "heptane")]
     lines = ["| Conditions (gouttelette d'heptane, 3 mm) | Essais FLEX proches : part d'extinctions | model_gp | model_rf | "
-             "model_catboost | model_nicolas |", "|---|---:|---:|---:|---:|---:|"]
+             "model_catboost | model_thermo |", "|---|---:|---:|---:|---:|---:|"]
     for label, o2, p in cases:
         gp = flex.predict({"fuel": "heptane", "o2_percent": o2, "pressure_kpa": p, "d0_mm": 3.0})
         gp_txt = f"{gp['p_extinction']:.2f} [{gp['p_extinction_interval_90'][0]:.2f}–{gp['p_extinction_interval_90'][1]:.2f}]" \
@@ -295,7 +295,7 @@ def main():
     T = tasks()
     results = {"model_gp": run_gp(T), "model_rf": run_rf(T), "model_catboost": run_catboost(T),
                "model_catboost sans d_ext_mm": run_catboost(T, extra_excluded=["d_ext_mm"]),
-               "model_nicolas": run_nicolas(T)}
+               "model_thermo": run_nicolas(T)}
     titles = {"droplets": "Gouttelettes FLEX : extinction de la flamme",
               "gas": "Flammes gazeuses ACME CFI-G (normales, allumées) : extinction",
               "solids": "Solides : extinction ou combustion"}
@@ -307,7 +307,7 @@ def main():
         f"Mêmes essais et mêmes {N_FOLDS} plis par **jour d'essai** pour tous les modèles : à chaque pli, chaque modèle "
         "est réentraîné avec son propre code et ses propres données, dont on retire tous les essais des jours de test, "
         "puis jugé sur les mêmes essais. Décision « extinction » : seuil 0,5 (model_gp), classe la plus probable "
-        "(model_rf, model_catboost), probabilité de feu < 0,35 (model_nicolas, son seuil d'origine). "
+        "(model_rf, model_catboost), probabilité de feu < 0,35 (model_thermo, son seuil d'origine). "
         "« model_catboost sans d_ext_mm » : même modèle sans le diamètre à l'extinction, mesuré après l'essai "
         "(diagnostic : c'est la version qu'on pourrait utiliser avant un essai).",
         "",
