@@ -12,7 +12,9 @@ Sources :
 - PRIORITY : documents choisis à la main (rapports des expériences PSI, atmosphère d'exploration) ;
 - TOPICS : recherches NTRS par thème, gardées seulement si le titre / résumé / mots-clés contiennent les mots du thème
   (la recherche NTRS seule renvoie beaucoup de hors-sujet) ;
-- EXTRA : documents NASA hors NTRS.
+- EXTRA : ressources du challenge hors NTRS : guide du chercheur, fiches des investigations (page « NASA Combustion
+  Science » de Glenn), rapport du Sénat sur Apollo 1, pages web (Apollo 1, Apollo 13, incendie de Mir, spinoffs)
+  converties en texte (web/<id>.html -> une « page »), vidéo ScienceCasts (catalogue seulement, pas de texte).
 API publique : https://ntrs.nasa.gov/api/openapi/ (sans compte).
 
 Usage :
@@ -26,6 +28,7 @@ import csv
 import datetime
 import json
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 
 import pymupdf
@@ -53,6 +56,19 @@ PRIORITY = {
     "20150021491": ["atmosphere"],            # Evidence report: hypobaric hypoxia from the exploration atmosphere
     "20060013463": ["atmosphere"],            # Exploration spacecraft internal atmosphere pressure and composition
     "20050185597": ["atmosphere"],            # Bounding the spacecraft atmosphere design space
+    # Incidents cités dans les ressources du challenge (Apollo 1, Apollo 13)
+    "19930078717": ["incidents"],             # Report of Apollo 204 (Apollo 1) Review Board
+    "19700076776": ["incidents"],             # Report of Apollo 13 Review Board, final report
+    "20110015690": ["incidents"],             # A case study of the failure on Apollo 13
+    # Norme d'inflammabilité NASA-STD-6001 (le « Test 1 » au sol auquel BASS et Saffire comparent la microgravité)
+    "20170004702": ["standards"],             # NASA-STD-6001B Test 1 upward flame propagation, sample length and MOC
+    "20040084156": ["standards"],             # Most probable fire scenarios in spacecraft and habitats: why Test 1...
+    "20150020937": ["standards"],             # Flammability configuration analysis for spacecraft applications (JSC-29353)
+    "19720016150": ["standards", "incidents"],  # Flammability testing conducted in support of Apollo 13
+    # Articles complets des spinoffs cités dans les ressources du challenge (liens hdl:2060/<id>)
+    "20070018916": ["spinoff"],               # Fire Detector
+    "20030005480": ["spinoff"],               # Fireman's Air Tanks
+    "20030002834": ["spinoff"],               # New Technology for the Fire Attire
 }
 
 # thème -> (requête NTRS, mots exigés dans titre / résumé / mots-clés, exiger aussi un contexte spatial)
@@ -75,16 +91,62 @@ TOPICS = {
     "detection": ("spacecraft fire detection smoke", r"detect|smoke", True),
     "soot": ("soot laminar diffusion flame microgravity", r"soot", True),
     "ignition": ("piloted ignition solid microgravity", r"ignition", True),
+    "incidents": ("Apollo Review Board fire oxygen", r"apollo (204|1|13)\b|review board", False),
+    "slice": ("coflow laminar diffusion flame microgravity", r"co-?flow", True),
+    "particles": ("smoke particle detection space station", r"particle|particulate|smoke", True),
 }
 
+# Ressources du challenge (pages et documents NASA hors NTRS). kind : pdf, html (texte de la page) ou video (pas de texte).
+GLENN = "https://www.nasa.gov/wp-content/uploads/2025/07/"
+GLENN_PAGE = "https://www.nasa.gov/glenn/glenn-expertise-space-exploration/physical-sciences-program/combustion-science/"
 EXTRA = [
-    {
-        "id": "nasa-np-2015-10-034-jsc",
-        "title": "Combustion in Reduced Gravity (ISS mini-book, A Researcher's Guide to Combustion Science)",
-        "pdf_url": "https://www.nasa.gov/wp-content/uploads/2016/05/np-2015-10-034-jsc_combustion_in_reduced_gravity-iss-mini-book-011116-508.pdf",
-        "url": "https://www.nasa.gov/missions/station/a-researchers-guide-to-combustion-science/",
-        "year": "2015", "sti_type": "BOOKLET", "report_numbers": "NP-2015-10-034-JSC", "topics": ["fire_safety", "overview"],
-    },
+    {"id": "nasa-np-2015-10-034-jsc", "kind": "pdf", "year": "2015", "sti_type": "BOOKLET", "topics": ["overview"],
+     "title": "A Researcher's Guide to: International Space Station Combustion Science (Combustion in Reduced Gravity)",
+     "pdf_url": "https://www.nasa.gov/wp-content/uploads/2016/05/np-2015-10-034-jsc_combustion_in_reduced_gravity-iss-mini-book-011116-508.pdf",
+     "url": "https://www.nasa.gov/missions/station/a-researchers-guide-to-combustion-science/", "report_numbers": "NP-2015-10-034-JSC"},
+    # Fiches des investigations (page « NASA Combustion Science » de Glenn)
+    *[{"id": f"glenn-{slug}", "kind": "pdf", "year": "2025", "sti_type": "FACT_SHEET", "topics": [topic], "title": title,
+       "pdf_url": GLENN + f"{file}.pdf", "url": GLENN_PAGE, "report_numbers": ""}
+      for slug, topic, file, title in (
+          ("acme", "acme", "advanced-combustion-via-microgravity-experiments-acme", "Advanced Combustion via Microgravity Experiments (ACME)"),
+          ("bass", "bass", "burning-and-suppression-of-solids-bass", "Burning and Suppression of Solids (BASS)"),
+          ("daft", "particles", "dust-and-aerosol-measurement-feasibility-test-daft", "Dust and Aerosol Measurement Feasibility Test (DAFT)"),
+          ("flex", "flex", "flame-extinguishment-experiment-flex", "Flame Extinguishment Experiment (FLEX)"),
+          ("same", "same", "smoke-aerosol-measurement-experiment-same", "Smoke Aerosol Measurement Experiment (SAME)"),
+          ("spice", "spice", "smoke-point-in-co-flow-experiment-spice", "Smoke Point In Co-flow Experiment (SPICE)"),
+          ("saffire", "saffire", "spacecraft-fire-safety-demonstration-saffire", "Spacecraft Fire Safety Demonstration (Saffire)"),
+          ("slice", "slice", "structure-liftoff-in-combustion-experiment-slice", "Structure and Liftoff In Combustion Experiment (SLICE)"),
+      )],
+    {"id": "nasa-std-6001b-change-3", "kind": "pdf", "year": "2025", "sti_type": "STANDARD", "topics": ["standards"],
+     "title": "NASA-STD-6001B w/Change 3: Flammability, Offgassing, and Compatibility Requirements and Test Procedures",
+     "pdf_url": "https://standards.nasa.gov/sites/default/files/standards/NASA/B-w/CHANGE-3/3/2025_06_25_NASA-STD-6001B_w_Change_3_FINAL_Admin-Change-FINAL.pdf",
+     "url": "https://standards.nasa.gov/standard/NASA/NASA-STD-6001", "report_numbers": "NASA-STD-6001B"},
+    {"id": "senate-report-956-apollo-204", "kind": "pdf", "year": "1968", "sti_type": "REPORT", "topics": ["incidents"],
+     "title": "Apollo 204 Accident: Report of the Committee on Aeronautical and Space Sciences, United States Senate (Report 956)",
+     "pdf_url": "https://history.nasa.gov/as204_senate_956.pdf", "url": "https://sma.nasa.gov/sma-disciplines/accllp/apollo-1",
+     "report_numbers": "Senate Report 956"},
+    # Pages web (texte de la page)
+    *[{"id": f"web-{slug}", "kind": "html", "year": year, "sti_type": "WEB_PAGE", "topics": topics, "title": title,
+       "pdf_url": None, "url": url, "report_numbers": ""}
+      for slug, year, topics, title, url in (
+          ("nasa-combustion-science", "2025", ["overview"], "NASA Combustion Science (Glenn Research Center)", GLENN_PAGE),
+          ("researchers-guide-combustion", "2015", ["overview"], "A Researcher's Guide to: Combustion Science (page)",
+           "https://www.nasa.gov/missions/station/a-researchers-guide-to-combustion-science/"),
+          ("apollo-1", "", ["incidents"], "Apollo 1 (Apollo 204) fire: mission, accident, investigation and lessons learned",
+           "https://sma.nasa.gov/sma-disciplines/accllp/apollo-1"),
+          ("apollo-204-review-board-summary", "1967", ["incidents"], "Apollo 204 Review Board: summary",
+           "https://history.nasa.gov/Apollo204/summary.html"),
+          ("apollo-13", "", ["incidents"], "Apollo 13: oxygen tank explosion, investigation and lessons learned",
+           "https://sma.nasa.gov/sma-disciplines/accllp/apollo-13"),
+          ("mir-fire-1997", "2022", ["incidents"], "25 Years Ago: Fire Aboard Space Station Mir",
+           "https://www.nasa.gov/history/25-years-ago-fire-aboard-space-station-mir/"),
+          ("spinoff-9582", "", ["spinoff"], "NASA Spinoff: Fireman's Air Tanks", "https://spinoff.nasa.gov/node/9582"),
+          ("spinoff-9407", "", ["spinoff"], "NASA Spinoff: Fire Detector", "https://spinoff.nasa.gov/node/9407"),
+          ("spinoff-9918", "", ["spinoff"], "NASA Spinoff: New Technology for the Fire Attire", "https://spinoff.nasa.gov/node/9918"),
+      )],
+    {"id": "video-sciencecasts-combustion-iss", "kind": "video", "year": "2018", "sti_type": "VIDEO", "topics": ["overview"],
+     "title": "NASA ScienceCasts: The Power of Studying Combustion on the ISS", "pdf_url": None,
+     "url": "https://www.youtube.com/watch?v=W1oXykoz9zg", "report_numbers": ""},
 ]
 
 CATALOG_COLUMNS = ["id", "title", "authors", "year", "sti_type", "report_numbers", "topics", "source", "url", "pdf_url",
@@ -132,6 +194,7 @@ def describe(record, topics, source):
         "topics": topics,
         "source": source,
         "url": f"https://ntrs.nasa.gov/citations/{record['id']}",
+        "kind": "pdf",
         "pdf_url": pdf_link(record),
         "abstract": (record.get("abstract") or "").strip(),
         "keywords": record.get("keywords") or [],
@@ -177,7 +240,73 @@ def collect(per_topic, priority_only):
 
 # ---------- Téléchargement et découpage par page ----------
 
+class PageText(HTMLParser):
+    """Texte lisible d'une page web : titres, paragraphes, listes ; sans menus, en-tête, pied de page ni scripts."""
+
+    # pas « form » : les pages ASP.NET (sma.nasa.gov) mettent toute la page dans un <form>
+    SKIP = {"script", "style", "nav", "header", "footer", "noscript", "svg", "button", "aside", "select"}
+    BLOCKS = {"p", "h1", "h2", "h3", "h4", "h5", "li", "td", "th", "blockquote", "figcaption", "dd", "dt"}
+
+    def __init__(self, everything=False):
+        super().__init__()
+        self.everything = everything  # True : tout le texte visible (pages sans paragraphes, ex. sma.nasa.gov)
+        self.skip, self.block, self.parts, self.current = 0, 0, [], []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.SKIP:
+            self.skip += 1
+        elif tag in self.BLOCKS:
+            self.block += 1
+
+    def handle_endtag(self, tag):
+        if tag in self.SKIP:
+            self.skip = max(0, self.skip - 1)
+        elif tag in self.BLOCKS:
+            self.block = max(0, self.block - 1)
+            text = re.sub(r"\s+", " ", "".join(self.current)).strip()
+            if text and (not self.parts or self.parts[-1] != text):
+                self.parts.append(text)
+            self.current = []
+
+    def handle_data(self, data):
+        if self.skip:
+            return
+        if self.everything:
+            text = re.sub(r"\s+", " ", data).strip()
+            if text and (not self.parts or self.parts[-1] != text):
+                self.parts.append(text)
+        elif self.block:
+            self.current.append(data)
+
+
+def html_text(html):
+    """Texte principal d'une page : contenu de <main> s'il existe, paragraphes d'abord, sinon tout le texte visible."""
+    start, end = html.find("<main"), html.rfind("</main>")
+    candidates = ([html[start:end]] if start != -1 and end > start else []) + [html]  # <main> trop court : page entière
+    text = ""
+    for candidate in candidates:
+        for everything in (False, True):
+            parser = PageText(everything)
+            parser.feed(candidate)
+            text = "\n".join(parser.parts)
+            if len(text) > 500:
+                return text
+    return text
+
+
 def download(doc, max_mb):
+    if doc["kind"] == "video":
+        return None, "video_sans_texte"  # pas de transcription disponible : gardé au catalogue seulement
+    if doc["kind"] == "html":
+        path = OUT / "web" / f"{doc['id']}.html"
+        if path.exists():
+            return path, "already_present"
+        r = session.get(doc["url"], headers={"User-Agent": "Mozilla/5.0"}, timeout=120)
+        if not r.ok:
+            return None, f"http_{r.status_code}"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(r.text, encoding="utf-8")
+        return path, "ok"
     path = OUT / "pdf" / f"{doc['id']}.pdf"
     if path.exists():
         return path, "already_present"
@@ -193,11 +322,15 @@ def download(doc, max_mb):
     return path, "ok"
 
 
-def split_pages(doc_id, pdf_path):
-    """pages/<id>.jsonl ; renvoie (nb de pages, nb de pages avec du texte)."""
+def split_pages(doc_id, path):
+    """pages/<id>.jsonl ; renvoie (nb de pages, nb de pages avec du texte). Une page web = une page."""
     out = OUT / "pages" / f"{doc_id}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
-    pdf = pymupdf.open(pdf_path)
+    if path.suffix == ".html":
+        text = html_text(path.read_text(encoding="utf-8"))
+        out.write_text(json.dumps({"page": 1, "label": None, "text": text}, ensure_ascii=False) + "\n", encoding="utf-8")
+        return 1, int(len(text) > 50)
+    pdf = pymupdf.open(path)
     with_text = 0
     with open(out, "w", encoding="utf-8") as f:
         for i, page in enumerate(pdf, start=1):
@@ -233,7 +366,7 @@ def main():
                 status += " ; scan_sans_texte"  # document numérisé sans couche texte : inutilisable sans OCR
         doc.update(pdf_path=path.relative_to(ROOT).as_posix() if path else "", size_mb=round(path.stat().st_size / 1e6, 1) if path else "",
                    n_pages=n_pages, n_pages_text=n_text, status=status, downloaded_at=today)
-        log.append({"date": today, "id": doc["id"], "status": status, "pdf_url": doc["pdf_url"]})
+        log.append({"date": today, "id": doc["id"], "status": status, "pdf_url": doc["pdf_url"] or doc["url"]})
         print(f"  {status:22} {doc['id']:24} {n_text:>4}/{n_pages:<4} p.  {doc['title'][:70]}")
 
     with open(OUT / "catalog.csv", "w", newline="", encoding="utf-8") as f:

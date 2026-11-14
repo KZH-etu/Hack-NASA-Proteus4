@@ -102,15 +102,26 @@ Générés par `python -m src.data.build_unified` à partir de `data/raw/psi/`. 
 | `annotations/bass2_appendix.csv` | annexe A du rapport BASS-II extraite (`python -m src.data.extract_bass2_appendix`) : sens d'écoulement, observations, issue écrite | NASA/TM-20210011385, pp. 103–113 (PDF dans `data/raw/ntrs/pdf/`) |
 | `annotations/bass_outcomes.csv` | saisies manuelles BASS / BASS-II (prioritaires sur l'extraction) | NASA/TM-20210011385, annexe A |
 
-## Corpus du RAG (NASA NTRS + guide NASA)
+## Corpus du RAG (NASA NTRS + ressources du challenge)
 
-Script : `python -m src.rag.fetch_ntrs` (API publique https://ntrs.nasa.gov/api, sans compte). Téléchargé le 2026-11-14 : **159 documents, 156 avec du texte, 2 920 pages**. Liste complète : `data/raw/ntrs/catalog.csv` (versionné).
+Script : `python -m src.rag.fetch_ntrs` (API publique https://ntrs.nasa.gov/api, sans compte). Téléchargé le 2026-11-14 : **194 documents, 189 avec du texte, 3 608 pages**. Liste complète : `data/raw/ntrs/catalog.csv` (versionné).
 
-- **15 documents prioritaires** choisis à la main : rapports des expériences PSI (FLEX, BASS-II, ACME, Saffire) et rapports sur l'atmosphère d'exploration (8 psia / 32–34 % d'O2 : NTRS 20130013505, 20150021491, 20060013463, 20050185597).
-- **18 thèmes de recherche** (BASS, Saffire, FLEX, ACME, flammes froides, SAME, SPICE, sécurité incendie, inflammabilité, propagation de flamme, gouttelettes, atmosphère, SoFIE, suppression, feux couvants, détection, suie, allumage) ; un résultat n'est gardé que si son titre, son résumé ou ses mots-clés contiennent les mots du thème (et un contexte spatial pour les thèmes généraux).
-- **Guide NASA** « Combustion in Reduced Gravity » (NP-2015-10-034-JSC), hors NTRS.
-- Écartés : 1 PDF de 126 Mo (actes de conférence de 1972) ; 2 documents ACME d'une seule page sans couche texte.
-- Comparaison avec un autre projet du challenge (277 documents) : 131 en commun ; nous avons en plus les rapports sur l'atmosphère d'exploration et le guide NASA ; leurs documents en plus sont surtout des actes de workshops généraux et quelques hors-sujets que notre filtre écarte.
+- **Documents prioritaires** choisis à la main :
+  - rapports des expériences PSI (FLEX, BASS-II, ACME, Saffire) ;
+  - atmosphère d'exploration (8 psia / 32–34 % d'O2 : NTRS 20130013505, 20150021491, 20060013463, 20050185597) ;
+  - incidents : rapports des Review Boards d'Apollo 1 (Apollo 204, NTRS 19930078717) et d'Apollo 13 (19700076776, 20110015690), essais d'inflammabilité pour Apollo 13 (19720016150) ;
+  - norme d'inflammabilité NASA-STD-6001B : Test 1 et O2 maximal (20170004702), scénarios d'incendie et limites du Test 1 (20040084156), analyse de configuration JSC-29353 (20150020937) ;
+  - articles complets des 3 spinoffs cités par le challenge (20070018916, 20030005480, 20030002834).
+- **21 thèmes de recherche** (BASS, Saffire, FLEX, ACME, flammes froides, SAME, SPICE, sécurité incendie, inflammabilité, propagation de flamme, gouttelettes, atmosphère, SoFIE, suppression, feux couvants, détection, suie, allumage, incidents, SLICE / co-courant, particules) ; un résultat n'est gardé que si son titre, son résumé ou ses mots-clés contiennent les mots du thème (et un contexte spatial pour les thèmes généraux).
+- **Ressources du challenge hors NTRS** :
+  - guide « A Researcher's Guide to: ISS Combustion Science » (NP-2015-10-034-JSC) ;
+  - 8 fiches d'investigation de la page « NASA Combustion Science » de Glenn (ACME, BASS, DAFT, FLEX, SAME, SPICE, Saffire, SLICE) ;
+  - norme NASA-STD-6001B avec Change 3 (2025, standards.nasa.gov) ;
+  - rapport du Sénat n° 956 sur l'accident d'Apollo 204 ;
+  - pages web converties en texte (`data/raw/ntrs/web/`, une « page » par document) : NASA Combustion Science, guide du chercheur, Apollo 1, résumé du Review Board Apollo 204, Apollo 13, incendie de Mir (1997), 3 spinoffs (Fireman's Air Tanks, Fire Detector, Fire Attire) ;
+  - vidéo NASA ScienceCasts : au catalogue seulement (pas de transcription).
+- **Écartés ou sans texte** : 1 PDF de 126 Mo (actes de conférence de 1972) ; 3 documents sans couche texte (2 ACME d'une page, l'article du spinoff Fireman's Air Tanks) ; 2 liens cassés de la page Apollo 13 (rapport de mission, annexes du Review Board : 404 sur nasa.gov).
+- **Comparaison avec un autre projet du challenge** (277 documents NTRS, normes, NASA Task Book) : 133 documents en commun. Nous avons en plus les ressources du challenge (Apollo 1 / 13, Mir, guide du chercheur, fiches Glenn : quasiment absentes chez eux), l'atmosphère d'exploration et le découpage par page. Eux ont en plus le **NASA Task Book** (fiches de 138 projets de recherche en combustion), pas encore repris chez nous, et des actes de workshops généraux que notre filtre écarte.
 
 ## Documents NASA (NTRS) utilisés pour les données
 
