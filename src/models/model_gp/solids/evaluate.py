@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.model_selection import GroupKFold
 
-from src.models.model_gp.metrics import classification_metrics
+from src.models.model_gp.metrics import classification_metrics, detailed_report_lines
 from src.models.model_gp.solids.model import FEATURES, MATERIAL_CLASSES, SolidsModel, features, observations
 
 REPORT = Path(__file__).resolve().parent / "validation.md"
@@ -80,7 +80,8 @@ def main():
         "|---|---:|---:|---:|",
     ]
     lines += [f"| {bins[b]:.1f}–{bins[b + 1]:.1f} | {int(r.n)} | {r.predite:.2f} | {r.observee:.2f} |" for b, r in calib.iterrows()]
-    lines += ["", "Observations par classe de matériau :", "", "| Classe | Observations | Part « tient » |", "|---|---:|---:|"]
+    lines += [""] + detailed_report_lines(y, cv["p_sustained"].to_numpy(), cv["base_p"].to_numpy(), "la flamme tient", "ne tient pas")
+    lines += ["Observations par classe de matériau :", "", "| Classe | Observations | Part « tient » |", "|---|---:|---:|"]
     lines += [f"| {c} | {int(by_class.loc[c, 'n'])} | {by_class.loc[c, 'tient']:.2f} |" for c in MATERIAL_CLASSES if c in by_class.index]
     lines += ["", "## Importance des variables (longueurs de corrélation, données normalisées ; petite = influente)", "",
               "| Variable | Longueur |", "|---|---:|"]

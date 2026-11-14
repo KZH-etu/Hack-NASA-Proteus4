@@ -18,6 +18,33 @@ Généré par `python -m src.models.model_gp.gas.evaluate` le 2026-11-14. Ne pas
 
 177 essais ; part positive 0.75.
 
+Réglage retenu (longueur ≥ 1) :
+
+Métriques détaillées (hors échantillon, seuil 0.5) : 177 cas, 75% « allumage » ; exactitude en répondant toujours la classe majoritaire : 0.746.
+
+| Métrique | Modèle | Référence naïve |
+|---|---:|---:|
+| Exactitude (accuracy) | 0.689 | 0.746 |
+| Exactitude équilibrée | 0.535 | 0.500 |
+| Précision « allumage » | 0.762 | 0.746 |
+| Rappel « allumage » | 0.848 | 1.000 |
+| F1 « allumage » | 0.803 | 0.854 |
+| Précision « pas d'allumage » | 0.333 | 0.000 |
+| Rappel « pas d'allumage » | 0.222 | 0.000 |
+| F1 « pas d'allumage » | 0.267 | 0.000 |
+| F1 macro | 0.535 | 0.427 |
+| MCC (0 = hasard, 1 = parfait) | 0.082 | 0.000 |
+| AUC | 0.655 | 0.445 |
+| Brier (plus bas = mieux) | 0.202 | 0.206 |
+| Log loss (plus bas = mieux) | 0.591 | 0.644 |
+
+Matrices de confusion (positif = « allumage ») :
+
+| | Vrais positifs | Faux négatifs | Faux positifs | Vrais négatifs |
+|---|---:|---:|---:|---:|
+| Modèle | 112 | 20 | 35 | 10 |
+| Référence naïve | 132 | 0 | 45 | 0 |
+
 ## Auto-extinction (essais allumés)
 
 | | AUC | Brier ↓ | Exactitude (seuil 0,5) |
@@ -28,6 +55,33 @@ Généré par `python -m src.models.model_gp.gas.evaluate` le 2026-11-14. Ne pas
 | Référence : toujours la classe majoritaire | — | — | 0.773 |
 
 132 essais ; part positive 0.77.
+
+Réglage retenu (longueur ≥ 1) :
+
+Métriques détaillées (hors échantillon, seuil 0.5) : 132 cas, 77% « auto-extinction » ; exactitude en répondant toujours la classe majoritaire : 0.773.
+
+| Métrique | Modèle | Référence naïve |
+|---|---:|---:|
+| Exactitude (accuracy) | 0.818 | 0.773 |
+| Exactitude équilibrée | 0.729 | 0.500 |
+| Précision « auto-extinction » | 0.875 | 0.773 |
+| Rappel « auto-extinction » | 0.892 | 1.000 |
+| F1 « auto-extinction » | 0.883 | 0.872 |
+| Précision « flamme maintenue » | 0.607 | 0.000 |
+| Rappel « flamme maintenue » | 0.567 | 0.000 |
+| F1 « flamme maintenue » | 0.586 | 0.000 |
+| F1 macro | 0.735 | 0.436 |
+| MCC (0 = hasard, 1 = parfait) | 0.470 | 0.000 |
+| AUC | 0.759 | 0.420 |
+| Brier (plus bas = mieux) | 0.166 | 0.190 |
+| Log loss (plus bas = mieux) | 0.509 | 0.581 |
+
+Matrices de confusion (positif = « auto-extinction ») :
+
+| | Vrais positifs | Faux négatifs | Faux positifs | Vrais négatifs |
+|---|---:|---:|---:|---:|
+| Modèle | 91 | 11 | 13 | 17 |
+| Référence naïve | 102 | 0 | 30 | 0 |
 
 ## Données près de l'atmosphère d'exploration
 

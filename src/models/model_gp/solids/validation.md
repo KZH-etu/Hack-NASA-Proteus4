@@ -29,6 +29,31 @@ Calibration (hors échantillon) :
 | 0.6–0.8 | 82 | 0.71 | 0.84 |
 | 0.8–1.0 | 68 | 0.88 | 0.76 |
 
+Métriques détaillées (hors échantillon, seuil 0.5) : 218 cas, 76% « la flamme tient » ; exactitude en répondant toujours la classe majoritaire : 0.761.
+
+| Métrique | Modèle | Référence naïve |
+|---|---:|---:|
+| Exactitude (accuracy) | 0.739 | 0.752 |
+| Exactitude équilibrée | 0.610 | 0.494 |
+| Précision « la flamme tient » | 0.811 | 0.759 |
+| Rappel « la flamme tient » | 0.855 | 0.988 |
+| F1 « la flamme tient » | 0.833 | 0.859 |
+| Précision « ne tient pas » | 0.442 | 0.000 |
+| Rappel « ne tient pas » | 0.365 | 0.000 |
+| F1 « ne tient pas » | 0.400 | 0.000 |
+| F1 macro | 0.616 | 0.429 |
+| MCC (0 = hasard, 1 = parfait) | 0.236 | -0.054 |
+| AUC | 0.589 | 0.419 |
+| Brier (plus bas = mieux) | 0.198 | 0.213 |
+| Log loss (plus bas = mieux) | 0.602 | 0.647 |
+
+Matrices de confusion (positif = « la flamme tient ») :
+
+| | Vrais positifs | Faux négatifs | Faux positifs | Vrais négatifs |
+|---|---:|---:|---:|---:|
+| Modèle | 142 | 24 | 33 | 19 |
+| Référence naïve | 164 | 2 | 52 | 0 |
+
 Observations par classe de matériau :
 
 | Classe | Observations | Part « tient » |

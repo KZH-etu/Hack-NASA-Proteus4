@@ -11,12 +11,13 @@ from pathlib import Path
 import numpy as np
 from sklearn.model_selection import GroupKFold
 
-from src.models.model_gp.metrics import classification_metrics
+from src.models.model_gp.metrics import classification_metrics, detailed_report_lines
 from src.models.model_gp.gas.model import FEATURES, GasModel, MIN_LENGTH_SCALE, features, load_data
 
 REPORT = Path(__file__).resolve().parent / "validation.md"
 N_FOLDS = 5
 LABELS = {"ignited": "Allumage d'une flamme chaude", "self_extinguished": "Auto-extinction (essais allumés)"}
+POSITIVE_NEGATIVE = {"ignited": ("allumage", "pas d'allumage"), "self_extinguished": ("auto-extinction", "flamme maintenue")}
 
 
 def cross_validate(df, min_length):
@@ -65,6 +66,12 @@ def main():
         lines.append(f"| Référence : taux par combustible | {fmt(mb['auc'])} | {fmt(mb['brier'])} | {fmt(mb['accuracy'])} |")
         lines.append(f"| Référence : toujours la classe majoritaire | — | — | {fmt(max(y.mean(), 1 - y.mean()))} |")
         lines += ["", f"{len(y)} essais ; part positive {y.mean():.2f}.", ""]
+        # Métriques détaillées du réglage retenu (MIN_LENGTH_SCALE)
+        preds_kept, base_kept = results[MIN_LENGTH_SCALE]
+        mask = df[target].notna().to_numpy()
+        lines += [f"Réglage retenu (longueur ≥ {MIN_LENGTH_SCALE:g}) :", ""]
+        lines += detailed_report_lines(df.loc[mask, target].astype(int).to_numpy(), preds_kept[target][mask],
+                                       base_kept[target][mask], *POSITIVE_NEGATIVE[target])
     near = df[(df["x_o2"] >= 0.30) & (df["pressure_kpa"] <= 70)]
     lines += [
         "## Données près de l'atmosphère d'exploration",

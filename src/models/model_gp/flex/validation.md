@@ -31,14 +31,45 @@ Calibration (hors échantillon) :
 | 0.6–0.8 | 37 | 0.71 | 0.76 |
 | 0.8–1.0 | 142 | 0.93 | 0.93 |
 
+Métriques détaillées (hors échantillon, seuil 0.5) : 261 cas, 69% « extinction » ; exactitude en répondant toujours la classe majoritaire : 0.686.
+
+| Métrique | Modèle | Référence naïve |
+|---|---:|---:|
+| Exactitude (accuracy) | 0.843 | 0.644 |
+| Exactitude équilibrée | 0.793 | 0.486 |
+| Précision « extinction » | 0.856 | 0.679 |
+| Rappel « extinction » | 0.927 | 0.911 |
+| F1 « extinction » | 0.890 | 0.778 |
+| Précision « la flamme tient » | 0.806 | 0.238 |
+| Rappel « la flamme tient » | 0.659 | 0.061 |
+| F1 « la flamme tient » | 0.725 | 0.097 |
+| F1 macro | 0.807 | 0.438 |
+| MCC (0 = hasard, 1 = parfait) | 0.623 | -0.048 |
+| AUC | 0.906 | 0.598 |
+| Brier (plus bas = mieux) | 0.111 | 0.206 |
+| Log loss (plus bas = mieux) | 0.352 | 0.598 |
+
+Matrices de confusion (positif = « extinction ») :
+
+| | Vrais positifs | Faux négatifs | Faux positifs | Vrais négatifs |
+|---|---:|---:|---:|---:|
+| Modèle | 166 | 13 | 28 | 54 |
+| Référence naïve | 163 | 16 | 77 | 5 |
+
 ## Constante de combustion K (mm²/s)
 
-| | R² | Erreur absolue moyenne |
-|---|---:|---:|
-| **Modèle (processus gaussien)** | 0.677 | 0.047 |
-| Référence : K moyen par combustible | 0.006 | 0.105 |
+| | R² | Erreur absolue moyenne | RMSE |
+|---|---:|---:|---:|
+| **Modèle (processus gaussien)** | 0.677 | 0.047 | 0.078 |
+| Référence : K moyen par combustible | 0.006 | 0.105 | 0.137 |
 
 Intervalle à 90 % (± 1,645 écart-type) : la vraie valeur est dedans dans **90%** des cas (attendu : 90 %) ; écart-type moyen 0.066 mm²/s ; 257 essais avec K.
+
+| Intervalle | Part des essais dedans | Attendu |
+|---|---:|---:|
+| ± 1 écart-type (68 %) | 80.5% | 68 % |
+| ± 1,645 écart-type (90 %) | 89.9% | 90 % |
+| ± 1,96 écart-type (95 %) | 92.6% | 95 % |
 
 ## Importance des variables (longueurs de corrélation du noyau, données normalisées ; petite = influente)
 
