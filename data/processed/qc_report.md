@@ -110,13 +110,13 @@ Marques les plus fréquentes :
 - `flow_direction:doc` × 120
 - `outcome:deduit` × 104
 - `material:doc` × 91
+- `extinction_mode:deduit` × 66
+- `extinction_pot:deduit` × 34
 - `flow_cm_s:qualitatif` × 30
+- `extinction_flow_cm_s:deduit` × 14
 - `co_initial_ppm:incoherent` × 13
 - `x_o2:approx` × 11
 - `flow_min_cm_s:approx` × 10
-- `flow_cm_s:a_verifier` × 9
-- `co_final_ppm:qualitatif` × 8
-- `burn_length_cm:approx` × 8
 
 Cases vides :
 
@@ -136,6 +136,9 @@ Cases vides :
 | `flow_cm_s` | 183 / 272 | 0 | 0 | 158 | 0 | 25 |
 | `flow_min_cm_s` | 28 / 272 | 0 | 0 | 0 | 0 | 28 |
 | `flow_max_cm_s` | 28 / 272 | 0 | 0 | 0 | 0 | 28 |
+| `extinction_mode` | 206 / 272 | 0 | 0 | 0 | 22 | 184 |
+| `extinction_flow_cm_s` | 258 / 272 | 0 | 0 | 0 | 143 | 115 |
+| `extinction_pot` | 238 / 272 | 0 | 0 | 0 | 22 | 216 |
 | `flow_raw` | 25 / 272 | 0 | 0 | 0 | 0 | 25 |
 | `fan_raw` | 36 / 272 | 0 | 0 | 0 | 22 | 14 |
 | `flow_restrictor` | 23 / 272 | 0 | 0 | 0 | 22 | 1 |

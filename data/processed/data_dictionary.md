@@ -122,8 +122,11 @@ Généré par `python -m src.data.build_unified` à partir du code. Ne pas édit
 | `sides_burning` | Int64 |  | Échantillon allumé sur 1 ou 2 faces (« 1 sided ») |
 | `flow_direction` | string |  | opposed / concurrent / stagnation (bougies) ; BASS-II : annexe A du rapport |
 | `flow_cm_s` | Float64 | cm/s | Vitesse d'air si une seule valeur ; vide si rampe (voir flow_min / flow_max) |
-| `flow_min_cm_s` | Float64 | cm/s | Plus petite vitesse d'air affichée pendant l'essai (hors réglages en « pot ») |
+| `flow_min_cm_s` | Float64 | cm/s | Plus petite vitesse d'air affichée pendant l'essai (hors réglages en « pot ») ; PAS le débit d'extinction (voir extinction_*) |
 | `flow_max_cm_s` | Float64 | cm/s | Plus grande vitesse d'air affichée pendant l'essai |
+| `extinction_mode` | string |  | Essais éteints : low_flow (en baissant le débit), blowoff (soufflage, débit élevé), flow_off (débit coupé volontairement) ; vide si le texte ne le dit pas |
+| `extinction_flow_cm_s` | Float64 | cm/s | Vitesse d'air à l'extinction, seulement si écrite en cm/s (« 5 3 2 ext », « 10 blowoff », « extinguished 8 cm/s ») ; marque deduit |
+| `extinction_pot` | Float64 | réglage | Réglage du potentiomètre du ventilateur à l'extinction (« at pot 0.35 ») ; non converti en cm/s : calibration variable selon le jour et absente sous 1–2 |
 | `flow_raw` | string |  | Vitesse d'air telle qu'écrite (« Air display », « Air Flow ») |
 | `fan_raw` | string |  | Réglage du ventilateur tel qu'écrit (« Fan display », potentiomètre) |
 | `flow_restrictor` | string |  | Restricteur de débit (BASS, BASS-II) |
