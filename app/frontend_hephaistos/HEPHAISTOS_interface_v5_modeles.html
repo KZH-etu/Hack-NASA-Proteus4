@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HEPHAISTOS</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%A5%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -121,6 +122,44 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
 #predict .pred .tag{border-color:var(--risk-color,#0b3d91)}
 @media(max-width:600px){#chat{padding:0 10px 10px}#chat .top{margin:0 -10px}#chat .chat{margin-top:10px}}
 @media(prefers-reduced-motion:reduce){.view,.view.window-leaving{animation:none!important}}
+/* Prédiction : scénarios, aides de saisie, jauge d'intervalle, fiabilité */
+#predict .presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+#predict .presets-label{width:100%;font-size:11px;text-transform:uppercase;letter-spacing:.18em;color:#666}
+#predict .preset{padding:7px 11px;background:#fff;border:1px solid #000;font-size:12px;font-weight:600;cursor:pointer}
+#predict .preset:hover{background:#000;color:#fff}
+#predict .hint{display:block;margin-top:4px;font-size:11px;color:#666}
+#predict .field.out input{border-color:#fc3d21}
+#predict .field.out .hint{color:#fc3d21;font-weight:600}
+#predict .pred h2{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+#predict .pred p.recap{color:#aaa;font-size:12px;margin:-6px 0 6px}
+#predict .pred p.nodata{color:#ffb547;font-weight:600}
+#predict .pred p.loading{color:#ddd}
+.model-metric{padding:16px 0;border-bottom:1px solid #2a2a2a}
+.metric-label{font-weight:600;color:#fff}
+.metric-value{font-size:clamp(28px,3.4vw,44px);font-weight:800;line-height:1.15}
+.metric-sub{margin-top:4px;font-size:12px;color:#aaa}
+.range-bar{position:relative;height:8px;margin:12px 0 5px;background:#262626}
+.range-bar .band{position:absolute;top:0;bottom:0;background:var(--risk-color);opacity:.45}
+.range-bar .dot{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;background:var(--risk-color);border:2px solid #fff;border-radius:50%}
+.range-scale{display:flex;justify-content:space-between;font-size:10px;color:#777}
+.badge{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid currentColor}
+.badge.good{color:#6fb1ff}.badge.medium{color:#ffb547}.badge.low{color:#fc3d21}
+.warn{margin-top:16px;border-left:3px solid #fc3d21;padding:10px 12px;background:#1c0f0c;color:#f3d6d0;font-size:13px}
+.warn ul{margin:6px 0 0;padding-left:18px}
+.warn li{margin-top:4px}
+.spinner{display:inline-block;width:12px;height:12px;margin-right:8px;border:2px solid #555;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.src .outcome{font-weight:700}
+@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
+/* Colonne de résultats : la prédiction prend la hauteur dont elle a besoin, la colonne défile d'un bloc */
+#predict .right{display:flex;flex-direction:column;overflow:auto;min-height:0}
+#predict .pred{flex:0 0 auto;overflow:visible}
+#predict .src{flex:1 0 auto;overflow:visible}
+#predict .preset.active{background:#000;color:#fff}
+.legend{display:flex;align-items:center;gap:6px;margin:2px 0 4px;font-size:11px;color:#888}
+.legend i{display:inline-block;width:46px;height:6px;background:linear-gradient(90deg,rgb(79,141,255),rgb(252,61,33))}
+/* Téléphone : une seule colonne qui défile normalement (pas de zones de défilement imbriquées) */
+@media(max-width:800px){#predict .split{display:block;overflow:auto}#predict .left,#predict .right,#predict .pred,#predict .src{overflow:visible}#predict .right{display:block}}
 </style>
 </head>
 <body>
@@ -149,6 +188,13 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
     <!-- Moitié gauche : variables d'entrée -->
     <div class="left">
       <h2>Conditions de l’essai</h2>
+      <div class="presets" aria-label="Scénarios de mission">
+        <span class="presets-label">Scénarios de mission</span>
+        <button type="button" class="preset" data-preset="iss">Cabine ISS</button>
+        <button type="button" class="preset" data-preset="lune">Habitat lunaire</button>
+        <button type="button" class="preset" data-preset="pauvre">Atmosphère pauvre en O₂</button>
+        <button type="button" class="preset" data-preset="cabine">Matériau de cabine</button>
+      </div>
       <form id="form" autocomplete="off">
         <div class="field"><label for="fuel_type">État du combustible</label>
           <select id="fuel_type" name="fuel_type" required>
@@ -167,8 +213,8 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
         <p class="muted">Renseignez les conditions puis lancez la prédiction.</p>
       </div>
       <div class="src" id="srcOut">
-        <h2>Sources</h2>
-        <p class="muted">Les essais NASA jugés proches apparaîtront ici.</p>
+        <h2>Essais NASA les plus proches</h2>
+        <p class="muted">Les essais réels les plus proches de vos conditions apparaîtront ici, avec leur source.</p>
       </div>
     </div>
   </div>
@@ -305,16 +351,21 @@ document.addEventListener("click", e => {
 // Format attendu : tout champ est optionnel, seuls ceux présents sont affichés.
 // { experiment, psi_id, test_id, o2_percent, pressure_kpa, flow_cm_s, material,
 //   source_doc, source_page, doi, title, ntrs_id, page, url, demo }
+const OUTCOME_FR = {extinguished:"extinction", burned:"a brûlé", completion:"brûlée jusqu’au bout",
+                    disruption:"goutte éclatée", no_ignition:"ne s’est pas allumée"};
+const fr = v => (v == null || v === "") ? v : Number(v).toLocaleString("fr-FR", {maximumFractionDigits: 3});
 function renderSource(s){
   const parts = [];
   const head = [s.experiment, s.psi_id && "(" + s.psi_id + ")", s.test_id && "essai " + s.test_id, s.title, s.ntrs_id && "NTRS " + s.ntrs_id].filter(Boolean).join(" ");
   if(head) parts.push("<strong>" + esc(head) + "</strong>");
-  const cond = [s.material, s.o2_percent != null && "O₂ " + s.o2_percent + " %", s.pressure_kpa != null && s.pressure_kpa + " kPa", s.flow_cm_s != null && s.flow_cm_s + " cm/s"].filter(Boolean).join(", ");
+  const cond = [s.material, s.o2_percent != null && "O₂ " + fr(s.o2_percent) + " %", s.pressure_kpa != null && fr(s.pressure_kpa) + " kPa", s.flow_cm_s != null && fr(s.flow_cm_s) + " cm/s"].filter(Boolean).join(", ");
   if(cond) parts.push(esc(cond));
+  if(s.outcome) parts.push('Issue : <span class="outcome">' + esc(OUTCOME_FR[s.outcome] || s.outcome) + "</span>");
   const doc = [s.source_doc, (s.source_page || s.page) && "p. " + (s.source_page || s.page)].filter(Boolean).join(", ");
   if(doc) parts.push(esc(doc));
   const link = s.url || (s.doi && "https://doi.org/" + s.doi);
-  if(link) parts.push('<a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(s.doi || "lien") + "</a>");
+  const linkText = s.doi || (String(link).includes("psi.nasa.gov") ? "Source NASA PSI" + (s.psi_id ? " (" + s.psi_id + ")" : "") : "lien");
+  if(link) parts.push('<a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(linkText) + "</a>");
   if(s.demo) parts.push('<span class="muted">DEMO : donnée factice</span>');
   return "<li>" + parts.join("<br>") + "</li>";
 }
@@ -328,22 +379,41 @@ const MATERIALS = {
   gas: [["ethane","Éthane"],["propane","Propane"],["n-butane","n-Butane"]],
   droplet: [["heptane","Heptane"],["methanol","Méthanol"]]
 };
+// range : plage testée par la NASA (affichée sous le champ ; en dehors, le modèle extrapole).
 const FIELD_DEFINITIONS = {
-  solid: [{key:"flow_cm_s",label:"Vitesse de l’air (cm/s)",min:0}],
-  gas: [{key:"pressure_kpa",label:"Pression (kPa)",min:0},
-        {key:"x_fuel",label:"Part du combustible dans le jet",min:0,max:1},
-        {key:"hc_rate_mg_s",label:"Débit de combustible (mg/s)",min:0}],
-  droplet: [{key:"pressure_kpa",label:"Pression (kPa)",min:0},
-            {key:"d0_mm",label:"Diamètre de la goutte (mm)",min:0.000001,value:3},
-            {key:"co2_percent",label:"CO₂ (%)",min:0,max:100},
-            {key:"he_percent",label:"Hélium (%)",min:0,max:100}]
+  solid: [{key:"flow_cm_s",label:"Vitesse de l’air (cm/s)",min:0,value:10,range:[0.5,53],unit:"cm/s"}],
+  gas: [{key:"pressure_kpa",label:"Pression (kPa)",min:0,value:101.3,range:[51,304],unit:"kPa"},
+        {key:"x_fuel",label:"Part du combustible dans le jet",min:0,max:1,value:0.3,range:[0.02,1],unit:""},
+        {key:"hc_rate_mg_s",label:"Débit de combustible (mg/s)",min:0,value:1,range:[0.1,3.2],unit:"mg/s"}],
+  droplet: [{key:"pressure_kpa",label:"Pression (kPa)",min:0,value:101.3,range:[70,309],unit:"kPa"},
+            {key:"d0_mm",label:"Diamètre de la goutte (mm)",min:0.000001,value:3,range:[1.1,4.7],unit:"mm"},
+            {key:"co2_percent",label:"CO₂ (%)",min:0,max:100,value:0,range:[0,70],unit:"%"},
+            {key:"he_percent",label:"Hélium (%)",min:0,max:100,value:0,range:[0,45],unit:"%"}]
 };
+const O2_RANGE = {droplet:[12,34], solid:[14.2,22.2], gas:[18,40]};
+let LAST_STATUS = {};
+const fmtRange = (r, unit) => r[0].toLocaleString("fr-FR") + " – " + r[1].toLocaleString("fr-FR") + (unit ? " " + unit : "");
 function numericField(def){
   const attrs = ['type="number"','step="any"','required', 'id="'+def.key+'"','name="'+def.key+'"'];
   if(def.min !== undefined) attrs.push('min="'+def.min+'"');
   if(def.max !== undefined) attrs.push('max="'+def.max+'"');
   if(def.value !== undefined) attrs.push('value="'+def.value+'"');
-  return '<div class="field"><label for="'+def.key+'">'+def.label+'</label><input '+attrs.join(' ')+'></div>';
+  let hint = '';
+  if(def.range){
+    attrs.push('data-lo="'+def.range[0]+'"','data-hi="'+def.range[1]+'"','data-unit="'+(def.unit||"")+'"','aria-describedby="h_'+def.key+'"');
+    hint = '<small class="hint" id="h_'+def.key+'">Testé par la NASA : '+fmtRange(def.range, def.unit)+'</small>';
+  }
+  return '<div class="field"><label for="'+def.key+'">'+def.label+'</label><input '+attrs.join(' ')+'>'+hint+'</div>';
+}
+// Signale une valeur hors des essais NASA (le modèle répond quand même, en extrapolant).
+function checkRange(input){
+  const field = input.closest(".field"), hint = field && field.querySelector(".hint");
+  if(!hint || input.dataset.lo === undefined) return;
+  const lo = Number(input.dataset.lo), hi = Number(input.dataset.hi), v = Number(input.value);
+  const out = input.value !== "" && (v < lo || v > hi);
+  field.classList.toggle("out", out);
+  hint.textContent = out ? "Hors des essais NASA (" + fmtRange([lo, hi], input.dataset.unit) + ") : extrapolation"
+                         : "Testé par la NASA : " + fmtRange([lo, hi], input.dataset.unit);
 }
 function updateFields(){
   const type = $("#fuel_type").value;
@@ -353,54 +423,109 @@ function updateFields(){
   if(!MATERIALS[type]){target.innerHTML="";return;}
   target.innerHTML = '<div class="field"><label for="material">Nom du matériau</label><select id="material" name="material" required><option value="" selected disabled>Choisir un matériau…</option>' +
     MATERIALS[type].map(([value,label])=>'<option value="'+esc(value)+'">'+esc(label)+'</option>').join('') + '</select></div>' +
-    numericField({key:"o2_percent",label:"Oxygène O₂ (%)",min:0,max:100}) +
+    numericField({key:"o2_percent",label:"Oxygène O₂ (%)",min:0,max:100,value:21,range:O2_RANGE[type],unit:"%"}) +
     FIELD_DEFINITIONS[type].map(numericField).join('');
+  target.querySelectorAll("input[data-lo]").forEach(input => { checkRange(input); input.addEventListener("input", () => checkRange(input)); });
   $("#predOut").innerHTML='<h2>Prédiction</h2><p class="muted">Renseignez les conditions puis lancez la prédiction.</p>';
-  $("#srcOut").innerHTML='<h2>Sources</h2><p class="muted">Les essais NASA jugés proches apparaîtront ici.</p>';
+  $("#srcOut").innerHTML='<h2>Essais NASA les plus proches</h2><p class="muted">Les essais réels les plus proches de vos conditions apparaîtront ici, avec leur source.</p>';
 }
 $("#fuel_type").addEventListener("change",updateFields);
+
+const PRESETS = {
+  iss:    {fuel_type:"droplet", material:"heptane", o2_percent:21, pressure_kpa:101.3, d0_mm:3, co2_percent:0, he_percent:0},
+  lune:   {fuel_type:"droplet", material:"heptane", o2_percent:34, pressure_kpa:55, d0_mm:3, co2_percent:0, he_percent:0},
+  pauvre: {fuel_type:"droplet", material:"heptane", o2_percent:15, pressure_kpa:101.3, d0_mm:3, co2_percent:0, he_percent:0},
+  cabine: {fuel_type:"solid", material:"pmma_flat", o2_percent:21, flow_cm_s:10}
+};
+document.querySelectorAll("[data-preset]").forEach(button => button.addEventListener("click", () => {
+  const preset = PRESETS[button.dataset.preset];
+  document.querySelectorAll("[data-preset]").forEach(b => { b.classList.toggle("active", b === button); b.setAttribute("aria-pressed", b === button); });
+  $("#fuel_type").value = preset.fuel_type;
+  updateFields();
+  for(const [key, value] of Object.entries(preset)){
+    const el = $("#form").elements.namedItem(key);
+    if(!el || key === "fuel_type") continue;
+    el.value = value;
+    if(el.dataset && el.dataset.lo !== undefined) checkRange(el);
+  }
+  $("#form").requestSubmit();
+}));
+$("#form").addEventListener("input", () => document.querySelectorAll("[data-preset]").forEach(b => { b.classList.remove("active"); b.setAttribute("aria-pressed", "false"); }));
 
 // Interpolation linéaire entre bleu NASA et rouge NASA.
 function riskColor(probability){
   const t=Math.min(1,Math.max(0,Number(probability)));
-  const blue=[11,61,145],red=[252,61,33];
+  const blue=[79,141,255],red=[252,61,33]; // bleu NASA éclairci : lisible sur fond noir
   return 'rgb('+blue.map((v,i)=>Math.round(v+(red[i]-v)*t)).join(',')+')';
 }
 const fmtPct = v => v == null ? "Non disponible" : (100 * Number(v)).toLocaleString("fr-FR",{maximumFractionDigits:1})+" %";
 const fmtNum = v => v == null ? "Non disponible" : Number(v).toLocaleString("fr-FR",{maximumFractionDigits:3});
 const interval = (arr,unit="prob") => Array.isArray(arr) && arr.length===2 ? (unit==="prob" ? fmtPct(arr[0])+" – "+fmtPct(arr[1]) : fmtNum(arr[0])+" – "+fmtNum(arr[1])) : "Non disponible";
-function metric(label,value,colorValue=null,subtitle=""){
-  const color=colorValue==null?"#0b3d91":riskColor(colorValue);
-  return '<div class="model-metric" style="padding:14px 0;border-bottom:1px solid #e8e8e8"><div style="font-weight:600">'+esc(label)+'</div><div style="font-size:clamp(24px,3vw,38px);font-weight:800;color:'+color+'">'+esc(value)+'</div>'+(subtitle?'<div class="muted" style="font-size:13px">'+esc(subtitle)+'</div>':'')+'</div>';
+const RELIABILITY = {
+  droplet: ["good", "Fiabilité bonne", "Modèle validé sur des jours d’essai FLEX jamais vus à l’entraînement."],
+  gas: ["medium", "Fiabilité moyenne", "Auto-extinction : fiabilité moyenne ; allumage : fiabilité faible."],
+  solid: ["low", "Fiabilité faible", "Indication seulement : les données ne suffisent pas à prédire de façon fiable."]
+};
+// Jauge 0–100 % : fourchette (bande) et valeur annoncée (point), couleur selon le risque.
+function rangeBar(p, iv, colorValue){
+  if(p == null) return "";
+  const pct = x => Math.min(100, Math.max(0, 100 * Number(x)));
+  const hasIv = Array.isArray(iv) && iv.length === 2;
+  const band = hasIv ? '<span class="band" style="left:'+pct(iv[0])+'%;width:'+(pct(iv[1]) - pct(iv[0]))+'%"></span>' : "";
+  const label = "Probabilité " + fmtPct(p) + (hasIv ? ", intervalle " + interval(iv) : "");
+  return '<div class="range-bar" style="--risk-color:'+riskColor(colorValue)+'" role="img" aria-label="'+esc(label)+'">'+band+
+         '<span class="dot" style="left:'+pct(p)+'%"></span></div><div class="range-scale"><span>0 %</span><span>50 %</span><span>100 %</span></div>';
 }
-function renderPrediction(res,type){
-  const warnings=Array.isArray(res.warnings)?res.warnings:[];
-  let html='<h2>Résultats · '+esc(res.experiment||type)+'</h2>';
-  if(type==="solid"){
-    html+=metric("Probabilité que la flamme se maintienne",fmtPct(res.p_flame_sustained),res.p_flame_sustained,"Intervalle à 90 % : "+interval(res.p_flame_sustained_interval_90));
-    if(res.p_flame_sustained==null)html+='<p><strong>Aucune probabilité disponible dans ces conditions.</strong></p>';
-    html+='<p class="muted">Fiabilité du modèle : faible. Ce résultat ne constitue pas une probabilité d’allumage.</p>';
-    if(res.n_observations_same_group!=null)html+='<p class="muted">Observations du groupe : '+esc(res.n_observations_same_group)+'</p>';
-  }else if(type==="gas"){
-    html+=metric("Probabilité d’allumage",fmtPct(res.p_hot_ignition),res.p_hot_ignition,"Intervalle à 90 % : "+interval(res.p_hot_ignition_interval_90));
-    html+=metric("Probabilité d’auto-extinction, si allumage",fmtPct(res.p_self_extinction_if_ignited),res.p_self_extinction_if_ignited==null?null:1-res.p_self_extinction_if_ignited,"Intervalle à 90 % : "+interval(res.p_self_extinction_interval_90));
-    if(res.p_hot_ignition_reliability)html+='<p class="muted">Allumage : '+esc(res.p_hot_ignition_reliability)+'</p>';
-    if(res.p_self_extinction_reliability)html+='<p class="muted">Auto-extinction : '+esc(res.p_self_extinction_reliability)+'</p>';
-  }else if(type==="droplet"){
-    html+=metric("Probabilité d’extinction spontanée",fmtPct(res.p_extinction),res.p_extinction==null?null:1-res.p_extinction,"Intervalle à 90 % : "+interval(res.p_extinction_interval_90));
-    html+=metric("Constante de combustion K",fmtNum(res.burning_rate_k_mm2_s)+" mm²/s",null,"Écart-type : "+fmtNum(res.burning_rate_k_std)+" mm²/s · Intervalle à 95 % : "+interval(res.burning_rate_k_interval_95,"num")+" mm²/s");
-    if(res.near_data===false)html+='<p><strong>Pas de donnée expérimentale proche.</strong></p>';
+function metric(label, value, colorValue=null, subtitle="", bar=""){
+  const color = colorValue == null ? "#6fb1ff" : riskColor(colorValue);
+  return '<div class="model-metric"><div class="metric-label">'+esc(label)+'</div><div class="metric-value" style="color:'+color+'">'+esc(value)+'</div>'+
+         bar+(subtitle ? '<div class="metric-sub">'+esc(subtitle)+'</div>' : '')+'</div>';
+}
+function conditionsRecap(c, type){
+  const name = ((MATERIALS[type] || []).find(([v]) => v === c.material) || [null, c.material])[1];
+  const parts = [name, "O₂ " + fr(c.o2_percent) + " %"];
+  if(c.pressure_kpa != null) parts.push(fr(c.pressure_kpa) + " kPa");
+  if(c.flow_cm_s != null) parts.push("air " + fr(c.flow_cm_s) + " cm/s");
+  if(c.d0_mm != null) parts.push("goutte de " + fr(c.d0_mm) + " mm");
+  if(c.co2_percent) parts.push("CO₂ " + fr(c.co2_percent) + " %");
+  if(c.he_percent) parts.push("He " + fr(c.he_percent) + " %");
+  if(c.x_fuel != null) parts.push("part de combustible " + fr(c.x_fuel));
+  if(c.hc_rate_mg_s != null) parts.push(fr(c.hc_rate_mg_s) + " mg/s");
+  return parts.join(" · ") + " · microgravité";
+}
+function renderPrediction(res, type, c){
+  const warnings = Array.isArray(res.warnings) ? res.warnings : [];
+  const [rel, relLabel, relText] = RELIABILITY[type];
+  let html = '<h2>Résultats · '+esc(res.experiment || type)+'<span class="badge '+rel+'" title="'+esc(relText)+'">'+relLabel+'</span></h2>';
+  if(c) html += '<p class="recap">'+esc(conditionsRecap(c, type))+'</p>';
+  html += '<div class="legend">Couleur :<span>faible risque d’incendie</span><i aria-hidden="true"></i><span>fort risque</span></div>';
+  if(type === "solid"){
+    const p = res.p_flame_sustained;
+    html += metric("Probabilité que la flamme se maintienne", fmtPct(p), p, "Intervalle à 90 % : "+interval(res.p_flame_sustained_interval_90), rangeBar(p, res.p_flame_sustained_interval_90, p));
+    if(p == null) html += '<p class="nodata">Pas de donnée NASA dans ces conditions : aucune probabilité n’est donnée.</p>';
+    if(res.n_observations_same_group != null) html += '<p class="muted">Observations du même groupe de matériau : '+esc(res.n_observations_same_group)+'</p>';
+  }else if(type === "gas"){
+    const pi = res.p_hot_ignition, se = res.p_self_extinction_if_ignited, risk = se == null ? null : 1 - se;
+    html += metric("Probabilité d’allumage", fmtPct(pi), pi, "Intervalle à 90 % : "+interval(res.p_hot_ignition_interval_90), rangeBar(pi, res.p_hot_ignition_interval_90, pi));
+    html += metric("Si elle s’allume, probabilité qu’elle s’éteigne seule", fmtPct(se), risk, "Intervalle à 90 % : "+interval(res.p_self_extinction_interval_90), rangeBar(se, res.p_self_extinction_interval_90, risk));
+    if(res.p_hot_ignition_reliability) html += '<p class="muted">Allumage : '+esc(res.p_hot_ignition_reliability)+'</p>';
+    if(res.p_self_extinction_reliability) html += '<p class="muted">Auto-extinction : '+esc(res.p_self_extinction_reliability)+'</p>';
+  }else if(type === "droplet"){
+    const p = res.p_extinction, risk = p == null ? null : 1 - p;
+    html += metric("Probabilité que la flamme s’éteigne d’elle-même", fmtPct(p), risk, "Intervalle à 90 % : "+interval(res.p_extinction_interval_90), rangeBar(p, res.p_extinction_interval_90, risk));
+    html += metric("Vitesse de combustion K", fmtNum(res.burning_rate_k_mm2_s)+" mm²/s", null, "Intervalle à 95 % : "+interval(res.burning_rate_k_interval_95,"num")+" mm²/s · écart-type "+fmtNum(res.burning_rate_k_std)+" mm²/s");
+    if(res.near_data === false) html += '<p class="nodata">Pas d’essai NASA dans des conditions voisines : prédiction peu fiable.</p>';
   }
-  if(res.n_training_tests!=null)html+='<p class="muted">Essais d’entraînement : '+esc(res.n_training_tests)+'</p>';
-  if(warnings.length)html+='<div style="margin-top:14px;border-left:3px solid #fc3d21;padding:10px 12px;background:#fff8f6"><strong>Limites et avertissements</strong><ul>'+warnings.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul></div>';
-  $("#predOut").innerHTML=html;
-  const sources=Array.isArray(res.sources)?res.sources:[];
-  const near=Array.isArray(res.nearest_tests)?res.nearest_tests:[];
-  let src='<h2>Sources et essais proches</h2>';
-  if(sources.length)src+='<ul>'+sources.map(renderSource).join('')+'</ul>';
-  if(near.length)src+='<p>Essais expérimentaux proches (distance calculée par le modèle) :</p><ul>'+near.map(t=>'<li>'+esc([t.test_id&&"Essai "+t.test_id,t.fuel,"O₂ "+t.o2_percent+" %",t.pressure_kpa+" kPa","distance "+t.distance].filter(Boolean).join(' · '))+'</li>').join('')+'</ul>';
-  if(!sources.length&&!near.length)src+='<p class="muted">'+NO_SOURCE+'</p>';
-  $("#srcOut").innerHTML=src;
+  if(warnings.length) html += '<div class="warn"><strong>Limites et avertissements</strong><ul>'+warnings.map(w => '<li>'+esc(w)+'</li>').join('')+'</ul></div>';
+  html += '<p class="muted">'+esc(relText)+(res.n_training_tests != null ? ' Essais d’entraînement : '+esc(res.n_training_tests)+'.' : '')+'</p>';
+  $("#predOut").innerHTML = html;
+  const sources = Array.isArray(res.sources) ? res.sources : [];
+  const near = Array.isArray(res.nearest_tests) ? res.nearest_tests : [];
+  let src = '<h2>Essais NASA les plus proches'+(sources.length ? ' <span class="muted">('+sources.length+')</span>' : '')+'</h2>';
+  if(sources.length) src += '<ul>'+sources.map(renderSource).join('')+'</ul>';
+  if(near.length) src += '<ul>'+near.map(t => '<li>'+esc([t.test_id && "Essai "+t.test_id, t.fuel, "O₂ "+t.o2_percent+" %", t.pressure_kpa+" kPa"].filter(Boolean).join(' · '))+'</li>').join('')+'</ul>';
+  if(!sources.length && !near.length) src += '<p class="muted">'+NO_SOURCE+'</p>';
+  $("#srcOut").innerHTML = src;
 }
 async function callPredict(conditions){
   const model=CONFIG.MODEL_BY_STATE[conditions.fuel_type];
@@ -422,7 +547,9 @@ $("#form").addEventListener("submit",async e=>{
     return;
   }
   const btn=$("#goPredict");btn.disabled=true;btn.textContent="Calcul en cours…";
-  try{const res=await callPredict(c);renderPrediction(res,c.fuel_type)}
+  const ready=(LAST_STATUS[c.fuel_type]||{}).status==="ready";
+  $("#predOut").innerHTML='<h2>Prédiction</h2><p class="loading"><span class="spinner" aria-hidden="true"></span>Calcul en cours…'+(ready?'':' Premier calcul pour cet état : jusqu’à 30 s.')+'</p>';
+  try{const res=await callPredict(c);renderPrediction(res,c.fuel_type,c)}
   catch(err){$("#predOut").innerHTML='<h2>Erreur</h2><p>'+esc(err.message)+'</p>';$("#srcOut").innerHTML='<h2>Sources</h2>'}
   finally{btn.disabled=false;btn.textContent="Lancer la prédiction";}
 });
@@ -432,6 +559,7 @@ async function checkModels(){
     const r=await fetch(CONFIG.STATUS_URL,{cache:"no-store"});
     if(!r.ok)throw new Error("HTTP "+r.status);
     const data=await r.json();
+    LAST_STATUS=data.models||{};
     const names={solid:"Solide",gas:"Gaz",droplet:"Gouttelette"};
     el.textContent=Object.entries(names).map(([k,n])=>n+" : "+({ready:"prêt",loading:"chargement…",error:"erreur"}[data.models?.[k]?.status]||"en attente")).join(" · ");
     const pending=Object.values(data.models||{}).some(v=>v.status==="loading"||v.status==="pending");
