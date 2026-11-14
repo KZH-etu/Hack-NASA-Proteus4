@@ -1,0 +1,9 @@
+famille,variante,F1_macro,accuracy,rappel par issue,gain F1 vs actuel,IC95 du gain,verdict
+Gouttelettes (FLEX),aucun rééquilibrage,0.577,0.788,"completion 15%, disruption 57%, extinguished 95%",-0.037,[-0.077 ; +0.009],pas de diff. démontrée
+Gouttelettes (FLEX),pondération (actuel),0.614,0.781,"completion 26%, disruption 62%, extinguished 91%",,,
+Gouttelettes (FLEX),oversampling aléatoire,0.579,0.748,"completion 26%, disruption 59%, extinguished 87%",-0.035,[-0.085 ; +0.011],pas de diff. démontrée
+Gouttelettes (FLEX),SMOTE,0.566,0.745,"completion 19%, disruption 67%, extinguished 85%",-0.048,[-0.115 ; +0.023],pas de diff. démontrée
+Gaz (ACME CFI-G),aucun rééquilibrage,0.538,0.668,"burned 51%, extinguished 91%, no_ignition 17%",-0.043,[-0.101 ; +0.039],pas de diff. démontrée
+Gaz (ACME CFI-G),pondération (actuel),0.58,0.677,"burned 65%, extinguished 83%, no_ignition 25%",,,
+Gaz (ACME CFI-G),oversampling aléatoire,0.583,0.665,"burned 69%, extinguished 78%, no_ignition 28%",0.003,[-0.027 ; +0.031],pas de diff. démontrée
+Gaz (ACME CFI-G),SMOTE,0.627,0.695,"burned 75%, extinguished 78%, no_ignition 35%",0.047,[+0.005 ; +0.114],MIEUX
