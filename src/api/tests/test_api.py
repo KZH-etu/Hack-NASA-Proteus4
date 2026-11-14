@@ -186,6 +186,23 @@ def test_ask_deduplicates_sources_and_reindexes_citations_continuously(monkeypat
     ]
 
 
+def test_ask_keeps_closest_sources_when_llm_refuses_off_topic_question():
+    refusal = (
+        "Je n'ai pas trouvé d'information permettant de produire une réponse satisfaisante. "
+        "Les ressources les plus proches sont :"
+    )
+    fake_gemini = FakeGeminiClient(answer=refusal)
+    with client_with_rag(fake_gemini=fake_gemini) as c:
+        r = c.post("/ask", json={"question": "azerty quelle est la recette des crepes ?"})
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["answer"] == refusal
+    assert [s["index"] for s in body["sources"]] == [1, 2]
+    assert [s["title"] for s in body["sources"]] == ["FLEX", "BASS"]
+    assert "aucun sens" in fake_gemini.calls[0]["config"].system_instruction
+
+
 def test_ask_calls_remote_rag_server_over_http(monkeypatch):
     captured = {}
 

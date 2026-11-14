@@ -36,8 +36,13 @@ SYSTEM_PROMPT = (
     "missions spatiales. Réponds en français, de façon claire, naturelle, synthétique et structurée, en "
     "t'appuyant UNIQUEMENT sur les extraits de documents NASA fournis. Ne recopie jamais les extraits bruts "
     "tels quels. Cite systématiquement chaque fait avec le numéro de sa source entre crochets, par exemple "
-    "[1] ou [2] (sépare plusieurs sources ainsi : [1] [2], jamais [1, 2]). Si les extraits ne permettent pas "
-    "de répondre à tout ou partie de la question, dis-le explicitement sans jamais inventer de valeurs ou de résultats."
+    "[1] ou [2] (sépare plusieurs sources ainsi : [1] [2], jamais [1, 2]). "
+    "Si la question n'a aucun sens, est hors sujet, ou n'a aucun rapport avec les extraits fournis de "
+    "sorte qu'il est impossible de produire une réponse satisfaisante, n'invente rien et réponds exactement "
+    "par cette phrase sans citation : \"Je n'ai pas trouvé d'information permettant de produire une réponse "
+    "satisfaisante. Les ressources les plus proches sont :\" "
+    "Si seuls certains aspects manquent dans les extraits, réponds à ce qui est documenté et indique "
+    "explicitement ce qui manque sans jamais inventer de valeurs ou de résultats."
 )
 
 
@@ -201,18 +206,23 @@ def _normalize_and_align_citations(
     old_to_new: dict[int, int] = {}
     max_index = len(sources)
 
+    drop_marker = "\x00DROP_CITE\x00"
+
     def _remap(match: re.Match[str]) -> str:
         old_idx = int(match.group(1))
         if old_idx < 1 or old_idx > max_index:
-            return ""
+            return drop_marker
         if old_idx not in old_to_new:
             old_to_new[old_idx] = len(old_to_new) + 1
         return f"[{old_to_new[old_idx]}]"
 
     reindexed_answer = re.sub(r"\[(\d+)\]", _remap, expanded)
-    # Nettoie uniquement les doubles espaces internes et espaces avant ponctuation.
-    reindexed_answer = re.sub(r"(?<=\S)[ \t]{2,}", " ", reindexed_answer)
-    reindexed_answer = re.sub(r"[ \t]+([.,;:!?])", r"\1", reindexed_answer).strip()
+    if drop_marker in reindexed_answer:
+        reindexed_answer = re.sub(
+            rf"[ \t]*{re.escape(drop_marker)}[ \t]*(?=[.,;:!?])", "", reindexed_answer
+        )
+        reindexed_answer = re.sub(rf"[ \t]*{re.escape(drop_marker)}", "", reindexed_answer)
+    reindexed_answer = reindexed_answer.strip()
 
     if not old_to_new:
         return reindexed_answer, sources
