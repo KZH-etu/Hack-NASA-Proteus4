@@ -1,0 +1,93 @@
+
+==========================================================================================
+Gouttelettes (FLEX) — issue — Forêt aléatoire
+274 essais, validation par groupe (5 plis)
+           issue precision rappel    f1  support
+      completion       0.5  0.259 0.341       27
+      disruption     0.623  0.623 0.623       61
+    extinguished     0.849  0.909 0.878      186
+   moyenne macro     0.657  0.597 0.614      274
+moyenne pondérée     0.764  0.781 0.768      274
+        accuracy                  0.781      274
+F1 macro IC 95 %             : [0.511 ; 0.698]
+Exactitude équilibrée        : 0.597  IC [51% ; 68%]
+Accuracy référence naïve     : 0.679  (toujours « l'issue la plus fréquente »)
+F1 macro référence naïve     : 0.270
+Écart de fiabilité (0 = parfait) : 0.065
+Matrice de confusion (lignes = vraie issue, colonnes = prédite) :
+prédit        completion  disruption  extinguished
+vrai                                              
+completion             7           9            11
+disruption             4          38            19
+extinguished           3          14           169
+
+==========================================================================================
+Gouttelettes (FLEX) — vitesse_combustion_mm2_s — Forêt aléatoire
+258 essais, validation par groupe (5 plis)
+MAE (erreur moyenne)         : 0.0540  IC [0.044 ; 0.067]   | référence 0.1077
+RMSE (punit les grosses erreurs) : 0.0848  IC [0.0643 ; 0.1070] | référence 0.1382
+R² (1 = parfait, 0 = référence)  : 0.619  IC [0.446 ; 0.739]
+Erreur relative moyenne      : 13.2%
+Couverture de l'intervalle 95 % : 95.3%
+Largeur moyenne de l'intervalle : 0.3801  (valeurs de 0.05 à 1.06)
+
+==========================================================================================
+Gaz (ACME CFI-G) — issue — Forêt + SMOTE
+331 essais, validation par groupe (5 plis)
+           issue precision rappel    f1  support
+          burned     0.641   0.75 0.691       88
+    extinguished     0.761  0.781 0.771      183
+     no_ignition     0.525   0.35 0.420       60
+   moyenne macro     0.642  0.627 0.627      331
+moyenne pondérée     0.686  0.695 0.686      331
+        accuracy                  0.695      331
+F1 macro IC 95 %             : [0.539 ; 0.705]
+Exactitude équilibrée        : 0.627  IC [55% ; 71%]
+Accuracy référence naïve     : 0.553  (toujours « l'issue la plus fréquente »)
+F1 macro référence naïve     : 0.237
+Écart de fiabilité (0 = parfait) : 0.042
+Matrice de confusion (lignes = vraie issue, colonnes = prédite) :
+prédit        burned  extinguished  no_ignition
+vrai                                           
+burned            66            19            3
+extinguished      24           143           16
+no_ignition       13            26           21
+
+==========================================================================================
+Solides (BASS-II, Saffire) — PAS DE MODÈLE (données réelles seulement)
+142 essais en microgravité, 33 sessions, 6 matériaux
+Issues : {'extinguished': 89, 'non renseigné': 29, 'burned': 16, 'other': 5, 'no_ignition': 3}
+Vitesse d'air à l'extinction connue : 14 essais
+mode                                      essais O2 testé (%)  flamme brève, ne s'installe pas  manque d'air (débit trop faible)  non renseigné  soufflage (débit trop fort)  ventilation coupée  à débit constant
+experiment  material   geometry                                                                                                                                                                                   
+BASS-II     pmma       rod                    54  13.6 à 22.2                                3                                27             14                            9                   0                 1
+            sibal      fabric                 27  16.4 à 20.8                                5                                 6             14                            2                   0                 0
+            pmma       film                   22  15.0 à 22.2                                1                                 8             10                            2                   1                 0
+                       flat sample            17  17.9 à 22.2                                1                                 9              6                            0                   1                 0
+Saffire-II  silicone   flat sample             4  21.5 à 22.1                                0                                 0              4                            0                   0                 0
+BASS-II     pmma       slab                    3  19.0 à 21.0                                0                                 3              0                            0                   0                 0
+            nomex      fabric                  3  21.0 à 22.2                                3                                 0              0                            0                   0                 0
+Saffire-III sibal      fabric                  2            —                                0                                 0              2                            0                   0                 0
+BASS-II     pmma       spherical section       2  17.2 à 17.3                                1                                 1              0                            0                   0                 0
+Saffire-II  sibal      fabric                  2  22.1 à 22.1                                0                                 0              2                            0                   0                 0
+Saffire-I   sibal      fabric                  2  21.5 à 21.6                                0                                 0              2                            0                   0                 0
+BASS-II     japan wax  candle                  1  17.4 à 17.4                                0                                 1              0                            0                   0                 0
+Saffire-II  pmma       flat sample             1  21.9 à 21.9                                0                                 0              1                            0                   0                 0
+                       structured sample       1  22.1 à 22.1                                0                                 0              1                            0                   0                 0
+            pmma+nomex flat sample             1  22.1 à 22.1                                0                                 0              1                            0                   0                 0
+
+==========================================================================================
+Aérosols / fumées (SAME, SAME-R) — PAS DE MODÈLE (données réelles seulement)
+129 essais en microgravité, 18 sessions, 7 matériaux
+                              essais vitesses d'air testées (cm/s) Rt/R0 (chauffe)
+experiment material                                                               
+SAME       dibutyl phthalate       4                         5, 10               —
+           kapton                  4                         5, 10               —
+           lampwick                4                         5, 10               —
+           silicone rubber         4                         5, 10               —
+           teflon                  4                         5, 10               —
+SAME-R     kapton                 29                  0, 1, 2, 8.1     1.38 à 1.48
+           lampwick               20                  0, 2, 8, 8.1     1.25 à 1.28
+           pyrell                 20                  0, 1, 2, 8.1     1.22 à 1.23
+           silicone               22               0, 1, 2, 8, 8.1     1.30 à 1.36
+           teflon                 18                     0, 2, 8.1     1.25 à 1.45
