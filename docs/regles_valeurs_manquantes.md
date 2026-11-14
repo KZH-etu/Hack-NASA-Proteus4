@@ -122,6 +122,12 @@ Chiffres vérifiés par `build_unified.py`.
   - Ordre de priorité : saisie manuelle (`annotations/bass_outcomes.csv`, marque `doc`) > annexe extraite > mots écrits dans « Air display » / « Fan display » (« 5 3 2 ext », « 10 blowoff », « out .275 », « no ign »).
   - Résultat : 102 issues sur 129 (89 extinguished, 10 burned, 3 no_ignition). Les 27 autres ont des observations sans issue explicite (« Steady burn », « Mostly blue ») : vides, à relire si besoin.
   - Comparaison avec Krypton-N : ils ont 25 issues (mots des colonnes de débit) ; les 3 désaccords (O12, P9, O6) ont été relus un par un et corrigés de notre côté.
+- **Conditions d'extinction (BASS, BASS-II, essais éteints)** : `flow_min_cm_s` n'est **pas** le débit d'extinction (soufflage = débit maximal, extinction souvent à un réglage du potentiomètre sous la dernière vitesse affichée, ou débit coupé). Trois colonnes, toutes `deduit`, remplies seulement si le texte (Air display, Fan display, observations) le dit :
+  - `extinction_mode` : `low_flow` (57), `brief_flame` (14, flamme brève qui ne s'établit pas), `blowoff` (13), `flow_off` (2, débit coupé), `steady_flow` (1) ; vide pour 4 essais ambigus (ex. M1 : seule la flamme du bas s'éteint ; M9 : débit augmenté puis extinction) ;
+  - `extinction_pot` (38) : réglage du potentiomètre écrit à l'extinction ; si plusieurs réglages sont cités, le dernier (« oscillating at 0.36, out immediately at 0.34 » → 0,34). Bas débit : 0,27 à 0,6 (médiane 0,32) ; soufflage : 4 à 7. Chaque valeur retenue a été vérifiée présente dans le texte source ;
+  - `extinction_flow_cm_s` (14) : seulement si la vitesse est écrite en cm/s (« 5 3 2 ext », « 10 blowoff », « extinguished at 18 cm/s ») ;
+  - **pas de conversion des réglages en cm/s** : la calibration du ventilateur (`PSI-25_Reference Data_Fan calibration data.xlsx`) varie d'un facteur 2 selon le jour pour un même réglage et n'a aucun point entre 0 et 1–2, alors que les extinctions ont lieu vers 0,3.
+  - Comparaison avec Krypton-N : ils ont seulement des indicateurs « éteint » / « soufflage » ; pas de mode, de réglage ni de vitesse d'extinction.
 
 ### Saffire I, II, III (PSI-98, 99, 100)
 - **Lignes de visualisation d'écoulement** (`F1C1/F1C2`…) et **lignes « Note 1…4 »** : écartées (`skipped_rows.csv`) ; le texte des notes est recopié dans `observations` / `notes` des échantillons qui y renvoient (la Note 1, « O2 déduit de la production de CO2 », concerne la colonne O2 de tous les essais en vol de Saffire-II).

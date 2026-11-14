@@ -42,7 +42,8 @@ FAMILY_COLUMNS = {
                                          "PAS le débit d'extinction (voir extinction_*)"),
     "flow_max_cm_s": ("Float64", "cm/s", "Plus grande vitesse d'air affichée pendant l'essai"),
     "extinction_mode": ("string", "", "Essais éteints : low_flow (en baissant le débit), blowoff (soufflage, débit élevé), "
-                                      "flow_off (débit coupé volontairement) ; vide si le texte ne le dit pas"),
+                                      "flow_off (débit coupé volontairement), brief_flame (flamme brève qui ne s'établit pas), "
+                                      "steady_flow (éteinte à vitesse constante) ; vide si le texte ne le dit pas"),
     "extinction_flow_cm_s": ("Float64", "cm/s", "Vitesse d'air à l'extinction, seulement si écrite en cm/s "
                                                 "(« 5 3 2 ext », « 10 blowoff », « extinguished 8 cm/s ») ; marque deduit"),
     "extinction_pot": ("Float64", "réglage", "Réglage du potentiomètre du ventilateur à l'extinction (« at pot 0.35 ») ; "
@@ -218,9 +219,17 @@ OUT_WORD = r"(?:extingui\w*|extinction|went out|goes out|go out|flame out|\bout\
 BLOWOFF = re.compile(r"blow ?off|blew (?:out|off)")
 FLOW_OFF = re.compile(r"turned (?:the )?(?:flow|fan)(?: pot)? (?:off|to 0\b)|turned off (?:the )?flow|(?:flow|fan) off\b"
                       r"|pot to 0\b|until turned (?:the )?(?:flow )?off|air (?:reading|display) (?:was )?(?:at )?zero")
-LOW_FLOW = re.compile(r"decreas|reduc|turned (?:it )?down|lower(?:ed)? (?:the )?flow|low(?:er)? flow|down to|slow ramp|limit")
+LOW_FLOW = re.compile(r"decreas|reduc|turned (?:it |the )?(?:flow |pot )?down|lower(?:ed)? (?:the )?flow|low(?:er)? flow|down to"
+                      r"|slow ramp|limit|after flow change|fan pot changed to")
+# Flamme brève qui ne s'établit pas après l'allumage (ni soufflage, ni bas débit)
+BRIEF = re.compile(r"brief(?:ly)? (?:ignition|flame|flash)|flash|no sustained|would not (?:sustain|stay lit)|no joy on sustained"
+                   r"|while the igniter was still on|before spreading beyond (?:the )?igniter|did not spread at all|only stayed lit")
 POT_AT_OUT = re.compile(OUT_WORD + r"[^;.]{0,30}?\bpot(?:entiometer)?s?\b(?:\s*(?:of|=|setting|at))*\s*(\d*\.\d+|\d+(?:\.\d+)?)")
-NUMBER_AT_OUT = re.compile(OUT_WORD + r"\s*(?:at|just as we reached a)?\s*(0?\.\d+)\b(?!\s*(?:cm|mm|%|min|s\b))")  # « extinguished at 0.36 »
+# « out immediately at 0.34 » ; « at » obligatoire (« blowoff! HCl still 0.8 » n'est pas un réglage)
+NUMBER_AT_OUT = re.compile(OUT_WORD + r"[^;.\d]{0,20}?(?:\bat|just as we reached a)\s*(0?\.\d+)\b(?!\s*(?:cm|mm|%|min|s\b))")
+VALUE_POT_AT_OUT = re.compile(OUT_WORD + r"[^;.]{0,40}?\bat\s*(\d*\.\d+)\s*pot\b")       # « quenched after prolonged burn at 0.4 pot »
+POT_BEFORE_OUT = re.compile(r"\bpot\w*\s*(?:changed\s*)?(?:to|of|at|=)\s*(\d*\.\d+)[^;.]{0,40}?" + OUT_WORD)  # « fan pot changed to 0.6 and flame went out »
+LAST_POT_OUT = re.compile(r"(\d*\.\d+)\s*(?:extinction|extinguished|flame extinguished)\b")   # « … 0.285, 0.28 extinction finally »
 CMS_AT_OUT = re.compile(OUT_WORD + r"[^;.]{0,40}?(\d+(?:\.\d+)?)\s*cm/s")
 DISPLAY_THEN_OUT = re.compile(r"(\d*\.?\d+)\s*(?:ext|blow ?off)\b")  # « 5 3 2 ext » : dernière vitesse affichée
 
@@ -235,15 +244,10 @@ def extinction_details(row):
         return
     flow_text = (v["flow_raw"] or "").lower()
     text = NEGATIONS.sub(" ", " ; ".join(t for t in (v["flow_raw"], v["fan_raw"], v["observations"]) if t).lower())
-    if BLOWOFF.search(text):
-        v["extinction_mode"] = "blowoff"
-    elif FLOW_OFF.search(text) or re.search(r"\b0\s*ext", flow_text):
-        v["extinction_mode"] = "flow_off"
-    elif LOW_FLOW.search(text) or POT_AT_OUT.search(text) or NUMBER_AT_OUT.search(text) or DISPLAY_THEN_OUT.search(flow_text):
-        v["extinction_mode"] = "low_flow"
-    if v["extinction_mode"]:
-        row.flag("extinction_mode", "deduit")
-    pot = POT_AT_OUT.search(text) or NUMBER_AT_OUT.search(text)
+    # Plusieurs réglages cités (« oscillating at 0.36, out immediately at 0.34 ») : le dernier est celui de l'extinction
+    patterns = [POT_AT_OUT, VALUE_POT_AT_OUT, NUMBER_AT_OUT, POT_BEFORE_OUT] + ([LAST_POT_OUT] if "pot" in text else [])
+    found = [m for p in patterns for m in p.finditer(text)]
+    pot = max(found, key=lambda m: m.end()) if found else None
     if pot:
         v["extinction_pot"] = float(pot.group(1))
         row.flag("extinction_pot", "deduit")
@@ -251,10 +255,26 @@ def extinction_details(row):
     shown = DISPLAY_THEN_OUT.search(flow_text)
     if cms:
         v["extinction_flow_cm_s"] = float(cms.group(1))
-    elif shown and v["extinction_mode"] != "flow_off":
+    elif shown and not re.search(r"\b0\s*ext", flow_text):
         v["extinction_flow_cm_s"] = float(shown.group(1))
     if v["extinction_flow_cm_s"] is not None:
         row.flag("extinction_flow_cm_s", "deduit")
+
+    ext_flow, top = v["extinction_flow_cm_s"], v["flow_max_cm_s"]
+    if BLOWOFF.search(text):
+        v["extinction_mode"] = "blowoff"
+    elif FLOW_OFF.search(text) or re.search(r"\b0\s*ext", flow_text):
+        v["extinction_mode"] = "flow_off"
+    elif BRIEF.search(text):
+        v["extinction_mode"] = "brief_flame"
+    elif LOW_FLOW.search(text) or pot or (shown and ext_flow is not None):
+        v["extinction_mode"] = "low_flow"
+    elif ext_flow is not None and top is not None and ext_flow < top:
+        v["extinction_mode"] = "low_flow"      # éteinte à une vitesse plus basse que la plus haute de l'essai
+    elif ext_flow is not None and v["flow_min_cm_s"] == top:
+        v["extinction_mode"] = "steady_flow"   # une seule vitesse pendant tout l'essai
+    if v["extinction_mode"]:
+        row.flag("extinction_mode", "deduit")
 
 
 def with_unit(text):
