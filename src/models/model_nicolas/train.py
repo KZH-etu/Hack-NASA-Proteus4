@@ -8,8 +8,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
 
-DATA_PATH = r"c:\Users\patri\Documents\gemini-workspace\engineering-lab\nasa-space-apps-2026\flame-in-freefall\data\processed\jason_proteus4_experiments_all.csv"
-MODEL_DIR = r"c:\Users\patri\Documents\gemini-workspace\engineering-lab\nasa-space-apps-2026\flame-in-freefall\src\models"
+# Chemins relatifs au dépôt : catalogue des expériences (construit à partir des tables data/processed/families
+# par src/data/build_unified.py) et dossier du modèle lu par predict.py.
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+DATA_PATH = os.path.join(ROOT, "data", "processed", "experiments_all.csv")
+MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 # Table des constantes physiques officielles (NIST / SFPE Handbook of Fire Protection)
@@ -120,7 +123,7 @@ def train_official_thermo_baseline():
         }
     }
     
-    save_path = os.path.join(MODEL_DIR, "official_thermodynamic_models.joblib")
+    save_path = os.path.join(MODEL_DIR, "pim_flammability_gbt_v1.joblib")
     joblib.dump(bundle_official, save_path)
     print("MÉTRIQUES DE LA NOUVELLE BASE OFFICIELLE (5-FOLD CV) :")
     print(f"Accuracy  : {np.mean(accs)*100:.2f} %")
