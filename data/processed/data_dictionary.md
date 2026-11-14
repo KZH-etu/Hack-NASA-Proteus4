@@ -13,13 +13,13 @@ Généré par `python -m src.data.build_unified` à partir du code. Ne pas édit
 | `fuel_type` | string |  | Famille : solid, droplet, gas |
 | `material` | string |  | Combustible ou matériau (minuscules) |
 | `geometry` | string |  | Géométrie de l'échantillon |
-| `o2_percent` | Float64 | % | O2 initial, en % molaire |
+| `o2_percent` | Float64 | % | O2 initial côté oxydant, en % molaire (flammes inverses ACME : O2 du jet du brûleur) |
 | `pressure_kpa` | Float64 | kPa | Pression ambiante |
-| `flow_cm_s` | Float64 | cm/s | Vitesse d'écoulement imposé ; vide si non quantifiée (ex. FLEX : gouttelettes libres ou à dérive lente) |
+| `flow_cm_s` | Float64 | cm/s | Vitesse d'écoulement imposé (SPICE : co-courant d'air) ; vide si non quantifiée (FLEX : gouttelettes libres ou à dérive lente) ou sans objet (ACME : brûleur sphérique en chambre calme) |
 | `gravity` | string |  | micro / 1g ; ne jamais mélanger les deux dans un entraînement |
 | `outcome` | string |  | Issue normalisée : burned, extinguished, no_ignition, disruption, completion, other (texte d'origine dans notes) |
 | `spread_rate_mm_s` | Float64 | mm/s | Vitesse de propagation de flamme |
-| `burning_rate` | Float64 | selon l'expérience | Taux de combustion ; FLEX : constante K en mm²/s |
+| `burning_rate` | Float64 | mm²/s | Constante de combustion K des gouttelettes (FLEX) ; sans objet pour les gaz et les solides |
 | `source_doc` | string |  | Fichier PSI ou document NASA d'où vient la ligne |
 | `source_page` | string |  | Ligne du fichier PSI ou page du document |
 | `notes` | string |  | Texte d'origine utile (issue brute, diluant, unités) |
@@ -54,6 +54,49 @@ Généré par `python -m src.data.build_unified` à partir du code. Ne pas édit
 | `source_line` | Int64 |  | Ligne dans le fichier d'origine (en-tête = 1) |
 | `qc_flags` | string |  | Marques qualité « colonne:motif;... » (motifs : QC_REASONS du schéma) |
 
+## families/gas.parquet
+
+| Colonne | Type | Unité | Description |
+|---|---|---|---|
+| `experiment` | string |  | ACME CFI-G, ACME Flame Design ou SPICE |
+| `psi_id` | string |  | Investigation PSI |
+| `test_id` | string |  | Code d'essai (ACME, espaces retirés) ou « GMT<jour>-L<ligne> » (SPICE, qui n'a pas d'identifiant) |
+| `session` | string |  | Groupe pour la validation croisée : jour d'essai (ACME) ou flamme = jour + heure d'allumage (SPICE) |
+| `test_date` | string | AAAA-MM-JJ | ACME : déduite du code AAJJJ ; SPICE : année inconnue, vide |
+| `gmt_day` | Int64 | jour de l'année | Jour GMT (SPICE ; ACME : JJJ du code) |
+| `flame_type` | string |  | normal, inverse ou coflow |
+| `fuel` | string |  | Combustible (ethylene, propane, n-butane...) |
+| `fuel_label_raw` | string |  | Libellé d'origine (ex. « 30% butane » = bouteille à 30 %, « 75 % Propylene ») |
+| `x_fuel` | Float64 | fraction molaire | Combustible côté combustible, en début d'essai |
+| `x_fuel_final` | Float64 | fraction molaire | Combustible dans la chambre en fin d'essai (flammes inverses) |
+| `x_o2` | Float64 | fraction molaire | O2 côté oxydant, en début d'essai |
+| `x_o2_final` | Float64 | fraction molaire | O2 dans la chambre en fin d'essai (flammes normales) |
+| `pressure_kpa` | Float64 | kPa | Pression en début d'essai (CFI-G : « approx p », marqué approx) |
+| `pressure_final_kpa` | Float64 | kPa | Pression en fin d'essai (Flame Design) |
+| `fuel_rate_mg_s` | Float64 | mg/s | Débit de combustible au brûleur (mélange) |
+| `hc_rate_mg_s` | Float64 | mg/s | Débit d'hydrocarbure seul (SPICE « HC Fuel Rate », CFI-G « mHC » / « HC burnrate ») |
+| `fuel_rate_sccm` | Float64 | sccm | Débit de combustible (SPICE) |
+| `o2_rate_mg_s` | Float64 | mg/s | Débit d'O2 au brûleur (flammes inverses) |
+| `n2_rate_mg_s` | Float64 | mg/s | Débit de N2 au brûleur |
+| `total_rate_mg_s` | Float64 | mg/s | Débit total au brûleur |
+| `nozzle_mm` | Float64 | mm | Diamètre de la buse (SPICE) |
+| `coflow_cm_s` | Float64 | cm/s | Vitesse du co-courant d'air (SPICE) |
+| `z_st` | Float64 |  | Fraction de mélange stœchiométrique |
+| `t_ad_K` | Float64 | K | Température adiabatique de flamme (calculée par l'équipe ACME) |
+| `tfp` | boolean |  | Sonde TFP (pyrométrie à filament fin) utilisée (CFI-G) |
+| `hot_ignition_raw` | string |  | Allumage chaud tel qu'écrit (yes, no, flash) |
+| `end_mode_raw` | string |  | Fin d'essai : SE = auto-extinction, FT = coupure du débit, « - » = rien |
+| `cool_flame` | boolean |  | Flamme froide observée : colonne « Cool flame? » ou commentaire explicite ; vide = non renseigné (pas « non ») |
+| `burn_time_s` | Float64 | s | Durée de la flamme chaude |
+| `peak_burner_T_K` | Float64 | K | Température maximale du brûleur (source en °C, + 273.15) |
+| `flame_color` | string |  | Couleur notée (minuscules) |
+| `outcome` | string |  | Issue normalisée (OUTCOMES du schéma) ; vide pour Flame Design et SPICE (pas d'issue dans la table) |
+| `gravity` | string |  | micro : investigations de type « Microgravity Investigation » (ISS) |
+| `comments` | string |  | Commentaires d'origine |
+| `source_file` | string |  | Fichier PSI d'origine |
+| `source_line` | Int64 |  | Ligne dans le fichier d'origine (en-tête = 1) |
+| `qc_flags` | string |  | Marques qualité « colonne:motif;... » |
+
 ## Motifs de `qc_flags`
 
 | Motif | Sens |
@@ -68,3 +111,5 @@ Généré par `python -m src.data.build_unified` à partir du code. Ne pas édit
 | `approx` | valeur approchée dans la source (« ~6 ») |
 | `rampe` | condition variable pendant l'essai |
 | `sans_allumage_chaud` | burn time = 0 car pas d'allumage chaud |
+| `qualitatif` | texte qualitatif à la place d'un nombre (« LOW O2 ») : vide, texte gardé en commentaire |
+| `erreur_excel` | erreur de formule dans la source (« #DIV/0! », « #VALUE! ») : vide |
