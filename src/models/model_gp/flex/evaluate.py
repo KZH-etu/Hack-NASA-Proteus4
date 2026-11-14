@@ -9,11 +9,11 @@ import datetime
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GroupKFold
 
 from src.models.model_gp.flex.model import FEATURES, FlexModel, features, load_data
-from src.models.model_gp.metrics import classification_metrics
+from src.models.model_gp.metrics import classification_metrics, detailed_report_lines
 
 REPORT = Path(__file__).resolve().parent / "validation.md"
 N_FOLDS = 5
@@ -64,6 +64,9 @@ def main():
         "r2": r2_score(yk, mk), "mae": mean_absolute_error(yk, mk),
         "r2_base": r2_score(yk, k["base_k"]), "mae_base": mean_absolute_error(yk, k["base_k"]),
         "coverage_90": float((np.abs(yk - mk) <= 1.645 * sk).mean()),
+        "coverage_68": float((np.abs(yk - mk) <= 1.0 * sk).mean()),
+        "coverage_95": float((np.abs(yk - mk) <= 1.96 * sk).mean()),
+        "rmse": float(mean_squared_error(yk, mk) ** 0.5), "rmse_base": float(mean_squared_error(yk, k["base_k"]) ** 0.5),
         "mean_std": float(sk.mean()),
     }
 
@@ -98,17 +101,23 @@ def main():
     lines += [f"| {fuel} | {m['n']} | {fmt(m['auc'])} | {fmt(m['brier'])} | {fmt(m['accuracy'])} |" for fuel, m in by_fuel.items()]
     lines += ["", "Calibration (hors échantillon) :", "", "| Probabilité prédite | Essais | Moyenne prédite | Fréquence observée |", "|---|---:|---:|---:|"]
     lines += [f"| {bins[b]:.1f}–{bins[b + 1]:.1f} | {int(r.n)} | {r.predite:.2f} | {r.observee:.2f} |" for b, r in calib.iterrows()]
+    lines += [""] + detailed_report_lines(y, cv["p_extinction"].to_numpy(), cv["base_p"].to_numpy(), "extinction", "la flamme tient")
     lines += [
-        "",
         "## Constante de combustion K (mm²/s)",
         "",
-        "| | R² | Erreur absolue moyenne |",
-        "|---|---:|---:|",
-        f"| **Modèle (processus gaussien)** | {fmt(k_metrics['r2'])} | {fmt(k_metrics['mae'])} |",
-        f"| Référence : K moyen par combustible | {fmt(k_metrics['r2_base'])} | {fmt(k_metrics['mae_base'])} |",
+        "| | R² | Erreur absolue moyenne | RMSE |",
+        "|---|---:|---:|---:|",
+        f"| **Modèle (processus gaussien)** | {fmt(k_metrics['r2'])} | {fmt(k_metrics['mae'])} | {fmt(k_metrics['rmse'])} |",
+        f"| Référence : K moyen par combustible | {fmt(k_metrics['r2_base'])} | {fmt(k_metrics['mae_base'])} | {fmt(k_metrics['rmse_base'])} |",
         "",
         f"Intervalle à 90 % (± 1,645 écart-type) : la vraie valeur est dedans dans **{k_metrics['coverage_90']:.0%}** des cas "
         f"(attendu : 90 %) ; écart-type moyen {k_metrics['mean_std']:.3f} mm²/s ; {k_metrics['n']} essais avec K.",
+        "",
+        "| Intervalle | Part des essais dedans | Attendu |",
+        "|---|---:|---:|",
+        f"| ± 1 écart-type (68 %) | {k_metrics['coverage_68']:.1%} | 68 % |",
+        f"| ± 1,645 écart-type (90 %) | {k_metrics['coverage_90']:.1%} | 90 % |",
+        f"| ± 1,96 écart-type (95 %) | {k_metrics['coverage_95']:.1%} | 95 % |",
         "",
         "## Importance des variables (longueurs de corrélation du noyau, données normalisées ; petite = influente)",
         "",
