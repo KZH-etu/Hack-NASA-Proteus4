@@ -12,15 +12,15 @@ Règles : `docs/regles_valeurs_manquantes.md`.
 | PSI-159 | ACME CFI-G | gas | 333 | 333 | traité |
 | PSI-10 | ACME Flame Design | gas | 327 | 327 | traité |
 | PSI-107 | SPICE | gas | 435 | 435 | traité |
-| PSI-26 | BASS | solid | 0 | 0 | à faire (solids) |
-| PSI-25 | BASS-II | solid | 0 | 0 | à faire (solids) |
-| PSI-98 | SAFFIRE-I | solid | 0 | 0 | à faire (solids) |
-| PSI-99 | SAFFIRE-II | solid | 0 | 0 | à faire (solids) |
-| PSI-100 | SAFFIRE-III | solid | 0 | 0 | à faire (solids) |
+| PSI-26 | BASS | solid | 121 | 121 | traité |
+| PSI-25 | BASS-II | solid | 129 | 129 | traité |
+| PSI-98 | SAFFIRE-I | solid | 2 | 2 | traité |
+| PSI-99 | SAFFIRE-II | solid | 18 | 18 | traité |
+| PSI-100 | SAFFIRE-III | solid | 2 | 2 | traité |
 | PSI-101 | SAME-R | aerosol | 0 | 0 | à faire (aerosols) |
 | PSI-102 | SAME | aerosol | 0 | 0 | à faire (aerosols) |
 
-Lignes écartées : 34 (détail dans `skipped_rows.csv`).
+Lignes écartées : 43 (détail dans `skipped_rows.csv`).
 
 ## families/droplets.parquet (274 lignes)
 
@@ -93,15 +93,75 @@ Cases vides :
 | `outcome` | 762 / 1095 | 0 | 0 | 0 | 762 | 0 |
 | `comments` | 1010 / 1095 | 0 | 0 | 0 | 642 | 368 |
 
-## unified.parquet
+## families/solids.parquet (272 lignes)
 
-1369 lignes.
+Marques les plus fréquentes :
+
+- `diameter_mm:sans_objet` × 148
+- `flow_cm_s:rampe` × 129
+- `pressure_kpa:nominal` × 129
+- `width_cm:sans_objet` × 124
+- `thickness_mm:sans_objet` × 124
+- `material:doc` × 91
+- `flow_cm_s:qualitatif` × 29
+- `co_initial_ppm:incoherent` × 13
+- `x_o2:approx` × 11
+- `flow_cm_s:a_verifier` × 9
+- `co_final_ppm:qualitatif` × 8
+- `burn_length_cm:approx` × 8
+- `spread_rate_mm_s:sans_objet` × 7
+- `spread_rate_mm_s:qualitatif` × 7
+- `burn_length_cm:recopie` × 6
+
+Cases vides :
 
 | Colonne | Vides | sans objet | faux zéro vidé | autre marque | absente du fichier source | vraiment manquants |
 |---|---:|---:|---:|---:|---:|---:|
-| `o2_percent` | 11 / 1369 | 0 | 0 | 11 | 0 | 0 |
-| `pressure_kpa` | 1 / 1369 | 0 | 1 | 0 | 0 | 0 |
-| `flow_cm_s` | 962 / 1369 | 660 | 0 | 8 | 274 | 20 |
-| `outcome` | 762 / 1369 | 0 | 0 | 0 | 762 | 0 |
-| `spread_rate_mm_s` | 1369 / 1369 | 1369 | 0 | 0 | 0 | 0 |
-| `burning_rate` | 1111 / 1369 | 1095 | 0 | 0 | 0 | 16 |
+| `test_date` | 22 / 272 | 0 | 0 | 0 | 22 | 0 |
+| `pi` | 143 / 272 | 0 | 0 | 0 | 143 | 0 |
+| `material` | 3 / 272 | 0 | 0 | 0 | 0 | 3 |
+| `material_raw` | 4 / 272 | 0 | 0 | 0 | 0 | 4 |
+| `thickness_mm` | 212 / 272 | 124 | 0 | 4 | 54 | 30 |
+| `width_cm` | 145 / 272 | 124 | 0 | 0 | 0 | 21 |
+| `length_cm` | 252 / 272 | 0 | 0 | 2 | 250 | 0 |
+| `diameter_mm` | 173 / 272 | 148 | 0 | 0 | 0 | 25 |
+| `color` | 218 / 272 | 0 | 0 | 0 | 143 | 75 |
+| `sides_burning` | 266 / 272 | 0 | 0 | 0 | 143 | 123 |
+| `flow_direction` | 256 / 272 | 0 | 0 | 0 | 129 | 127 |
+| `flow_cm_s` | 183 / 272 | 0 | 0 | 158 | 0 | 25 |
+| `flow_min_cm_s` | 29 / 272 | 0 | 0 | 0 | 0 | 29 |
+| `flow_max_cm_s` | 29 / 272 | 0 | 0 | 0 | 0 | 29 |
+| `flow_raw` | 25 / 272 | 0 | 0 | 0 | 0 | 25 |
+| `fan_raw` | 36 / 272 | 0 | 0 | 0 | 22 | 14 |
+| `flow_restrictor` | 23 / 272 | 0 | 0 | 0 | 22 | 1 |
+| `x_o2` | 11 / 272 | 0 | 0 | 0 | 2 | 9 |
+| `x_o2_final` | 145 / 272 | 0 | 0 | 2 | 143 | 0 |
+| `pressure_kpa` | 22 / 272 | 0 | 0 | 0 | 22 | 0 |
+| `co2_initial_pct` | 145 / 272 | 0 | 0 | 2 | 143 | 0 |
+| `co2_final_pct` | 149 / 272 | 0 | 0 | 5 | 143 | 1 |
+| `co2_mmhg` | 161 / 272 | 0 | 0 | 5 | 151 | 5 |
+| `co_initial_ppm` | 146 / 272 | 0 | 0 | 3 | 143 | 0 |
+| `co_final_ppm` | 152 / 272 | 0 | 0 | 8 | 143 | 1 |
+| `ignition_power_W` | 261 / 272 | 0 | 0 | 0 | 252 | 9 |
+| `ignition_time_s` | 261 / 272 | 0 | 0 | 0 | 252 | 9 |
+| `burn_time_s` | 265 / 272 | 0 | 0 | 4 | 252 | 9 |
+| `burn_length_cm` | 255 / 272 | 0 | 0 | 1 | 254 | 0 |
+| `burn_complete` | 256 / 272 | 0 | 0 | 0 | 254 | 2 |
+| `spread_rate_mm_s` | 268 / 272 | 7 | 0 | 7 | 254 | 0 |
+| `spread_mode` | 267 / 272 | 0 | 0 | 0 | 254 | 13 |
+| `observations` | 125 / 272 | 0 | 0 | 0 | 4 | 121 |
+| `outcome` | 252 / 272 | 0 | 0 | 0 | 252 | 0 |
+
+## unified.parquet
+
+1641 lignes.
+
+| Colonne | Vides | sans objet | faux zéro vidé | autre marque | absente du fichier source | vraiment manquants |
+|---|---:|---:|---:|---:|---:|---:|
+| `material` | 3 / 1641 | 0 | 0 | 0 | 0 | 3 |
+| `o2_percent` | 22 / 1641 | 0 | 0 | 11 | 2 | 9 |
+| `pressure_kpa` | 23 / 1641 | 0 | 1 | 0 | 22 | 0 |
+| `flow_cm_s` | 1145 / 1641 | 660 | 0 | 166 | 274 | 45 |
+| `outcome` | 1014 / 1641 | 0 | 0 | 0 | 1014 | 0 |
+| `spread_rate_mm_s` | 1637 / 1641 | 1376 | 0 | 7 | 254 | 0 |
+| `burning_rate` | 1383 / 1641 | 1367 | 0 | 0 | 0 | 16 |

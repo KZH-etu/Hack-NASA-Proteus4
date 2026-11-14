@@ -105,10 +105,53 @@ class Flags:
 
 def us_date_to_iso(raw):
     """'3/5/2009' ou '10/24/09' (mois/jour/année) -> 'AAAA-MM-JJ' ; None si vide ou illisible."""
+    text = str(raw or "").replace("`", "").strip()  # « 6/29/`12 » dans BASS
     for fmt in ("%m/%d/%Y", "%m/%d/%y"):
         try:
-            return pd.to_datetime(raw, format=fmt).date().isoformat()
+            return pd.to_datetime(text, format=fmt).date().isoformat()
         except (ValueError, TypeError):
             continue
     return None
 
+
+
+class Row:
+    """Une ligne en cours de nettoyage : valeurs de la table famille (`columns`) + marques qualité."""
+
+    def __init__(self, raw, columns, experiment, psi_id, path):
+        self.raw, self.columns, self.flags, self.qualitative = raw, columns, Flags(), []
+        self.values = {c: None for c in columns}
+        self.values.update(experiment=experiment, psi_id=psi_id, gravity="micro",
+                           source_file=path.name, source_line=raw["source_line"])
+
+    def num(self, source_col, target, scale=1.0, offset=0.0, text=None):
+        """Lit un nombre de la source dans `target` ; marque rampe / approx / qualitatif / erreur Excel."""
+        text = self.raw.get(source_col, "") if text is None else str(text).strip()
+        if text.upper() in ("RAMP", "RAMPED"):
+            self.flags.add(target, "rampe")
+            return None
+        value, reason = parse_number(text)
+        if reason == "approx":
+            self.flags.add(target, reason)
+        elif reason == "non_numerique":
+            if text.startswith("#"):  # « #DIV/0! », « #VALUE! »
+                self.flags.add(target, "erreur_excel")
+            else:  # « LOW O2 », « Insignificant » : texte gardé dans les commentaires
+                self.flags.add(target, "qualitatif")
+                self.qualitative.append(f"{source_col} = {text}")
+        if value is not None:
+            value = round(value * scale + offset, 6)
+        self.values[target] = value
+        return value
+
+    def flag(self, column, reason):
+        self.flags.add(column, reason)
+
+    def finish(self, comments_column):
+        """Recopie les textes qualitatifs dans `comments_column` et écrit qc_flags."""
+        if self.qualitative:
+            texts = "; ".join(dict.fromkeys(self.qualitative))
+            current = self.values[comments_column]
+            self.values[comments_column] = f"{current} | {texts}" if current else texts
+        self.values["qc_flags"] = self.flags.to_str(keep_columns=self.columns)
+        return self.values

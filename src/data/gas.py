@@ -14,7 +14,7 @@ import re
 import pandas as pd
 
 from src.common.schema import COLUMNS
-from src.data.common import ATM_TO_KPA, Flags, experimental_table, parse_number, psi_index, read_raw_csv
+from src.data.common import ATM_TO_KPA, Row as _Row, experimental_table, psi_index, read_raw_csv
 
 MSG_PRESSURE_NOTE = "pression cabine nominale 1 atm dans la boîte à gants (MSG), non mesurée par essai ; cf. NASA/TM-20210011385 p. 11"
 
@@ -65,37 +65,8 @@ FUEL_NAMES = {"c2h4": "ethylene", "c3h8": "propane", "ch4": "methane", "butane":
 
 # ---------- Outils ----------
 
-class Row:
-    """Une ligne en cours de nettoyage : valeurs de la table famille + marques qualité."""
-
-    def __init__(self, raw, experiment, psi_id, path):
-        self.raw, self.flags, self.qualitative = raw, Flags(), []
-        self.values = {c: None for c in FAMILY_COLUMNS}
-        self.values.update(experiment=experiment, psi_id=psi_id, gravity="micro",
-                           source_file=path.name, source_line=raw["source_line"])
-
-    def num(self, source_col, target, scale=1.0, offset=0.0):
-        """Lit un nombre de la source dans `target` ; marque rampe / approx / incohérent."""
-        text = self.raw.get(source_col, "")
-        if text.upper() in ("RAMP", "RAMPED"):
-            self.flags.add(target, "rampe")
-            return None
-        value, reason = parse_number(text)
-        if reason == "approx":
-            self.flags.add(target, reason)
-        elif reason == "non_numerique":
-            if text.startswith("#"):  # « #DIV/0! », « #VALUE! »
-                self.flags.add(target, "erreur_excel")
-            else:  # « LOW O2 » : texte gardé dans les commentaires
-                self.flags.add(target, "qualitatif")
-                self.qualitative.append(f"{source_col} = {text}")
-        if value is not None:
-            value = round(value * scale + offset, 6)
-        self.values[target] = value
-        return value
-
-    def flag(self, column, reason):
-        self.flags.add(column, reason)
+def Row(raw, experiment, psi_id, path):
+    return _Row(raw, FAMILY_COLUMNS, experiment, psi_id, path)
 
 
 def _fuel(label):
@@ -146,11 +117,7 @@ def _unified(row, meta, geometry, notes):
 
 
 def _finish(row):
-    if row.qualitative:
-        texts = "; ".join(dict.fromkeys(row.qualitative))
-        row.values["comments"] = f"{row.values['comments']} | {texts}" if row.values["comments"] else texts
-    row.values["qc_flags"] = row.flags.to_str(keep_columns=FAMILY_COLUMNS)
-    return row.values
+    return row.finish("comments")
 
 
 # ---------- ACME CFI-G (PSI-159) ----------

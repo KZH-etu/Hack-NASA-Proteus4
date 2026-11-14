@@ -24,16 +24,15 @@ from collections import Counter
 import pandas as pd
 
 from src.common.schema import COLUMNS, FUEL_TYPES, GRAVITY_LEVELS, OUTCOMES, QC_REASONS, check_qc_flags
-from src.data import droplets, gas
+from src.data import droplets, gas, solids
 from src.data.common import PROCESSED, RAW_PSI, psi_index
 
 # Familles traitées : nom -> module (chaque module expose build() et FAMILY_COLUMNS)
-FAMILIES = {"droplets": droplets, "gas": gas}
+FAMILIES = {"droplets": droplets, "gas": gas, "solids": solids}
 
 # Investigations pas encore traitées (affichées comme « à faire » dans campaigns.csv et qc_report.md)
 PENDING = {
     "PSI-39": "droplets",
-    "PSI-26": "solids", "PSI-25": "solids", "PSI-98": "solids", "PSI-99": "solids", "PSI-100": "solids",
     "PSI-101": "aerosols", "PSI-102": "aerosols",
 }
 

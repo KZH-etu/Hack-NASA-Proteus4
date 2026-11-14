@@ -87,22 +87,46 @@ Chiffres vérifiés par `build_unified.py`. Dans `qc_report.md`, chaque case vid
 - **Air Rate négatif** (−0,28 et −5,92 cm/s, 8 lignes) : **F → vide**, marque `incoherent`.
 - Pas d'issue dans la table (point de fumée étudié) : `outcome` vide, **A**.
 
-### BASS (PSI-26) et BASS-II (PSI-25)
-- BASS-II, **« Fan display » vide (13 lignes)** : le débit est réglé au potentiomètre (colonne « Air display »). **A**, et sans gravité pour nous.
-- BASS-II, **O2 final très bas** (B2 : 1,6 % ; P22a : 0,6 % ; T28a : 0,9 %) : chute impossible dans la boîte à gants. **F**, à ne pas utiliser comme O2 de l'essai (on utilise l'O2 initial).
-- CO initial négatif (jusqu'à −3 ppm) : dérive du capteur, **F** (valeur gardée).
-- BASS, 1 ligne sans numéro d'essai (8/3/2012) : à vérifier dans l'Excel « As Run » ; c'est sans doute une ligne de commentaire.
+### Solides : conventions communes (`families/solids.parquet`)
+Chiffres vérifiés par `build_unified.py`.
+- **Matériau et géométrie** sont lus dans la description d'échantillon (« 1/4" black rod », « 2 cm 0.1 mm PMMA film », « SIBAL 2 cm »…). Diamètres des tiges : 1/4" = 6,35 mm, 3/8" = 9,525 mm, 1/2" = 12,7 mm.
+- **PMMA implicite** (tiges, sphères, sections sphériques, films sans le mot « PMMA ») : `material:doc` (BASS 30 lignes, BASS-II 57) ; sources : NASA/TM-20210011385 p. 47 et plans BASS (PSI-26, Engineering Documents). Une « candle » sans précision garde un matériau vide (3 lignes, **A**).
+- **Dimensions sans objet selon la géométrie** : pas de largeur ni d'épaisseur pour une tige, une sphère ou une bougie ; pas de diamètre pour un échantillon plat → `sans_objet`.
+- **Vitesse d'air** (« Air display » BASS / BASS-II, anémomètre en cm/s : NASA/TM-20210011385 p. 21, et observations BASS « at 10 cm/s ») :
+  - une seule valeur → `flow_cm_s` ;
+  - plusieurs valeurs (« 10, 5, 3 ») → `flow_cm_s` vide + `rampe`, avec `flow_min_cm_s` / `flow_max_cm_s` ;
+  - une valeur accompagnée de texte (« 3 ign », « 10 max ») → `qualitatif` ;
+  - les réglages du potentiomètre (« pot 0.4 ») ne sont pas des vitesses : ignorés (texte brut dans `flow_raw`).
+- **`spread_rate_mm_s` et `burning_rate`** : les vitesses de propagation BASS / BASS-II ne sont que dans les figures des rapports (**A**) ; `burning_rate` est `sans_objet`.
+
+### BASS (PSI-26)
+- La table PSI (essais) est enrichie par la matrice `As Run` (O2, pression mesurée 0,97–1,01 atm, CO2, vitesse d'air, observations). **Jointure sur (n° As Run, n° d'essai)** : les 121 essais sont appariés sans ambiguïté (le n° As Run seul est en double pour 5 essais, et les dates diffèrent de format, ex. « 6/29/`12 »).
+- `test_id` = `AR<n° As Run>-T<n° d'essai>`.
+- **1 ligne « SOOT Cleaning »** sans numéro d'essai : pas un essai → `skipped_rows.csv`.
+- **Issue** : seulement dans les observations en texte libre → vide tant que `annotations/bass_outcomes.csv` n'est pas rempli.
+
+### BASS-II (PSI-25)
+- **Pression** : 101,325 kPa `nominal` (rapport p. 11 et 41).
+- **« Fan display » vide (13 lignes)** : réglage au potentiomètre, **A** sans conséquence (la vitesse est dans « Air display »).
+- **O2 final très bas** (B2 : 1,6 % ; P22a : 0,6 % ; T28a : 0,9 %) : `x_o2_final:incoherent`. Utiliser l'O2 initial.
+- **CO négatif** (jusqu'à −3 ppm) : dérive du capteur, valeur gardée + `incoherent`.
+- **Issue et sens de l'écoulement** : annexe A du rapport (pp. 103–113, texte libre) → à saisir dans `annotations/bass_outcomes.csv` (colonnes `outcome`, `flow_direction`, `source_page`). Le build les reprend avec la marque `doc`.
 
 ### Saffire I, II, III (PSI-98, 99, 100)
-- **Lignes de visualisation d'écoulement** (`F1C1/F1C2`…) et **lignes « Note 1…4 »** de Saffire-II : ce ne sont pas des essais. À exclure. Le texte des notes va dans `notes` des lignes concernées.
-- **Saffire-II, matériau vide pour 2-6 et 2-9** : **C**. 2-6 = tissu SIBAL et 2-9 = PMMA plat de 10 mm, d'après NTRS 20170001636 (Table 1, échantillons S6 et S9).
-- **Saffire-II, longueur de propagation µg vide pour le silicone (2-1 à 2-4)** : la longueur brûlée est ~0, donc pas de propagation. **B (sans objet)**, pas un manquant.
-- **Saffire-II, vitesse 1g vide pour 2-3** : longueur brûlée en 1g ~0, **B**.
+- **Lignes de visualisation d'écoulement** (`F1C1/F1C2`…) et **lignes « Note 1…4 »** : écartées (`skipped_rows.csv`) ; le texte des notes est recopié dans `observations` / `notes` des échantillons qui y renvoient (la Note 1, « O2 déduit de la production de CO2 », concerne la colonne O2 de tous les essais en vol de Saffire-II).
+- **Saffire-II : chaque échantillon donne 2 lignes** : vol (`gravity = micro`) et essai de comparaison au sol (`test_id` + `-1g`, `gravity = 1g`). Pour le sol, O2, débit et pression ne sont pas donnés : **A**.
+- **Matériau vide pour 2-6 et 2-9** : **C**. 2-6 = SIBAL et 2-9 = PMMA plat de 10 mm, d'après NTRS 20170001636 (Table 1) ; 2-8 = PMMA « structuré » (`geometry:doc`).
+- **Longueur brûlée « Complete »** : `burn_complete = True` et longueur brûlée = longueur de l'échantillon (`recopie`). Sinon, `burn_complete` est déduit en comparant les deux longueurs de la même ligne.
+- **Longueur brûlée « ~ 0 »** (silicone, Nomex) : 0 + `approx`, issue `other` (pas de propagation) ; vitesse de propagation `sans_objet`. « n/a (Nomex) » → `sans_objet`.
+- **Vitesse en 1g « Acceleratory »** : pas de vitesse unique → vide + `qualitatif`, `spread_mode = acceleratory`. « Note 4 » (flamme ancrée à la base, régression 0,01–0,04 mm/s) → vide + `qualitatif`.
+- **O2 en fourchette** (« 21.5 - 21.7 », « 22.1 to 22.0 ») : milieu de la fourchette + `approx`.
 - **Épaisseurs incohérentes (F)** :
-  - Saffire-I indique « 0,37 cm » et Saffire-III « 0,33 cm » de SIBAL, alors que le document NASA donne **0,33 mm**. L'unité « cm » de ces tables est probablement fausse (un tissu de 3,7 mm n'est pas réaliste).
-  - Saffire-II « 037 mm » = 0,37 mm (décimale manquante).
-- **Saffire-I, longueur et largeur inversées ?** : la table donne longueur 40,6 cm et largeur 94 cm, alors que le document NASA donne 0,4 m × 0,95 m (large × long). Marque **F**.
-- **Saffire-II, débit** : la table donne 20 cm/s pour tous les échantillons. Mais l'investigation PSI dit « 20 ou 30 cm/s selon le matériau », et le document de 2016 prévoyait 30 cm/s pour S6. On garde la table, avec la marque `a_verifier`.
+  - Saffire-I indique « 0,37 cm » et Saffire-III « 0,33 cm » de SIBAL, alors que le document NASA donne **0,33 mm**. Valeur de la table gardée (3,7 et 3,3 mm) + `incoherent` ; un tissu de 3,7 mm n'est pas réaliste.
+  - Saffire-II « 037 mm » = 0,37 mm (décimale manquante) + `a_verifier`.
+- **Saffire-I, longueur et largeur inversées ?** : 40,6 cm × 94 cm dans la table, 0,4 m (large) × 0,95 m (long) dans le document NASA → `a_verifier`.
+- **Saffire-II, débit** : 20 cm/s partout dans la table, alors que l'investigation PSI dit « 20 ou 30 cm/s selon le matériau » et que le document de 2016 prévoyait 30 cm/s pour S6 → `a_verifier`.
+- **Saffire-III** : O2 et pression mesurés par des capteurs mais seulement dans la télémétrie (non téléchargée) → vides. Pas de résultat de combustion dans la table → `outcome` vide.
+- Issue : longueur brûlée > 0 ou « Complete » → `burned` ; ~ 0 ou cas mixte PMMA / Nomex (2-7) → `other` ; Saffire-I : durée de combustion > 0 → `burned`.
 
 ### SAME (PSI-102) et SAME-R (PSI-101), hors modèle
 - SAME, échantillons 5 à 8 : la source dit explicitement « same conditions as 1-4 ». **D** : chaque matériau a 4 conditions, à dupliquer depuis les lignes 1 à 4.

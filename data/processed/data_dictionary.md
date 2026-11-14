@@ -97,6 +97,55 @@ Généré par `python -m src.data.build_unified` à partir du code. Ne pas édit
 | `source_line` | Int64 |  | Ligne dans le fichier d'origine (en-tête = 1) |
 | `qc_flags` | string |  | Marques qualité « colonne:motif;... » |
 
+## families/solids.parquet
+
+| Colonne | Type | Unité | Description |
+|---|---|---|---|
+| `experiment` | string |  | BASS, BASS-II, Saffire-I, Saffire-II, Saffire-III |
+| `psi_id` | string |  | Investigation PSI |
+| `test_id` | string |  | BASS : « AR<n° As Run>-T<n° essai> » ; BASS-II : n° d'essai (B1, O3a...) ; Saffire : n° d'échantillon (+ « -1g » pour les essais au sol) |
+| `session` | string |  | Groupe pour la validation croisée : jour d'essai (BASS, BASS-II) ou vol (Saffire) |
+| `test_date` | string | AAAA-MM-JJ | Date de l'essai |
+| `pi` | string |  | Chercheur principal responsable de l'essai (BASS-II) |
+| `sample_no` | string |  | Numéro d'échantillon |
+| `material` | string |  | pmma, sibal (tissu 75 % coton / 25 % fibre de verre), nomex, ultem, silicone, paraffin wax, japan wax, wax, pmma+nomex |
+| `material_raw` | string |  | Description d'origine de l'échantillon |
+| `geometry` | string |  | flat sample, film, slab, rod, sphere, spherical section, candle, fabric, structured sample |
+| `thickness_mm` | Float64 | mm | Épaisseur |
+| `width_cm` | Float64 | cm | Largeur |
+| `length_cm` | Float64 | cm | Longueur (Saffire) |
+| `diameter_mm` | Float64 | mm | Diamètre (tiges, sphères) |
+| `color` | string |  | black / clear (PMMA) |
+| `sides_burning` | Int64 |  | Échantillon allumé sur 1 ou 2 faces (« 1 sided ») |
+| `flow_direction` | string |  | opposed / concurrent |
+| `flow_cm_s` | Float64 | cm/s | Vitesse d'air si une seule valeur ; vide si rampe (voir flow_min / flow_max) |
+| `flow_min_cm_s` | Float64 | cm/s | Plus petite vitesse d'air affichée pendant l'essai (hors réglages en « pot ») |
+| `flow_max_cm_s` | Float64 | cm/s | Plus grande vitesse d'air affichée pendant l'essai |
+| `flow_raw` | string |  | Vitesse d'air telle qu'écrite (« Air display », « Air Flow ») |
+| `fan_raw` | string |  | Réglage du ventilateur tel qu'écrit (« Fan display », potentiomètre) |
+| `flow_restrictor` | string |  | Restricteur de débit (BASS, BASS-II) |
+| `x_o2` | Float64 | fraction molaire | O2 initial |
+| `x_o2_final` | Float64 | fraction molaire | O2 final (BASS-II) |
+| `pressure_kpa` | Float64 | kPa | Pression (BASS : mesurée ; BASS-II : nominale 1 atm ; Saffire : non donnée) |
+| `co2_initial_pct` | Float64 | % vol | CO2 initial (BASS-II) |
+| `co2_final_pct` | Float64 | % vol | CO2 final (BASS-II) |
+| `co2_mmhg` | Float64 | mmHg | CO2 (BASS) |
+| `co_initial_ppm` | Float64 | ppm | CO initial (BASS-II) |
+| `co_final_ppm` | Float64 | ppm | CO final (BASS-II) |
+| `ignition_power_W` | Float64 | W | Puissance de l'allumeur (Saffire) |
+| `ignition_time_s` | Float64 | s | Durée d'allumage (Saffire) |
+| `burn_time_s` | Float64 | s | Durée de combustion (Saffire) |
+| `burn_length_cm` | Float64 | cm | Longueur brûlée (Saffire-II) |
+| `burn_complete` | boolean |  | Échantillon entièrement brûlé (« Complete ») |
+| `spread_rate_mm_s` | Float64 | mm/s | Vitesse de propagation (Saffire-II) |
+| `spread_mode` | string |  | Mode de propagation noté (ex. « acceleratory » : pas de vitesse unique) |
+| `observations` | string |  | Observations d'origine (BASS) et textes qualitatifs |
+| `outcome` | string |  | Issue normalisée ; BASS / BASS-II : depuis annotations/bass_outcomes.csv |
+| `gravity` | string |  | micro (vol) ou 1g (essais au sol de Saffire-II) |
+| `source_file` | string |  | Fichier PSI d'origine |
+| `source_line` | Int64 |  | Ligne dans le fichier d'origine (en-tête = 1) |
+| `qc_flags` | string |  | Marques qualité « colonne:motif;... » |
+
 ## Motifs de `qc_flags`
 
 | Motif | Sens |

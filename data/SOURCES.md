@@ -90,6 +90,7 @@ Générés par `python -m src.data.build_unified` à partir de `data/raw/psi/`. 
 | `experiments_all.csv` | la table catalogue en CSV, lisible sur GitHub, avec liens PSI et DOI | idem |
 | `families/droplets.parquet` | FLEX (CFI à venir) | PSI-69 |
 | `families/gas.parquet` | ACME CFI-G, ACME Flame Design, SPICE | PSI-159, PSI-10, PSI-107 |
+| `families/solids.parquet` | BASS, BASS-II, Saffire I–III (Saffire-II : vol + sol 1g) | PSI-26 (+ matrice As Run), PSI-25, PSI-98, PSI-99, PSI-100 |
 | `campaigns.csv` | une ligne par investigation (DOI, plateforme, statut) | `psi_index.csv`, `investigation.json` |
 | `skipped_rows.csv` | lignes sources écartées et raison | — |
 | `data_dictionary.md`, `qc_report.md` | colonnes et unités ; contrôle qualité | — |
