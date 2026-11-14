@@ -23,9 +23,11 @@ Sources :
 API publique : https://ntrs.nasa.gov/api/openapi/ (sans compte).
 
 Usage :
-    python -m src.rag.fetch_ntrs                     # tout (déjà téléchargé = ignoré)
-    python -m src.rag.fetch_ntrs --per-topic 5       # moins de documents par thème
-    python -m src.rag.fetch_ntrs --priority-only
+    python -m src.data.download_psi                  # d'abord (documents PSI)
+    python -m src.rag.fetch_ntrs                     # reproduit exactement les documents du catalogue versionné
+                                                     # (sans refaire les recherches ; contrôle des pages à la fin)
+    python -m src.rag.fetch_ntrs --refresh           # refait les recherches et réécrit le catalogue (mise à jour)
+    python -m src.rag.fetch_ntrs --out <dossier>     # tester une installation à vide dans un autre dossier
 """
 
 import argparse
@@ -524,18 +526,54 @@ def split_pages(doc, path):
     return len(pdf), with_text
 
 
+VERSIONED_CATALOG = ROOT / "data" / "raw" / "ntrs" / "catalog.jsonl"
+
+
+def from_catalog():
+    """Documents listés dans le catalogue versionné : reproduit exactement le corpus, sans refaire les recherches."""
+    if not VERSIONED_CATALOG.exists():
+        raise SystemExit(f"{VERSIONED_CATALOG.relative_to(ROOT)} absent : lancer avec --refresh pour construire le corpus")
+    docs = [json.loads(line) for line in open(VERSIONED_CATALOG, encoding="utf-8")]
+    if any(d["kind"] in ("psi", "psi_fiche") for d in docs) and not (RAW_PSI / "psi_index.csv").exists():
+        raise SystemExit("Documents PSI au catalogue mais data/raw/psi absent : lancer d'abord `python -m src.data.download_psi`")
+    for d in docs:
+        if d["kind"] in ("psi", "psi_fiche"):
+            folder = next(RAW_PSI.glob(f"{d['psi_id']}_*"))
+            d["path"] = folder / "investigation.json" if d["kind"] == "psi_fiche" else folder / "documents" / safe_name(d["psi_file"])
+    return docs
+
+
+def _rel(path):
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def main():
+    global OUT
     parser = argparse.ArgumentParser(description="Télécharge le corpus NASA du RAG.")
-    parser.add_argument("--per-topic", type=int, default=15, help="documents gardés par thème (défaut 15)")
+    parser.add_argument("--refresh", action="store_true",
+                        help="refaire les recherches (NTRS, Task Book, PSI) et réécrire le catalogue ; "
+                             "sans cette option, reproduit exactement les documents du catalogue versionné")
+    parser.add_argument("--out", help="dossier de sortie (défaut data/raw/ntrs ; utile pour tester une installation à vide)")
+    parser.add_argument("--per-topic", type=int, default=15, help="--refresh : documents gardés par thème (défaut 15)")
     parser.add_argument("--max-mb", type=float, default=80, help="taille maximale d'un PDF (défaut 80 Mo)")
-    parser.add_argument("--priority-only", action="store_true", help="seulement les documents prioritaires")
-    parser.add_argument("--no-taskbook", action="store_true", help="sans les fiches du NASA Task Book")
-    parser.add_argument("--no-psi", action="store_true", help="sans les documents des investigations PSI")
+    parser.add_argument("--priority-only", action="store_true", help="--refresh : seulement les documents prioritaires")
+    parser.add_argument("--no-taskbook", action="store_true", help="--refresh : sans les fiches du NASA Task Book")
+    parser.add_argument("--no-psi", action="store_true", help="--refresh : sans les documents des investigations PSI")
     args = parser.parse_args()
 
+    if args.out:
+        OUT = Path(args.out).resolve()
     OUT.mkdir(parents=True, exist_ok=True)
-    print("Recherche des documents...")
-    docs = collect(args.per_topic, args.priority_only, with_taskbook=not args.no_taskbook, with_psi=not args.no_psi)
+    if args.refresh:
+        print("Recherche des documents...")
+        docs = collect(args.per_topic, args.priority_only, with_taskbook=not args.no_taskbook, with_psi=not args.no_psi)
+    else:
+        print(f"Reproduction du catalogue versionné ({_rel(VERSIONED_CATALOG)})")
+        docs = from_catalog()
+    expected = {d["id"]: (d.get("n_pages"), d.get("n_pages_text")) for d in docs}
     print(f"{len(docs)} documents à traiter")
 
     today = datetime.date.today().isoformat()
@@ -550,18 +588,26 @@ def main():
             n_pages, n_text = split_pages(doc, path)
             if n_pages and n_text / n_pages < 0.2:
                 status += " ; scan_sans_texte"  # document numérisé sans couche texte : inutilisable sans OCR
-        doc.update(pdf_path=path.relative_to(ROOT).as_posix() if path else "", size_mb=round(path.stat().st_size / 1e6, 1) if path else "",
+        doc.update(pdf_path=_rel(path) if path else "", size_mb=round(path.stat().st_size / 1e6, 1) if path else "",
                    n_pages=n_pages, n_pages_text=n_text, status=status, downloaded_at=today)
         log.append({"date": today, "id": doc["id"], "status": status, "pdf_url": doc["pdf_url"] or doc["url"]})
         print(f"  {status:22} {doc['id']:24} {n_text:>4}/{n_pages:<4} p.  {doc['title'][:70]}")
 
-    with open(OUT / "catalog.csv", "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=CATALOG_COLUMNS, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows({**d, "topics": "; ".join(d["topics"])} for d in docs)
-    with open(OUT / "catalog.jsonl", "w", encoding="utf-8") as f:
-        for d in docs:
-            f.write(json.dumps({k: v for k, v in d.items() if k != "path"}, ensure_ascii=False) + "\n")
+    # Le catalogue versionné n'est réécrit qu'avec --refresh (sinon : pas de différences de dates à chaque relance)
+    if args.refresh or OUT != VERSIONED_CATALOG.parent:
+        with open(OUT / "catalog.csv", "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=CATALOG_COLUMNS, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows({**d, "topics": "; ".join(d["topics"])} for d in docs)
+        with open(OUT / "catalog.jsonl", "w", encoding="utf-8") as f:
+            for d in docs:
+                f.write(json.dumps({k: v for k, v in d.items() if k != "path"}, ensure_ascii=False) + "\n")
+    if not args.refresh:  # contrôle : mêmes pages qu'au catalogue versionné ?
+        diff = [(d["id"], expected[d["id"]], (d["n_pages"], d["n_pages_text"])) for d in docs
+                if (d["n_pages"], d["n_pages_text"]) != expected[d["id"]]]
+        print(f"\nContrôle : {len(docs) - len(diff)} / {len(docs)} documents identiques au catalogue versionné (pages, pages avec texte)")
+        for doc_id, before, now in diff[:20]:
+            print(f"  différent : {doc_id} catalogue {before} -> obtenu {now}")
     with open(OUT / "download_log.csv", "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["date", "id", "status", "pdf_url"])
         if f.tell() == 0:
@@ -570,7 +616,7 @@ def main():
 
     usable_docs = [d for d in docs if d["n_pages_text"]]
     print(f"\n{len(usable_docs)} / {len(docs)} documents avec du texte, "
-          f"{sum(d['n_pages_text'] for d in usable_docs)} pages -> {(OUT / 'catalog.csv').relative_to(ROOT)}")
+          f"{sum(d['n_pages_text'] for d in usable_docs)} pages -> {_rel(OUT)}")
 
 
 if __name__ == "__main__":
