@@ -59,8 +59,7 @@ if not exist "data\rag\chroma_db\chroma.sqlite3" (
   echo [*] Base du chat absente : telechargement depuis GitHub - gh auth login requis...
   ".venv\Scripts\python.exe" -m src.rag.storage.download_chroma_release || echo Base non telechargee : le chat sera indisponible.
 )
-echo [*] Serveur du chat : port 8001 - LM Studio doit tourner avec le modele d'embedding.
-start "HEPHAISTOS - RAG (port 8001)" ".venv\Scripts\python.exe" -m src.rag.server --port 8001 --skip-sync
+echo [*] Chat : LM Studio doit tourner avec le modele d'embedding.
 """
 BAT_FOOTER = r"""echo [3/3] HEPHAISTOS : http://127.0.0.1:%HEPHAISTOS_PORT%/   - Ctrl+C pour arreter
 echo       Les modeles se preparent pendant environ 1 minute au demarrage.
@@ -95,10 +94,7 @@ if [ ! -f data/rag/chroma_db/chroma.sqlite3 ]; then
   echo "[*] Base du chat absente : téléchargement depuis GitHub (gh auth login requis)..."
   .venv/bin/python -m src.rag.storage.download_chroma_release || echo "Base non téléchargée : le chat sera indisponible."
 fi
-echo "[*] Serveur du chat : port 8001 (LM Studio doit tourner avec le modèle d'embedding)."
-.venv/bin/python -m src.rag.server --port 8001 --skip-sync &
-RAG_PID=$!
-trap 'kill $RAG_PID 2>/dev/null' EXIT
+echo "[*] Chat : LM Studio doit tourner avec le modèle d'embedding."
 """
 SH_FOOTER = """echo "[3/3] HEPHAISTOS : http://127.0.0.1:$PORT/   (Ctrl+C pour arrêter)"
 echo "      Les modèles se préparent pendant environ 1 minute au démarrage."
@@ -137,7 +133,7 @@ En cas de problème
 ------------------
 - « Python introuvable » : installer Python et cocher « Add Python to PATH ».
 - Port 8000 déjà utilisé : définir la variable HEPHAISTOS_PORT (ex. 8010) avant de lancer.
-- État des modèles{chat_status} : http://127.0.0.1:8000/models/status
+- État des modèles{chat_status} : http://127.0.0.1:8000/api/models/status
 - Documentation de l'API : http://127.0.0.1:8000/docs
 
 Données : NASA Physical Sciences Informatics (PSI) et NASA Technical Reports Server (NTRS).
@@ -177,7 +173,7 @@ def build(with_chat=False, include_db=True, out=None):
             print(f"Base ChromaDB absente ({CHROMA_DIR}) : elle sera téléchargée au 1er lancement (gh requis). "
                   "Pour l'inclure : python -m src.rag.storage.download_chroma_release, puis relancer.")
 
-    api_args = "" if with_chat else "--no-rag "
+    api_args = "--skip-sync " if with_chat else "--no-rag "
     bat = BAT_HEADER + (BAT_CHAT if with_chat else "") + BAT_FOOTER.format(api_args=api_args)
     sh = SH_HEADER + (SH_CHAT if with_chat else "") + SH_FOOTER.format(api_args=api_args)
     requirements = "\n".join(REQUIREMENTS + (CHAT_REQUIREMENTS if with_chat else [])) + "\n"
@@ -188,7 +184,7 @@ def build(with_chat=False, include_db=True, out=None):
         readme = README.format(
             title="interface, prédictions et chat", underline="=" * 42,
             chat_prereq=CHAT_PREREQ.format(db_line=db_line),
-            stop_rag=" (et fermer la fenêtre « HEPHAISTOS - RAG » sous Windows)",
+            stop_rag="",
             chat_line="- Chat : questions sur les documents NASA, réponses rédigées par Gemini avec leurs sources.\n",
             chat_status=" et du chat")
     else:

@@ -14,12 +14,12 @@ Un seul serveur, sur le port 8000, fait tout :
 
 ```text
  navigateur ──GET  /                ──►  la page HEPHAISTOS
-            ──POST /predict         ──►  modèles (src/models/model_gp)
-            ──GET  /models/status   ──►  état des modèles et du RAG
-            ──POST /ask             ──►  RAG (src/rag) + LLM de LM Studio
+            ──POST /api/predict     ──►  modèles (src/models/model_gp)
+            ──GET  /api/models/status ►  état des modèles et du RAG
+            ──POST /api/ask         ──►  RAG (src/rag) + Gemini
 ```
 
-- **Préchauffage :** au démarrage, les trois modèles s'entraînent en arrière-plan (environ 50 s). La page affiche « chargement… » puis « prêt » grâce à `/models/status`.
+- **Préchauffage :** au démarrage, les trois modèles s'entraînent en arrière-plan (environ 50 s). La page affiche « chargement… » puis « prêt » grâce à `/api/models/status`.
 - **Chat :** LM Studio doit tourner en local (`http://localhost:1234`), avec le modèle d'embedding du RAG et un modèle de chat (variable `RAG_CHAT_MODEL`). Sans lui, les prédictions marchent, mais pas le chat.
 - **Options :** `--skip-sync` (ne vérifie pas la release de la base), `--no-rag` (prédictions seules), `--port 8010`.
 - La page marche aussi ouverte en double-cliquant dessus (`file://`) : elle appelle alors `http://localhost:8000`.
@@ -48,7 +48,7 @@ Le choix du **type** décide des champs affichés (déjà fait dans la page v5).
 
 Une valeur hors de la plage testée n'est pas bloquée : la réponse contient une alerte d'extrapolation. Les modèles ne couvrent que la **microgravité**.
 
-## 3. `POST /predict`
+## 3. `POST /api/predict`
 
 **Envoi** (à plat, champs du type choisi ; `model` est accepté et ignoré) :
 
@@ -111,7 +111,7 @@ Champs à afficher selon le type :
 
 S'il n'y a aucune source : « Aucun test de la NASA n'a été effectué sur une situation similaire ».
 
-## 5. `POST /ask` (chat)
+## 5. `POST /api/ask` (chat)
 
 ```text
 envoi   : {"question": "Pourquoi une flamme s'éteint-elle en microgravité ?",
@@ -127,7 +127,7 @@ réponse : {"answer": "... par rayonnement [1] ...",
 - **LM Studio injoignable ou base absente :** code 503 avec la raison dans `detail`.
 - Questions de démo : « Pourquoi une flamme s'éteint-elle plus facilement en microgravité ? », « Qu'a montré l'expérience FLEX (Flame Extinguishment Experiment) ? », « Quels matériaux brûlent à 34 % d'O2 ? ».
 
-## 6. `GET /models/status`
+## 6. `GET /api/models/status`
 
 ```json
 {"models": {"droplet": {"status": "ready"}, "gas": {"status": "loading"}, "solid": {"status": "pending"}},
@@ -153,4 +153,4 @@ L'histoire à raconter : pour l'habitat lunaire, la NASA n'a aucun essai FLEX so
 2. Toujours les alertes (`warnings`).
 3. Jamais de chiffre inventé : une valeur absente s'affiche « pas de donnée ».
 4. Toujours la source de chaque essai ou document montré.
-5. **Logo :** le logo NASA ne doit pas laisser croire à un soutien officiel (règles du Space Apps Challenge et charte NASA). Le retirer et écrire plutôt « Données : NASA Physical Sciences Informatics (PSI) et NTRS ».
+5. **Logo :** le logo NASA est retiré (il est protégé et laisserait croire à un soutien officiel). La page indique « Données : NASA Physical Sciences Informatics (PSI) et NTRS » et « sans lien officiel avec la NASA ».

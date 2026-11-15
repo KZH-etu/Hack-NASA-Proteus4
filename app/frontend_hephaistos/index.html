@@ -261,6 +261,9 @@ body{background:var(--bg)}
 #chat .src-item,#chat .cite-ref,#chat .src-excerpt-text{border-radius:8px}
 @media(max-width:800px){#chat .chat{margin-top:0;border-radius:0}}
 
+.menu-brand{justify-content:center;gap:18px}
+.credits{margin-top:24px;font-size:11px;line-height:1.5;color:#667085}
+
 /* Étude des données */
 #data{background:var(--bg)}
 .dash{flex:1;overflow:auto;padding:22px clamp(14px,3vw,34px) 40px}
@@ -312,7 +315,7 @@ body{background:var(--bg)}
 <!-- ============ MENU PRINCIPAL ============ -->
 <section class="view" id="menu">
   <div class="menu-panel">
-  <div class="menu-brand"><div class="logo-slot" data-logo="nasa"></div><h1>HEPHAISTOS</h1><div class="logo-slot" data-logo="partner"></div></div>
+  <div class="menu-brand"><div class="logo-slot" data-logo="partner"></div><h1>HEPHAISTOS</h1></div>
   <p class="menu-subtitle">Menu principal</p>
   <p id="modelsStatus" role="status" aria-live="polite" style="font-size:13px;margin:12px 0;color:#0b3d91">Vérification des trois modèles…</p>
   <div class="opts">
@@ -320,6 +323,8 @@ body{background:var(--bg)}
     <button class="opt" data-go="data"><span class="ico" aria-hidden="true">▤</span><span>Étude des données<small>Les essais NASA en chiffres et en graphiques</small></span></button>
     <button class="opt" data-go="chat"><span class="ico" aria-hidden="true">✦</span><span>Chat<small>Questions sur les documents NASA</small></span></button>
   </div>
+  <p class="credits">Données : NASA Physical Sciences Informatics (PSI) et NASA Technical Reports Server (NTRS).<br>
+  Projet étudiant pour le NASA Space Apps Challenge, sans lien officiel avec la NASA.</p>
   </div>
 </section>
 
@@ -328,7 +333,7 @@ body{background:var(--bg)}
   <div class="top">
     <button class="back" data-go="menu">&lt; Retour</button>
     <span class="title">Prédiction</span>
-    <div class="logo-pair small"><div class="logo-slot" data-logo="nasa"></div><span class="logo-cross" aria-label="fois">×</span><div class="logo-slot" data-logo="partner"></div></div>
+    <div class="logo-pair small"><div class="logo-slot" data-logo="partner"></div></div>
   </div>
   <div class="split">
     <!-- Moitié gauche : variables d'entrée -->
@@ -371,7 +376,7 @@ body{background:var(--bg)}
   <div class="top">
     <button class="back" data-go="menu">&lt; Retour</button>
     <span class="title">Étude des données</span>
-    <div class="logo-pair small"><div class="logo-slot" data-logo="nasa"></div><span class="logo-cross" aria-label="fois">×</span><div class="logo-slot" data-logo="partner"></div></div>
+    <div class="logo-pair small"><div class="logo-slot" data-logo="partner"></div></div>
   </div>
   <div class="dash">
     <p class="dash-intro">Les essais de combustion réalisés par la NASA en microgravité (base PSI) : combien, sur quoi, dans quelles conditions, et ce qui manque encore pour les missions vers la Lune et Mars.</p>
@@ -423,7 +428,7 @@ body{background:var(--bg)}
   <div class="top">
     <button class="back" data-go="menu">&lt; Retour</button>
     <span class="title">Chat</span>
-    <div class="logo-pair small"><div class="logo-slot" data-logo="nasa"></div><span class="logo-cross" aria-label="fois">×</span><div class="logo-slot" data-logo="partner"></div></div>
+    <div class="logo-pair small"><div class="logo-slot" data-logo="partner"></div></div>
   </div>
   <div class="chat">
     <div id="log" aria-live="polite">
@@ -445,19 +450,13 @@ body{background:var(--bg)}
 // Servie par le serveur HEPHAISTOS (python -m src.api) : mêmes adresses que la page. Ouverte en local (file://) : localhost:8000.
 const API_BASE = location.protocol === "file:" ? "http://localhost:8000" : "";
 const CONFIG = {
-  // >>> ZONE À MODIFIER 1 : logo NASA.
-  // Placer le fichier officiel du logo à cet emplacement (SVG ou PNG).
-  // Tant qu'il est absent, un logo provisoire est affiché.
-  LOGO_URL: "assets/logo-nasa-sur-fond-blanc.PNG",
-
-  // >>> ZONE À MODIFIER : logo du partenaire, affiché à droite du ×.
-  // Exemple : "./assets/logo-partenaire.png" ou une URL https://...
-  // Laisser vide pour afficher un emplacement provisoire.
+  // >>> ZONE À MODIFIER : logo de l'équipe (le logo NASA n'est pas utilisé : il est protégé et
+  // laisserait croire à un soutien officiel). Laisser vide pour afficher un emplacement provisoire.
   PARTNER_LOGO_URL: "assets/logo_proteus_3.png",
 
   // >>> ZONE À MODIFIER 2 : IA de PRÉDICTION (Python).
   // URL de l'API qui appelle predict(conditions) (src/models/predict.py).
-  PREDICT_URL: API_BASE + "/predict",
+  PREDICT_URL: API_BASE + "/api/predict",
 
   // >>> MODÈLES PYTHON : modifier uniquement les noms ci-dessous.
   // Le backend doit utiliser le champ "model" reçu pour sélectionner le module.
@@ -469,44 +468,31 @@ const CONFIG = {
 
   // >>> ZONE À MODIFIER 3 : IA du CHAT (Python).
   // URL de l'API qui appelle ask(question) (src/rag/ask.py).
-  CHAT_URL: API_BASE + "/ask",
+  CHAT_URL: API_BASE + "/api/ask",
 
   // true = réponses factices étiquetées DEMO (aucune URL appelée).
   // Passer à false dès que les API Python tournent.
   USE_DEMO: false,
-  STATUS_URL: API_BASE + "/models/status",
+  STATUS_URL: API_BASE + "/api/models/status",
 };
 
 const NO_SOURCE = "Aucun test de la NASA n’a été effectué sur une situation similaire";
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-/* ---------- Logo NASA ---------- */
-function fallbackLogo(){
-  const d = document.createElement("div");
-  d.innerHTML = '<svg viewBox="0 0 100 100" role="img" aria-label="NASA (logo provisoire)"><circle cx="50" cy="50" r="48" fill="#0b3d91"/><text x="50" y="58" text-anchor="middle" font-family="Arial" font-weight="700" font-size="26" fill="#fff">NASA</text></svg>';
-  return d.firstChild;
-}
+/* ---------- Logo de l'équipe ---------- */
 document.querySelectorAll(".logo-slot").forEach(slot => {
-  const isNasa = slot.dataset.logo === "nasa";
-  const url = isNasa ? CONFIG.LOGO_URL : CONFIG.PARTNER_LOGO_URL;
   const placeholder = () => {
-    if (isNasa) slot.replaceChildren(fallbackLogo());
-    else {
-      const label = document.createElement("span");
-      label.className = "logo-placeholder";
-      label.textContent = "Votre logo";
-      slot.replaceChildren(label);
-    }
+    const label = document.createElement("span");
+    label.className = "logo-placeholder";
+    label.textContent = "Votre logo";
+    slot.replaceChildren(label);
   };
-  if (!url) { placeholder(); return; }
+  if (!CONFIG.PARTNER_LOGO_URL) { placeholder(); return; }
   const img = new Image();
-  img.alt = isNasa ? "NASA" : "Logo partenaire";
-  img.onerror = () => {
-    console.error("Logo introuvable :", url);
-    placeholder();
-  };
-  img.src = url;
+  img.alt = "Logo de l'équipe Proteus";
+  img.onerror = () => { console.error("Logo introuvable :", CONFIG.PARTNER_LOGO_URL); placeholder(); };
+  img.src = CONFIG.PARTNER_LOGO_URL;
   slot.appendChild(img);
 });
 
@@ -1179,7 +1165,7 @@ $("#q").addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey){
 /* =====================================================================
    ÉTUDE DES DONNÉES : chiffres et graphiques (route GET /dataset/summary)
    ===================================================================== */
-const DATASET_URL = API_BASE + "/dataset/summary";
+const DATASET_URL = API_BASE + "/api/dataset/summary";
 const FAMILY_COLORS = {droplet:"#0b3d91", gas:"#4f8dff", solid:"#fc3d21"};
 const OUTCOME_COLORS = ["#0b3d91","#fc3d21","#ffb547","#4f8dff","#9cc0ff","#b8c1d1","#e3e8f1"];
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
