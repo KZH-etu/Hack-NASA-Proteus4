@@ -39,3 +39,6 @@ Thumbs.db
 
 # model_rf : service entraîné, recréé automatiquement
 src/models/model_rf/artifacts/
+
+# Archives fabriquées par python -m src.api.package
+dist/
