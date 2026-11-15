@@ -1,6 +1,6 @@
 # Guide du front-end
 
-L'interface **HEPHAISTOS** (`app/frontend_hephaistos/HEPHAISTOS_interface_v5_modeles.html`) et le serveur qui la fait marcher (`src/api`) : comment lancer, ce que la page envoie et reçoit, ce qu'elle doit afficher.
+L'interface **HEPHAISTOS** (`app/frontend_hephaistos/index.html`) et le serveur qui la fait marcher (`src/api`) : comment lancer, ce que la page envoie et reçoit, ce qu'elle doit afficher.
 
 ## 1. Lancer
 

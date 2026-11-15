@@ -115,20 +115,31 @@ class TestRagServer(unittest.TestCase):
             # Default neighbors=1 -> fetches chunk 0 + chunk 1 + chunk 2 for hit c1
             ret_resp = client.post("/retrieve", json={"query": "droplet burning", "top_k": 1})
             self.assertEqual(ret_resp.status_code, 200)
-            contexts = ret_resp.json()
-            self.assertIsInstance(contexts, list)
-            self.assertEqual(len(contexts), 1)
-            ctx = contexts[0]
+            results = ret_resp.json()
+            self.assertIsInstance(results, list)
+            self.assertEqual(len(results), 1)
+            hit = results[0]
+            ctx = hit["context_block"]
+            text = hit["text"]
+            meta = hit["metadata"]
             self.assertIn("Document : FLEX Droplet Report", ctx)
             self.assertIn("Auteurs : Alice Smith | Mission : ISS | Année : 2015 | Source : ntrs", ctx)
-            self.assertIn("Chunk zero before", ctx)
-            self.assertIn("hit chunk one middle.", ctx)
-            self.assertIn("Chunk two right after hit.", ctx)
+            self.assertIn("Chunk zero before", text)
+            self.assertIn("hit chunk one middle.", text)
+            self.assertIn("Chunk two right after hit.", text)
             # Ensure overlap wasn't duplicated twice
-            self.assertEqual(ctx.count("shared overlap sentence across chunk boundary"), 1)
+            self.assertEqual(text.count("shared overlap sentence across chunk boundary"), 1)
             # Chunk 3 and other doc must NOT be included
-            self.assertNotIn("Chunk three far away.", ctx)
-            self.assertNotIn("Unrelated document chunk.", ctx)
+            self.assertNotIn("Chunk three far away.", text)
+            self.assertNotIn("Unrelated document chunk.", text)
+            self.assertEqual(meta["title"], "FLEX Droplet Report")
+            self.assertEqual(meta["authors"], "Alice Smith")
+            self.assertEqual(meta["mission_program"], "ISS")
+            self.assertEqual(meta["experiment_year"], 2015)
+            self.assertEqual(meta["source_type"], "ntrs")
+            self.assertEqual(meta["headers_path"], "Results > Extinction")
+            self.assertEqual(meta["pdf_url"], "https://ntrs.nasa.gov/1234.pdf")
+            self.assertEqual(meta["experiment_url"], "https://ntrs.nasa.gov/citations/1234")
 
             # neighbors=0 returns only hit chunk 1
             no_neighbor_resp = client.post(
@@ -136,7 +147,7 @@ class TestRagServer(unittest.TestCase):
                 json={"query": "droplet burning", "top_k": 1, "neighbors": 0},
             )
             self.assertEqual(no_neighbor_resp.status_code, 200)
-            single_ctx = no_neighbor_resp.json()[0]
-            self.assertIn("hit chunk one middle.", single_ctx)
-            self.assertNotIn("Chunk zero before", single_ctx)
-            self.assertNotIn("Chunk two right after hit.", single_ctx)
+            single_text = no_neighbor_resp.json()[0]["text"]
+            self.assertIn("hit chunk one middle.", single_text)
+            self.assertNotIn("Chunk zero before", single_text)
+            self.assertNotIn("Chunk two right after hit.", single_text)

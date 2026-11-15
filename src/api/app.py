@@ -1,17 +1,13 @@
-"""Serveur unique de HEPHAISTOS : interface web + prédictions (model_gp) + RAG (src/rag), sur un seul port.
+"""Serveur principal HEPHAISTOS : interface web + prédictions (model_gp) + /ask (Gemini + RAG HTTP).
 
-    python -m src.api                    # http://127.0.0.1:8000  (ouvre l'interface)
-    python -m src.api --skip-sync        # sans vérifier la release ChromaDB au démarrage
+    python -m src.rag.server --port 8001   # serveur RAG (ChromaDB + embeddings LM Studio)
+    python -m src.api --port 8000          # API principale + dashboard HEPHAISTOS
 
 Routes :
     GET  /                 interface HEPHAISTOS (app/frontend_hephaistos/)
     POST /predict          prédiction (format de la page)            -> src/api/predict.py
-    GET  /models/status    état des modèles (prêt / chargement) et du RAG
-    POST /ask              chat : réponse rédigée + sources          -> src/api/ask.py
-    GET  /health, POST /retrieve   routes du serveur RAG (src/rag/server), inchangées
-
-Le serveur RAG n'est pas modifié : son application est créée par src.rag.server.create_app(), son démarrage
-(synchronisation de la base, ChromaDB, LM Studio) est exécuté tel quel, et ses routes sont reprises.
+    GET  /models/status    état des modèles, du RAG distant et de Gemini
+    POST /ask              chat : RAG (:8001) + Gemini Flash         -> src/api/ask.py
 """
 
 from __future__ import annotations
@@ -24,6 +20,8 @@ from hmac import compare_digest
 from pathlib import Path
 from typing import Any
 
+import httpx
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -37,7 +35,7 @@ from src.api import predict as predict_module
 LOGGER = logging.getLogger("hephaistos")
 ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = ROOT / "app" / "frontend_hephaistos"
-FRONTEND_PAGE = "HEPHAISTOS_interface_v5_modeles.html"
+FRONTEND_PAGE = "index.html"
 RAG_ROUTES = {"/health", "/retrieve"}
 
 
@@ -46,20 +44,50 @@ class AskRequest(BaseModel):
     history: list[dict[str, Any]] = Field(default_factory=list)
 
 
-def create_app(*, rag_app: FastAPI | None = None, with_rag: bool = True, warm_up: bool = True) -> FastAPI:
-    """rag_app : application du serveur RAG (par défaut src.rag.server.create_app()) ; with_rag=False pour s'en passer."""
-    rag_error = None
-    if with_rag and rag_app is None:
-        try:
-            from src.rag.server import create_app as create_rag_app
-            rag_app = create_rag_app()
-        except Exception as exc:  # noqa: BLE001 - les prédictions restent disponibles
-            LOGGER.exception("Serveur RAG non créé")
-            rag_error = str(exc)
-    if rag_app is not None:
+def _check_remote_rag_health(rag_url: str) -> dict[str, Any]:
+    """Query the standalone RAG server /health endpoint without failing API startup."""
+    try:
+        response = httpx.get(f"{rag_url.rstrip('/')}/health", timeout=2.0)
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "status": "ready",
+                "url": rag_url,
+                "chunks": data.get("chunk_count"),
+                "release_tag": data.get("release_tag"),
+                "sync_status": data.get("sync_status"),
+            }
+        return {"status": "error", "url": rag_url, "error": f"HTTP {response.status_code}"}
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "unreachable", "url": rag_url, "error": str(exc)}
+
+
+def create_app(
+    *,
+    rag_app: FastAPI | None = None,
+    with_rag: bool = True,
+    warm_up: bool = True,
+    rag_server_url: str | None = None,
+    gemini_client: Any | None = None,
+) -> FastAPI:
+    """Construit l'application FastAPI HEPHAISTOS.
+
+    En mode normal (`with_rag=True`, `rag_app=None`), `/ask` interroge le serveur RAG sur `RAG_SERVER_URL`
+    (défaut `http://127.0.0.1:8001`). Passer `rag_app` reste supporté pour les tests en mémoire.
+    """
+    load_dotenv()
+    resolved_rag_url = (
+        rag_server_url
+        or os.getenv("RAG_SERVER_URL")
+        or ask_module.DEFAULT_RAG_SERVER_URL
+    ).rstrip("/")
+
+    if not with_rag:
+        rag_status: dict[str, Any] = {"status": "disabled"}
+    elif rag_app is not None:
         rag_status = {"status": "pending"}
     else:
-        rag_status = {"status": "error", "error": rag_error} if rag_error else {"status": "disabled"}
+        rag_status = {"status": "remote", "url": resolved_rag_url}
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -72,8 +100,11 @@ def create_app(*, rag_app: FastAPI | None = None, with_rag: bool = True, warm_up
                 try:
                     await stack.enter_async_context(rag_app.router.lifespan_context(rag_app))
                     sync = getattr(rag_app.state, "sync_result", None)
-                    rag_status = {"status": "ready", "chunks": int(rag_app.state.collection.count()),
-                                  "release_tag": getattr(sync, "tag_name", None)}
+                    rag_status = {
+                        "status": "ready",
+                        "chunks": int(rag_app.state.collection.count()),
+                        "release_tag": getattr(sync, "tag_name", None),
+                    }
                 except Exception as exc:  # noqa: BLE001
                     LOGGER.exception("Démarrage du RAG impossible : le chat est désactivé")
                     rag_status = {"status": "error", "error": str(exc)}
@@ -81,8 +112,13 @@ def create_app(*, rag_app: FastAPI | None = None, with_rag: bool = True, warm_up
 
     app = FastAPI(title="HEPHAISTOS API", version="1.0.0", lifespan=lifespan)
     # La page peut aussi être ouverte en local (file://) : on accepte toutes les origines, sans cookies.
-    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False,
-                       allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-API-Key"])
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type", "X-API-Key"],
+    )
 
     def check_key(request: Request):
         """Clé d'API facultative : si HEPHAISTOS_API_KEY est définie, l'en-tête X-API-Key est exigé."""
@@ -96,7 +132,21 @@ def create_app(*, rag_app: FastAPI | None = None, with_rag: bool = True, warm_up
 
     @app.get("/models/status")
     def models_status():
-        return {"models": predict_module.STATUS, "rag": rag_status}
+        load_dotenv()
+        current_rag = rag_status
+        if with_rag and rag_app is None:
+            current_rag = _check_remote_rag_health(resolved_rag_url)
+        gemini_model = (os.getenv("GEMINI_MODEL") or ask_module.DEFAULT_GEMINI_MODEL).strip()
+        gemini_configured = bool(gemini_client is not None or os.getenv("GEMINI_API_KEY", "").strip())
+        return {
+            "models": predict_module.STATUS,
+            "rag": current_rag,
+            "llm": {
+                "provider": "google-gemini",
+                "model": gemini_model,
+                "configured": gemini_configured,
+            },
+        }
 
     @app.post("/predict")
     def predict(payload: dict[str, Any], request: Request):
@@ -112,14 +162,26 @@ def create_app(*, rag_app: FastAPI | None = None, with_rag: bool = True, warm_up
     @app.post("/ask")
     def ask(payload: AskRequest, request: Request):
         check_key(request)
-        if rag_app is None or rag_status.get("status") != "ready":
-            raise HTTPException(status_code=503, detail=f"Le RAG n'est pas disponible ({rag_status.get('error') or rag_status['status']}).")
+        if not with_rag:
+            raise HTTPException(status_code=503, detail="Le RAG est désactivé (with_rag=False).")
+        if rag_app is not None and rag_status.get("status") != "ready":
+            raise HTTPException(
+                status_code=503,
+                detail=f"Le RAG n'est pas disponible ({rag_status.get('error') or rag_status['status']}).",
+            )
         try:
-            return ask_module.ask(rag_app.state, payload.question, payload.history)
+            rag_state = rag_app.state if rag_app is not None else None
+            return ask_module.ask(
+                rag_state,
+                payload.question,
+                payload.history,
+                rag_server_url=resolved_rag_url,
+                gemini_client=gemini_client,
+            )
         except ask_module.AskUnavailable as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    if rag_app is not None:  # routes du serveur RAG, reprises telles quelles
+    if rag_app is not None:  # routes du serveur RAG conservées lorsqu'une rag_app est injectée (tests)
         for route in rag_app.router.routes:
             if isinstance(route, APIRoute) and route.path in RAG_ROUTES:
                 app.router.routes.append(route)

@@ -19,3 +19,5 @@ pydantic
 tqdm
 fastapi
 uvicorn
+httpx
+google-genai
