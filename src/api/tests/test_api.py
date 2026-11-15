@@ -379,3 +379,14 @@ def test_home_serves_the_interface():
         r = c.get("/", follow_redirects=True)
     assert r.status_code == 200
     assert "HEPHAISTOS" in r.text
+
+
+def test_dataset_summary_for_the_data_page():
+    with TestClient(create_app(with_rag=False, warm_up=False)) as c:
+        r = c.get("/dataset/summary")
+    assert r.status_code == 200
+    d = r.json()
+    assert d["kpis"]["tests"] == sum(e["n"] for e in d["by_experiment"])
+    assert sum(o["n"] for o in d["outcomes"]) == d["kpis"]["tests"]
+    assert set(d["coverage"]) == set(d["families"])
+    assert d["insights"]

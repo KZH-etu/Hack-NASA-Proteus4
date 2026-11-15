@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="assets/vendor/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%}
@@ -205,6 +206,104 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
   #chat .src-excerpt > summary::before{transition:transform .2s ease}
   #chat .src-excerpt::details-content{transition:block-size .22s ease,content-visibility .22s allow-discrete,display .22s allow-discrete}
 }
+/* =====================================================================
+   Habillage « tableau de bord » : fond clair, cartes arrondies, couleurs du site
+   (noir, blanc, bleu NASA #0b3d91, rouge NASA #fc3d21)
+   ===================================================================== */
+:root{--blue:#0b3d91;--blue-l:#4f8dff;--red:#fc3d21;--ink:#0b0d12;--bg:#eef2f8;--line:#dfe5ef;--r:14px;--shadow:0 10px 30px rgba(11,61,145,.08)}
+body{background:var(--bg)}
+/* Menu */
+.menu-panel{border-radius:20px}
+#menu .opts{width:min(100%,340px)}
+.opt{display:flex;align-items:center;gap:12px;text-align:left;border-radius:12px;border:1px solid var(--line);transition:transform .18s,box-shadow .18s,background .18s,color .18s}
+.opt:hover{background:var(--ink);color:#fff;transform:translateY(-2px);box-shadow:var(--shadow)}
+.opt .ico{flex:0 0 32px;height:32px;border-radius:9px;background:#e8effa;color:var(--blue);display:grid;place-items:center;font-size:16px;transition:background .18s,color .18s}
+.opt:hover .ico{background:var(--blue);color:#fff}
+.opt small{display:block;margin-top:2px;font-size:11px;font-weight:500;color:#667085}
+.opt:hover small{color:#cfd6e4}
+/* Barre du haut, commune à toutes les pages */
+.top{background:#fff;border-bottom:1px solid var(--line);gap:12px}
+.top .title{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.back{border-radius:999px;padding:7px 14px;background:#f1f4f9;transition:background .18s,color .18s}
+.back:hover{text-decoration:none;background:var(--ink);color:#fff}
+.back{white-space:nowrap}
+@media(max-width:520px){.top .logo-pair{display:none}.top .title{font-size:12px;text-align:right}}
+/* Prédiction en cartes */
+#predict{background:var(--bg)}
+#predict .split{gap:18px;padding:18px}
+#predict .left{background:#fff;border:0;border-radius:var(--r);box-shadow:var(--shadow)}
+#predict .right{gap:18px}
+#predict .pred{border-radius:var(--r);box-shadow:0 14px 34px rgba(0,0,0,.22)}
+#predict .src{background:#fff;border:0;border-radius:var(--r);box-shadow:var(--shadow)}
+#predict .field input,#predict .field select{border-radius:10px;border-color:#cfd7e6;transition:border-color .15s,box-shadow .15s}
+#predict .field input:focus,#predict .field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(11,61,145,.12);outline:none}
+#predict .preset{border-radius:999px;border-color:#cfd7e6;transition:background .15s,color .15s}
+#predict .go{border-radius:12px;transition:background .18s,color .18s,transform .18s}
+#predict .go:hover{transform:translateY(-1px)}
+.range-bar,.range-bar .band{border-radius:999px}
+.warn{border-radius:10px}
+.badge{border-radius:999px}
+@media(max-width:800px){#predict .split{padding:10px}}
+/* Chat : même barre du haut, conversation dans une carte */
+#chat{background:var(--bg)}
+#chat .top{background:#fff;color:#000;border-bottom:1px solid var(--line)}
+#chat .top .back{color:inherit}
+#chat .top .logo-pair{background:none;border:0;padding:0}
+#chat .chat{border-radius:var(--r) var(--r) 0 0;box-shadow:var(--shadow);margin-top:18px;overflow:hidden}
+#chat .empty p{margin-bottom:14px}
+.ask-ex{display:block;width:100%;margin:8px auto 0;max-width:420px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#f7f9fd;color:var(--blue);font-weight:600;text-align:left;cursor:pointer;transition:background .18s,color .18s,transform .18s}
+.ask-ex:hover{background:var(--blue);color:#fff;transform:translateY(-1px)}
+#chat .msg{border-radius:14px}
+#chat .msg.u{border-bottom-right-radius:4px}
+#chat .msg.a{border-bottom-left-radius:4px;background:#f1f4f9}
+#chat .bar textarea{border-radius:12px;border-color:#cfd7e6}
+#chat .bar button{border-radius:12px}
+#chat .src-item,#chat .cite-ref,#chat .src-excerpt-text{border-radius:8px}
+@media(max-width:800px){#chat .chat{margin-top:0;border-radius:0}}
+
+/* Étude des données */
+#data{background:var(--bg)}
+.dash{flex:1;overflow:auto;padding:22px clamp(14px,3vw,34px) 40px}
+.dash-intro{max-width:780px;margin:0 0 18px;color:#4a5568;line-height:1.55}
+.dash-error{margin-bottom:16px;padding:12px 14px;border-radius:10px;background:#fff1ee;color:#a12a14}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);border-top:3px solid var(--blue)}
+.kpi:last-child{border-top-color:var(--red)}
+.kpi .v{font-size:30px;font-weight:800;line-height:1.1;color:var(--blue)}
+.kpi:last-child .v{color:var(--red)}
+.kpi .l{margin-top:4px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#667085}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.card{min-width:0;background:#fff;border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(11,61,145,.13)}
+.card h3{font-size:15px;font-weight:700}
+.card-sub{margin:2px 0 12px;font-size:12px;color:#778}
+.span2{grid-column:span 2}
+.span3{grid-column:1/-1}
+.chart{position:relative;height:260px}
+.chart.tall{height:420px}
+.chips{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;font-size:12px;color:#4a5568}
+.chips span::before{content:"";display:inline-block;width:10px;height:10px;margin-right:5px;border-radius:3px;background:var(--c);vertical-align:-1px}
+.insights{list-style:none;padding:0;display:grid;gap:10px}
+.insights li{padding:10px 12px;border-radius:10px;background:#f4f7fc;border-left:3px solid var(--blue);font-size:13px;line-height:1.45}
+.insights li:first-child{border-left-color:var(--red)}
+.comp{display:grid;gap:12px}
+.comp-row .name{font-size:12px;font-weight:600;margin-bottom:4px}
+.comp-bar{display:grid;grid-template-columns:72px 1fr 40px;align-items:center;gap:8px;font-size:11px;color:#667085;margin-top:3px}
+.comp-bar .track{height:7px;border-radius:999px;background:#edf1f7;overflow:hidden}
+.comp-bar .fill{height:100%;width:0;border-radius:999px;background:var(--c);transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.camp{width:100%;border-collapse:collapse;font-size:13px}
+.camp th{padding:8px 10px;text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#667085;border-bottom:1px solid var(--line)}
+.camp td{padding:9px 10px;border-bottom:1px solid #f0f3f8}
+.camp tr:hover td{background:#f7f9fd}
+.camp .n{display:flex;align-items:center;gap:8px}
+.camp .n i{display:inline-block;height:6px;border-radius:999px;background:var(--blue)}
+/* Apparition des cartes en cascade */
+.reveal{opacity:0;transform:translateY(14px)}
+.reveal.in{animation:rise .55s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:calc(var(--i,0) * 70ms)}
+@keyframes rise{to{opacity:1;transform:none}}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.span2{grid-column:auto}.camp th:nth-child(2),.camp td:nth-child(2){display:none}}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}.reveal.in{animation:none}.card:hover,.opt:hover{transform:none}}
 </style>
 </head>
 <body>
@@ -217,8 +316,9 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
   <p class="menu-subtitle">Menu principal</p>
   <p id="modelsStatus" role="status" aria-live="polite" style="font-size:13px;margin:12px 0;color:#0b3d91">Vérification des trois modèles…</p>
   <div class="opts">
-    <button class="opt" data-go="predict">Prédiction</button>
-    <button class="opt" data-go="chat">Chat</button>
+    <button class="opt" data-go="predict"><span class="ico" aria-hidden="true">◎</span><span>Prédiction<small>Comportement d’une flamme, avec sa fourchette</small></span></button>
+    <button class="opt" data-go="data"><span class="ico" aria-hidden="true">▤</span><span>Étude des données<small>Les essais NASA en chiffres et en graphiques</small></span></button>
+    <button class="opt" data-go="chat"><span class="ico" aria-hidden="true">✦</span><span>Chat<small>Questions sur les documents NASA</small></span></button>
   </div>
   </div>
 </section>
@@ -227,6 +327,7 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
 <section class="view" id="predict" hidden>
   <div class="top">
     <button class="back" data-go="menu">&lt; Retour</button>
+    <span class="title">Prédiction</span>
     <div class="logo-pair small"><div class="logo-slot" data-logo="nasa"></div><span class="logo-cross" aria-label="fois">×</span><div class="logo-slot" data-logo="partner"></div></div>
   </div>
   <div class="split">
@@ -265,15 +366,68 @@ h2{font-size:16px;font-weight:700;margin-bottom:16px}
   </div>
 </section>
 
+<!-- ============ ÉTUDE DES DONNÉES ============ -->
+<section class="view" id="data" hidden>
+  <div class="top">
+    <button class="back" data-go="menu">&lt; Retour</button>
+    <span class="title">Étude des données</span>
+    <div class="logo-pair small"><div class="logo-slot" data-logo="nasa"></div><span class="logo-cross" aria-label="fois">×</span><div class="logo-slot" data-logo="partner"></div></div>
+  </div>
+  <div class="dash">
+    <p class="dash-intro">Les essais de combustion réalisés par la NASA en microgravité (base PSI) : combien, sur quoi, dans quelles conditions, et ce qui manque encore pour les missions vers la Lune et Mars.</p>
+    <p class="dash-error" id="dashError" hidden></p>
+    <div class="kpis">
+      <div class="kpi reveal" style="--i:0"><div class="v" data-kpi="tests">–</div><div class="l">essais</div></div>
+      <div class="kpi reveal" style="--i:1"><div class="v" data-kpi="experiments">–</div><div class="l">expériences</div></div>
+      <div class="kpi reveal" style="--i:2"><div class="v" data-kpi="campaigns">–</div><div class="l">campagnes PSI</div></div>
+      <div class="kpi reveal" style="--i:3"><div class="v" data-kpi="documents">–</div><div class="l">documents NASA</div></div>
+      <div class="kpi reveal" style="--i:4"><div class="v" data-kpi="micro_pct" data-suffix=" %">–</div><div class="l">en microgravité</div></div>
+      <div class="kpi reveal" style="--i:5"><div class="v" data-kpi="with_outcome_pct" data-suffix=" %">–</div><div class="l">avec une issue mesurée</div></div>
+    </div>
+    <div class="grid">
+      <article class="card span2 reveal" style="--i:6">
+        <h3>Essais par expérience</h3><p class="card-sub">Nombre d’essais dans chaque campagne, coloré par famille de combustible.</p>
+        <div class="chips" id="familyChips"></div>
+        <div class="chart"><canvas id="chExp" aria-label="Essais par expérience"></canvas></div>
+      </article>
+      <article class="card reveal" style="--i:7">
+        <h3>Issue des essais</h3><p class="card-sub">Ce qu’est devenue la flamme à la fin de l’essai.</p>
+        <div class="chart"><canvas id="chOutcome" aria-label="Issue des essais"></canvas></div>
+      </article>
+      <article class="card span2 reveal" style="--i:8">
+        <h3>Oxygène testé</h3><p class="card-sub">Nombre d’essais par tranche de 5 % d’O₂. Trait rouge : habitat lunaire envisagé (34 %).</p>
+        <div class="chart"><canvas id="chO2" aria-label="Oxygène testé"></canvas></div>
+      </article>
+      <article class="card reveal" style="--i:9">
+        <h3>Ce que montrent les données</h3><p class="card-sub">Constats recalculés à partir des tables.</p>
+        <ul class="insights" id="insights"></ul>
+      </article>
+      <article class="card span2 reveal" style="--i:10">
+        <h3>Où la NASA a testé : O₂ × pression</h3><p class="card-sub">Chaque point est un essai. Losanges rouges : cabine de l’ISS et habitat lunaire. Les zones vides sont les conditions jamais testées.</p>
+        <div class="chart tall"><canvas id="chMap" aria-label="Carte des essais O2 et pression"></canvas></div>
+      </article>
+      <article class="card reveal" style="--i:11">
+        <h3>Données renseignées</h3><p class="card-sub">Part des essais où la mesure est disponible (le reste est vide, jamais inventé).</p>
+        <div class="comp" id="completeness"></div>
+      </article>
+      <article class="card span3 reveal" style="--i:12">
+        <h3>Campagnes</h3><p class="card-sub">Jeux de données de la NASA Physical Sciences Informatics utilisés.</p>
+        <div style="overflow:auto"><table class="camp" id="campaigns"></table></div>
+      </article>
+    </div>
+  </div>
+</section>
+
 <!-- ============ CHAT ============ -->
 <section class="view" id="chat" hidden>
   <div class="top">
     <button class="back" data-go="menu">&lt; Retour</button>
+    <span class="title">Chat</span>
     <div class="logo-pair small"><div class="logo-slot" data-logo="nasa"></div><span class="logo-cross" aria-label="fois">×</span><div class="logo-slot" data-logo="partner"></div></div>
   </div>
   <div class="chat">
     <div id="log" aria-live="polite">
-      <div class="empty" id="chatEmpty">Posez une question sur les données de combustion de la NASA.</div>
+      <div class="empty" id="chatEmpty"><p>Posez une question sur les données de combustion de la NASA.</p><button class="ask-ex" data-q="Pourquoi une flamme s’éteint-elle plus facilement en microgravité ?">Pourquoi une flamme s’éteint-elle plus facilement en microgravité ?</button><button class="ask-ex" data-q="Qu’a montré l’expérience FLEX sur l’extinction des gouttelettes ?">Qu’a montré l’expérience FLEX sur l’extinction des gouttelettes ?</button><button class="ask-ex" data-q="Quels matériaux brûlent dans une atmosphère à 34 % d’oxygène ?">Quels matériaux brûlent dans une atmosphère à 34 % d’oxygène ?</button></div>
     </div>
     <div class="bar">
       <textarea id="q" placeholder="Écrivez votre message…" aria-label="Message"></textarea>
@@ -1021,6 +1175,151 @@ async function sendChat(){
 }
 $("#send").onclick = sendChat;
 $("#q").addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendChat(); } });
+
+/* =====================================================================
+   ÉTUDE DES DONNÉES : chiffres et graphiques (route GET /dataset/summary)
+   ===================================================================== */
+const DATASET_URL = API_BASE + "/dataset/summary";
+const FAMILY_COLORS = {droplet:"#0b3d91", gas:"#4f8dff", solid:"#fc3d21"};
+const OUTCOME_COLORS = ["#0b3d91","#fc3d21","#ffb547","#4f8dff","#9cc0ff","#b8c1d1","#e3e8f1"];
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let dataset = null;
+const charts = [];
+
+// Rejoue l'apparition en cascade des cartes à chaque visite de la page.
+function replayReveal(){
+  document.querySelectorAll("#data .reveal").forEach(el => { el.classList.remove("in"); void el.offsetWidth; el.classList.add("in"); });
+}
+
+// Chiffre qui défile de 0 à sa valeur.
+function countUp(el, value, suffix){
+  const decimals = Number.isInteger(value) ? 0 : 1;
+  const show = x => el.textContent = x.toLocaleString("fr-FR", {minimumFractionDigits:decimals, maximumFractionDigits:decimals}) + (suffix || "");
+  if(reduceMotion){ show(value); return; }
+  const start = performance.now();
+  const step = now => {
+    const k = Math.min(1, (now - start) / 900);
+    show(value * (1 - Math.pow(1 - k, 3)));
+    if(k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function renderKpis(kpis){
+  document.querySelectorAll("[data-kpi]").forEach(el => {
+    const v = kpis[el.dataset.kpi];
+    if(v == null) el.textContent = "–"; else countUp(el, v, el.dataset.suffix);
+  });
+}
+
+// Trait vertical sur le graphique de l'oxygène (habitat lunaire à 34 % d'O₂).
+const lunarLine = {
+  id: "lunarLine",
+  afterDatasetsDraw(chart, args, opts){
+    if(opts.index == null) return;
+    const x = chart.scales.x.getPixelForValue(opts.index), {top, bottom} = chart.chartArea, ctx = chart.ctx;
+    ctx.save(); ctx.strokeStyle = "#fc3d21"; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bottom); ctx.stroke(); ctx.restore();
+  }
+};
+
+function renderCharts(d){
+  Chart.defaults.font.family = '"Exo 2", sans-serif';
+  Chart.defaults.color = "#4a5568";
+  Chart.defaults.animation.duration = reduceMotion ? 0 : 900;
+  const grid = {color:"#eef1f6"};
+  const families = Object.keys(d.families);
+  $("#familyChips").innerHTML = families.map(f => '<span style="--c:'+FAMILY_COLORS[f]+'">'+esc(d.families[f])+'</span>').join("");
+
+  charts.push(new Chart($("#chExp"), {
+    type: "bar",
+    data: {labels: d.by_experiment.map(e => e.experiment),
+           datasets: [{data: d.by_experiment.map(e => e.n), backgroundColor: d.by_experiment.map(e => FAMILY_COLORS[e.family]), borderRadius: 6}]},
+    options: {indexAxis: "y", maintainAspectRatio: false, plugins: {legend: {display: false}},
+              scales: {x: {grid}, y: {grid: {display: false}}}}
+  }));
+
+  charts.push(new Chart($("#chOutcome"), {
+    type: "doughnut",
+    data: {labels: d.outcomes.map(o => o.label), datasets: [{data: d.outcomes.map(o => o.n), backgroundColor: OUTCOME_COLORS, borderWidth: 2, borderColor: "#fff"}]},
+    options: {maintainAspectRatio: false, cutout: "62%", plugins: {legend: {position: "bottom", labels: {boxWidth: 10, font: {size: 11}}}}}
+  }));
+
+  const bins = d.o2_hist.bins;
+  charts.push(new Chart($("#chO2"), {
+    type: "bar",
+    data: {labels: bins.slice(0, -1).map((b, i) => b + "–" + bins[i + 1] + " %"),
+           datasets: families.map(f => ({label: d.families[f], data: d.o2_hist.series[f], backgroundColor: FAMILY_COLORS[f], borderRadius: 4}))},
+    options: {maintainAspectRatio: false, plugins: {legend: {position: "bottom", labels: {boxWidth: 10}}, lunarLine: {index: bins.findIndex(b => b > 34) - 1}},
+              scales: {x: {stacked: true, grid: {display: false}}, y: {stacked: true, grid}}},
+    plugins: [lunarLine]
+  }));
+
+  const points = families.map(f => ({label: d.families[f], data: d.coverage[f].map(([x, y]) => ({x, y})),
+                                     backgroundColor: FAMILY_COLORS[f] + "88", pointRadius: 3}));
+  points.push({label: "Scénarios de mission", data: d.scenarios.map(sc => ({x: sc.o2, y: sc.p, name: sc.label})),
+               pointStyle: "rectRot", pointRadius: 9, pointHoverRadius: 11, borderWidth: 2, borderColor: "#0b0d12", backgroundColor: "#fc3d21"});
+  charts.push(new Chart($("#chMap"), {
+    type: "scatter",
+    data: {datasets: points},
+    options: {maintainAspectRatio: false, plugins: {legend: {position: "bottom", labels: {boxWidth: 10, usePointStyle: true}},
+              tooltip: {callbacks: {label: c => (c.raw.name ? c.raw.name + " : " : "") + "O₂ " + fr(c.raw.x) + " % · " + fr(c.raw.y) + " kPa"}}},
+              scales: {x: {title: {display: true, text: "O₂ (%)"}, min: 0, max: 90, grid}, y: {title: {display: true, text: "Pression (kPa)"}, min: 0, grid}}}
+  }));
+}
+
+function renderInsights(list){
+  $("#insights").innerHTML = list.map(t => "<li>" + esc(t) + "</li>").join("");
+}
+
+function renderCompleteness(d){
+  const families = Object.keys(d.families);
+  $("#completeness").innerHTML = d.completeness.map(c =>
+    '<div class="comp-row"><div class="name">' + esc(c.label) + "</div>" +
+    families.map(f => '<div class="comp-bar"><span>' + esc(d.families[f]) + '</span><div class="track"><div class="fill" style="--c:' + FAMILY_COLORS[f] +
+                      '" data-w="' + c.pct[f] + '"></div></div><span>' + fr(c.pct[f]) + " %</span></div>").join("") + "</div>").join("");
+  // Les barres se remplissent après l'affichage (transition CSS).
+  requestAnimationFrame(() => document.querySelectorAll("#completeness .fill").forEach(el => el.style.width = el.dataset.w + "%"));
+}
+
+function renderCampaigns(rows){
+  const max = Math.max(...rows.map(r => r.n), 1);
+  const period = r => r.start ? (r.start + (r.end ? " → " + r.end : " → …")) : "–";
+  $("#campaigns").innerHTML = "<thead><tr><th>Expérience</th><th>Titre</th><th>Période</th><th>Essais</th></tr></thead><tbody>" +
+    rows.map(r => "<tr><td><strong>" + esc(r.experiment) + "</strong></td><td>" + esc(r.title) + "</td><td>" + esc(period(r)) +
+                  '</td><td><span class="n"><i style="width:' + Math.round(60 * r.n / max) + 'px"></i>' + fr(r.n) + "</span></td></tr>").join("") + "</tbody>";
+}
+
+async function openDataPage(){
+  $("#data .dash").scrollTop = 0;
+  if(dataset){                        // déjà chargée : on rejoue seulement les animations
+    replayReveal();
+    if(!reduceMotion) charts.forEach(c => { c.reset(); c.update(); });
+    return;
+  }
+  try{
+    const r = await fetch(DATASET_URL);
+    if(!r.ok) throw new Error("le serveur a répondu " + r.status);
+    dataset = await r.json();
+    $("#dashError").hidden = true;
+    renderKpis(dataset.kpis);
+    renderCharts(dataset);
+    renderInsights(dataset.insights);
+    renderCompleteness(dataset);
+    renderCampaigns(dataset.campaigns);
+  }catch(err){
+    $("#dashError").hidden = false;
+    $("#dashError").textContent = "Impossible de charger l’étude des données (" + err.message + "). Le serveur Python est-il lancé ?";
+  }
+  replayReveal();
+}
+document.addEventListener("click", e => { if(e.target.closest('[data-go="data"]')) setTimeout(openDataPage, 250); });
+
+// Chat : un exemple de question remplit la zone de saisie.
+document.addEventListener("click", e => {
+  const ex = e.target.closest(".ask-ex");
+  if(ex){ $("#q").value = ex.dataset.q; $("#q").focus(); }
+});
 </script>
 </body>
 </html>
