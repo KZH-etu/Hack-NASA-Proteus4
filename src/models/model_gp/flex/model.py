@@ -19,7 +19,7 @@ Dans ces données, la pression n'influence presque pas l'extinction (longueur de
 (atmosphère d'exploration ≈ 55 kPa), le modèle prolonge cette absence d'effet sans pouvoir la vérifier.
 
 Validation : python -m src.models.model_gp.flex.evaluate (résultats dans src/models/model_gp/flex/validation.md).
-L'entraînement complet prend ~25 s (20 ré-échantillonnages) : à mettre en cache dans l'app (st.cache_resource).
+L'entraînement complet prend ~25 s (20 ré-échantillonnages) : le modèle est sauvegardé (voir cache.py).
 """
 
 from functools import lru_cache
@@ -33,6 +33,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from src.data.build_unified import load_family
+from src.models.model_gp.cache import load_or_train
 
 FEATURES = ["is_heptane", "x_o2", "pressure_kpa", "x_co2", "x_he", "d0_mm"]
 FUELS = ("heptane", "methanol")
@@ -148,8 +149,8 @@ class FlexModel:
 
 @lru_cache(maxsize=1)
 def trained_model():
-    """Modèle entraîné sur tous les essais FLEX (gardé en mémoire)."""
-    return FlexModel(load_data())
+    """Modèle entraîné sur tous les essais FLEX (gardé en mémoire, sauvegardé dans data/models/)."""
+    return load_or_train("flex", lambda: FlexModel(load_data()))
 
 
 # ---------- Prédiction pour l'app ----------

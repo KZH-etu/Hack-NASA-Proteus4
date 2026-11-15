@@ -28,6 +28,9 @@ data/rag/markdown/
 data/rag/pdfs/
 data/rag/tracking.db
 
+# Modèles entraînés sauvegardés (regénérés automatiquement, voir src/models/model_gp/cache.py)
+data/models/
+
 # Streamlit
 .streamlit/secrets.toml
 

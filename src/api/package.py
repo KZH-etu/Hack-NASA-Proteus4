@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import subprocess
+import tempfile
 import zipfile
 from pathlib import Path
 
@@ -151,6 +152,30 @@ def tracked(path):
             and Path(p).name != ".env"]
 
 
+def trained_models():
+    """Fichiers des modèles entraînés (data/models/), créés si besoin : l'archive démarre sans entraînement."""
+    from src.models.model_gp import flex, gas, solids
+    from src.models.model_gp.cache import CACHE_DIR
+    for module in (flex, gas, solids):
+        module.trained_model()
+    return sorted(p for p in CACHE_DIR.iterdir() if p.suffix in (".joblib", ".key"))
+
+
+def check_models(out, top):
+    """Vérifie que l'empreinte des modèles correspond aux fichiers de l'archive (sinon : réentraînement chez le destinataire)."""
+    from src.models.model_gp.cache import fingerprint
+    with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(out) as z:
+        z.extractall(tmp, [n for n in z.namelist() if n.startswith((f"{top}/src/", f"{top}/data/"))
+                           and "/chroma_db/" not in n])
+        root = Path(tmp) / top
+        keys = {p.read_text(encoding="utf-8") for p in (root / "data" / "models").glob("*.key")}
+        ok = keys == {fingerprint(root)}
+    print("Modèles entraînés inclus : démarrage immédiat." if ok else
+          "Attention : l'empreinte des modèles ne correspond pas aux fichiers de l'archive ; ils seront "
+          "réentraînés au premier lancement (~45 s).")
+    return ok
+
+
 def build(with_chat=False, include_db=True, out=None):
     top = "HEPHAISTOS_chat" if with_chat else "HEPHAISTOS_demo"
     out = Path(out) if out else ROOT / "dist" / f"{top}.zip"
@@ -168,6 +193,8 @@ def build(with_chat=False, include_db=True, out=None):
         else:
             print(f"Base ChromaDB absente ({CHROMA_DIR}) : elle sera téléchargée au 1er lancement (gh requis). "
                   "Pour l'inclure : python -m src.rag.storage.download_chroma_release, puis relancer.")
+
+    model_files = trained_models()
 
     api_args = "--skip-sync " if with_chat else "--no-rag "
     bat = BAT_HEADER + (BAT_CHAT if with_chat else "") + BAT_FOOTER.format(api_args=api_args)
@@ -195,7 +222,7 @@ def build(with_chat=False, include_db=True, out=None):
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         for f in files:
             z.write(ROOT / f, f"{top}/{f}")
-        for p in db_files:
+        for p in db_files + model_files:
             z.write(p, f"{top}/{p.relative_to(ROOT).as_posix()}")
         z.writestr(f"{top}/requirements.txt", requirements)
         z.writestr(f"{top}/lancer.bat", bat.replace("\n", "\r\n"))
@@ -204,9 +231,10 @@ def build(with_chat=False, include_db=True, out=None):
         info.compress_type = zipfile.ZIP_DEFLATED
         z.writestr(info, sh)
         z.writestr(f"{top}/LISEZMOI.txt", readme.replace("\n", "\r\n"))
-    n = len(files) + len(db_files) + 4
+    n = len(files) + len(db_files) + len(model_files) + 4
     print(f"{out} : {n} fichiers, {out.stat().st_size / 1e6:.1f} Mo"
           + (f" (dont la base du chat : {len(db_files)} fichiers)" if db_files else ""))
+    check_models(out, top)
     if with_chat:
         print("Rappel : le .env (clé Gemini) n'est pas inclus ; le destinataire met sa propre clé.")
     return out

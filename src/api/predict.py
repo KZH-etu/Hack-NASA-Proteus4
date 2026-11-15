@@ -49,7 +49,8 @@ def _family_module(family):
 
 
 def ensure_loaded(family):
-    """Entraîne le modèle de la famille une seule fois (environ 30 s), même si plusieurs requêtes arrivent."""
+    """Charge le modèle de la famille une seule fois, même si plusieurs requêtes arrivent (rechargé depuis
+    data/models/ en ~0,1 s, ou entraîné en ~10 à 20 s si les données ou le code ont changé)."""
     with _LOCKS[family]:
         if STATUS[family]["status"] == "ready":
             return

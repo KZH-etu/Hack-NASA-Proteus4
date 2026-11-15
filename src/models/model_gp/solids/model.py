@@ -34,6 +34,7 @@ from sklearn.preprocessing import StandardScaler
 
 from src.data.build_unified import load_family
 from src.data.solids import flow_sequence
+from src.models.model_gp.cache import load_or_train
 
 MATERIAL_CLASSES = ("pmma_thin", "pmma_thick", "pmma_rod", "pmma_sphere", "sibal", "other")
 # Groupes utilisés par le modèle (trop peu d'observations pour 6 classes)
@@ -145,7 +146,7 @@ class SolidsModel:
 
 @lru_cache(maxsize=1)
 def trained_model():
-    return SolidsModel(observations())
+    return load_or_train("solids", lambda: SolidsModel(observations()))
 
 
 def conditions_to_row(conditions):
