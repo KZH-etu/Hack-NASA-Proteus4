@@ -265,6 +265,9 @@ body{background:var(--bg)}
 .menu-brand{flex-direction:column;justify-content:center;align-items:center;gap:14px}
 .credits{margin-top:24px;font-size:11px;line-height:1.5;color:#667085}
 
+/* Chat : mention de l'usage de l'IA, toujours visible sous la saisie */
+#chat .ai-note{margin:0;padding:0 22px 14px;background:#fff;font-size:11px;line-height:1.45;color:#667085;text-align:center}
+
 /* Étude des données */
 #data{background:var(--bg)}
 .dash{flex:1;overflow:auto;padding:22px clamp(14px,3vw,34px) 40px}
@@ -439,6 +442,7 @@ body{background:var(--bg)}
       <textarea id="q" placeholder="Écrivez votre message…" aria-label="Message"></textarea>
       <button id="send">Envoyer</button>
     </div>
+    <p class="ai-note">Réponses générées par IA (Google Gemini) à partir de documents NASA, avec leurs sources. Vérifiez les informations importantes dans les documents cités.</p>
   </div>
 </section>
 
