@@ -25,24 +25,24 @@ DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 DEFAULT_GEMINI_FALLBACK_MODELS = ("gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.7-flash")
 GEMINI_TIMEOUT_MS = 10_000
 
-NO_SOURCE_ANSWER = "Je n'ai pas trouvé de document NASA sur ce point."
+NO_SOURCE_ANSWER = "I could not find any NASA document on this topic."
 LLM_DOWN_ANSWER = (
-    "Le modèle Gemini ne répond pas pour le moment : aucune synthèse générée, mais vous "
-    "pouvez consulter les sources NASA pertinentes et leurs extraits ci-dessous."
+    "The Gemini model is not responding right now: no summary was generated, but you can "
+    "browse the relevant NASA sources and their excerpts below."
 )
 
 SYSTEM_PROMPT = (
-    "Tu es l'assistant du projet HEPHAISTOS sur la combustion en microgravité et la sécurité incendie des "
-    "missions spatiales. Réponds en français, de façon claire, naturelle, synthétique et structurée, en "
-    "t'appuyant UNIQUEMENT sur les extraits de documents NASA fournis. Ne recopie jamais les extraits bruts "
-    "tels quels. Cite systématiquement chaque fait avec le numéro de sa source entre crochets, par exemple "
-    "[1] ou [2] (sépare plusieurs sources ainsi : [1] [2], jamais [1, 2]). "
-    "Si la question n'a aucun sens, est hors sujet, ou n'a aucun rapport avec les extraits fournis de "
-    "sorte qu'il est impossible de produire une réponse satisfaisante, n'invente rien et réponds exactement "
-    "par cette phrase sans citation : \"Je n'ai pas trouvé d'information permettant de produire une réponse "
-    "satisfaisante. Les ressources les plus proches sont :\" "
-    "Si seuls certains aspects manquent dans les extraits, réponds à ce qui est documenté et indique "
-    "explicitement ce qui manque sans jamais inventer de valeurs ou de résultats."
+    "You are the assistant of the HEPHAISTOS project on microgravity combustion and spacecraft fire "
+    "safety. Answer in English, clearly, naturally, concisely and in a structured way, relying ONLY on "
+    "the NASA document excerpts provided. Never copy the raw excerpts verbatim. Cite every fact with the "
+    "number of its source in square brackets, for example [1] or [2] (separate several sources like this: "
+    "[1] [2], never [1, 2]). "
+    "If the question makes no sense, is off-topic, or is unrelated to the excerpts provided, so that no "
+    "satisfactory answer is possible, do not invent anything and answer exactly with this sentence, "
+    "without citation: \"I could not find information to produce a satisfactory answer. The closest "
+    "resources are:\" "
+    "If only some aspects are missing from the excerpts, answer what is documented and state explicitly "
+    "what is missing, without ever inventing values or results."
 )
 
 
@@ -246,8 +246,8 @@ def _retrieve_via_http(question: str, rag_server_url: str, top_k: int = TOP_K, n
         )
     except httpx.RequestError as exc:
         raise AskUnavailable(
-            f"Serveur RAG injoignable sur {rag_server_url} : {exc}. "
-            "Lancez-le avec : python -m src.rag.server --port 8001"
+            f"RAG server unreachable at {rag_server_url}: {exc}. "
+            "Start it with: python -m src.rag.server --port 8001"
         ) from exc
 
     if response.status_code >= 400:
@@ -256,11 +256,11 @@ def _retrieve_via_http(question: str, rag_server_url: str, top_k: int = TOP_K, n
             detail = response.json().get("detail", detail)
         except Exception:  # noqa: BLE001
             pass
-        raise AskUnavailable(f"Erreur du serveur RAG ({response.status_code}) : {detail}")
+        raise AskUnavailable(f"RAG server error ({response.status_code}): {detail}")
 
     payload = response.json()
     if not isinstance(payload, list):
-        raise AskUnavailable("Réponse inattendue du serveur RAG (/retrieve).")
+        raise AskUnavailable("Unexpected response from the RAG server (/retrieve).")
 
     normalized: list[dict[str, Any]] = []
     for item in payload:
@@ -278,13 +278,13 @@ def _retrieve_in_process(rag_state: Any, question: str, top_k: int = TOP_K, neig
     collection = getattr(rag_state, "collection", None)
     embedder = getattr(rag_state, "llm_client", None)
     if collection is None or embedder is None:
-        raise AskUnavailable("le RAG n'est pas chargé (voir /models/status)")
+        raise AskUnavailable("the RAG is not loaded (see /api/models/status)")
     if int(collection.count()) == 0:
-        raise AskUnavailable("la base ChromaDB est vide : python -m src.rag.storage.download_chroma_release")
+        raise AskUnavailable("the ChromaDB database is empty: python -m src.rag.storage.download_chroma_release")
     try:
         vector = embedder.embed_texts([question])[0]
     except Exception as exc:  # noqa: BLE001
-        raise AskUnavailable(f"Impossible de calculer l'embedding de la question : {exc}") from exc
+        raise AskUnavailable(f"Could not compute the embedding of the question: {exc}") from exc
 
     results = _retrieve_results(
         collection=collection,
@@ -322,10 +322,10 @@ def _build_gemini_contents(
         contents.append(types.Content(role=gemini_role, parts=[types.Part.from_text(text=content)]))
 
     prompt = (
-        f"Extraits de documents NASA :\n\n{extracts}\n\n"
-        f"Question utilisateur : {question}\n"
-        "Rédige une réponse synthétique en français (sans recopier les extraits bruts) "
-        "en citant chaque source utilisée avec son numéro entre crochets : [1], [2], etc."
+        f"NASA document excerpts:\n\n{extracts}\n\n"
+        f"User question: {question}\n"
+        "Write a concise answer in English (without copying the raw excerpts), "
+        "citing each source used with its number in square brackets: [1], [2], etc."
     )
     contents.append(types.Content(role="user", parts=[types.Part.from_text(text=prompt)]))
     return contents
@@ -365,7 +365,7 @@ def _generate_with_gemini(
         api_key = os.getenv("GEMINI_API_KEY", "").strip()
         if not api_key:
             raise AskUnavailable(
-                "Clé API Google absente : définissez GEMINI_API_KEY dans le fichier .env à la racine du projet."
+                "Google API key missing: set GEMINI_API_KEY in the .env file at the project root."
             )
         client = genai.Client(
             api_key=api_key,

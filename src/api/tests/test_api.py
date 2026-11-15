@@ -200,7 +200,7 @@ def test_ask_keeps_closest_sources_when_llm_refuses_off_topic_question():
     assert body["answer"] == refusal
     assert [s["index"] for s in body["sources"]] == [1, 2]
     assert [s["title"] for s in body["sources"]] == ["FLEX", "BASS"]
-    assert "aucun sens" in fake_gemini.calls[0]["config"].system_instruction
+    assert "makes no sense" in fake_gemini.calls[0]["config"].system_instruction
 
 
 def test_ask_calls_remote_rag_server_over_http(monkeypatch):
