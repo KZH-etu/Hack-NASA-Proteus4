@@ -304,11 +304,16 @@ def create_app(
         collection = client.get_or_create_collection(
             name=resolved_config.chroma_collection
         )
+        if llm_client is None and not resolved_config.webapp_embedding_api_key:
+            logger.warning(
+                "QWEN3_EMBEDDING non défini : les requêtes d'embedding vers %s risquent d'échouer.",
+                resolved_config.webapp_embedding_base_url,
+            )
         embedder = llm_client or LMStudioClient(
-            base_url=resolved_config.lm_studio_base_url,
-            api_key=resolved_config.lm_studio_api_key,
+            base_url=resolved_config.webapp_embedding_base_url,
+            api_key=resolved_config.webapp_embedding_api_key or "no-key",
             metadata_model=resolved_config.metadata_model,
-            embedding_model=resolved_config.embedding_model,
+            embedding_model=resolved_config.webapp_embedding_model,
             embedding_batch_size=resolved_config.embedding_batch_size,
         )
 

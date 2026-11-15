@@ -15,7 +15,7 @@ uvicorn src.rag.server:app --host 127.0.0.1 --port 8001
 Avant d'accepter des requêtes (`lifespan`), le serveur :
 1. Vérifie via `gh` que `data/rag/chroma_db/` est présent et aligné sur la dernière release GitHub (`chroma-db-*`).
 2. Télécharge et décompresse automatiquement la dernière release si la base locale est absente ou obsolète (`RAG_SKIP_CHROMA_SYNC=1` ou `--skip-sync` pour désactiver).
-3. Ouvre la collection ChromaDB (`nasa_scientific_reports`) et initialise le client d'embedding LM Studio (`text-embedding-qwen3-embedding-0.6b`).
+3. Ouvre la collection ChromaDB (`nasa_scientific_reports`) et initialise le client d'embedding OpenAI-compatible de la webapp (`https://ai.derveloy.eu/v1`, modèle `qwen3-embedding:0.6b`, configurable via `WEBAPP_EMBEDDING_BASE_URL` / `WEBAPP_EMBEDDING_MODEL` / `QWEN3_EMBEDDING`).
 
 - **URL de base par défaut :** `http://127.0.0.1:8001`
 - **Documentation interactive Swagger / OpenAPI :** `GET /docs` et `GET /openapi.json`
@@ -62,7 +62,7 @@ curl -s http://127.0.0.1:8000/health
 
 ### 2. `POST /retrieve`
 
-Calcule l'embedding dense de la requête via LM Studio (`text-embedding-qwen3-embedding-0.6b`), récupère les `top_k` chunks les plus proches dans ChromaDB, va chercher pour chaque hit ses chunks collés avant et après dans le même document (`chunk_index - neighbors .. chunk_index + neighbors`), concatène leurs textes (en fusionnant les chevauchements exacts) et renvoie une **liste d'objets structurés** (`RetrieveResult`) contenant le texte extrait, le bloc formaté LLM et les métadonnées documentaires (titre, auteurs, année, mission, lien PDF, lien NASA...).
+Calcule l'embedding dense de la requête via le endpoint OpenAI-compatible de la webapp (`WEBAPP_EMBEDDING_MODEL`, défaut `qwen3-embedding:0.6b` sur `https://ai.derveloy.eu/v1`), récupère les `top_k` chunks les plus proches dans ChromaDB, va chercher pour chaque hit ses chunks collés avant et après dans le même document (`chunk_index - neighbors .. chunk_index + neighbors`), concatène leurs textes (en fusionnant les chevauchements exacts) et renvoie une **liste d'objets structurés** (`RetrieveResult`) contenant le texte extrait, le bloc formaté LLM et les métadonnées documentaires (titre, auteurs, année, mission, lien PDF, lien NASA...).
 
 #### Corps de la requête (`application/json`)
 
@@ -87,7 +87,7 @@ Type : `array<RetrieveResult>` (`list[RetrieveResult]`).
 | Code HTTP | Cas | Détail |
 |---|---|---|
 | `422 Unprocessable Entity` | Requête invalide | `query` vide/manquant, `top_k` hors `[1, 50]` ou `neighbors` hors `[0, 5]`. |
-| `503 Service Unavailable` | LM Studio inaccessible | Impossible de générer l'embedding de la requête (`LMStudioClient.embed_texts` en échec). |
+| `503 Service Unavailable` | Serveur d'embedding inaccessible | Impossible de générer l'embedding de la requête (`LMStudioClient.embed_texts` en échec). |
 
 #### Exemple `curl`
 
