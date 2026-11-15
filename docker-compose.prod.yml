@@ -1,0 +1,49 @@
+# ==========================================
+# Production docker-compose (HEPHAISTOS)
+# L'image ne contient que l'environnement Python ; code et bases sont montés en bind mount.
+# Démarrage : docker compose -f docker-compose.prod.yml up -d --build
+# ==========================================
+
+networks:
+  trader-network:
+    external: true
+    # Nom du réseau créé par /opt/trader/docker-compose.prod.yml (modifier si le réseau s'appelle autrement, ex. trader-network)
+    name: ${TRAEFIK_NETWORK:-trader_trader-network}
+
+services:
+  hephaistos:
+    image: hephaistos:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hephaistos-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Force le RAG intégré (un seul serveur/domaine) et évite l'appel au CLI gh au démarrage
+      RAG_SERVER_URL: ""
+      RAG_SKIP_CHROMA_SYNC: "1"
+      # Si https://ai.derveloy.eu/v1 timeout depuis trader-network (pas de NAT-hairpin sur le VPS),
+      # définir dans .env : WEBAPP_EMBEDDING_BASE_URL=http://qwen3-embedding-api:11434/v1
+    volumes:
+      - ./src:/app/src:ro
+      - ./app:/app/app:ro
+      - ./data/processed:/app/data/processed:ro
+      - ./data/raw/ntrs/catalog.csv:/app/data/raw/ntrs/catalog.csv:ro
+      - ./data/rag/chroma_db:/app/data/rag/chroma_db
+    networks:
+      - trader-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/models/status', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hephaistos.rule=Host(`hephaistos.derveloy.eu`)"
+      - "traefik.http.routers.hephaistos.entrypoints=websecure"
+      - "traefik.http.routers.hephaistos.tls=true"
+      - "traefik.http.routers.hephaistos.tls.certresolver=letsencrypt"
+      - "traefik.http.services.hephaistos.loadbalancer.server.port=8000"

@@ -10,21 +10,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# 1. Dépendances Python d'abord : cette couche reste en cache tant que requirements-prod.txt ne change pas
+# L'image ne contient que l'environnement Python et les dépendances pip (mises en cache) ;
+# le code et les données (src, app, data, chroma_db) sont montés en bind mount via docker-compose.prod.yml.
 COPY requirements-prod.txt ./
 RUN pip install --no-cache-dir -r requirements-prod.txt
-
-# 2. Données prétraitées et catalogue NTRS (changent rarement)
-COPY data/processed ./data/processed
-COPY data/raw/ntrs/catalog.csv data/raw/ntrs/catalog.jsonl ./data/raw/ntrs/
-
-# 3. Base vectorielle ChromaDB (téléchargée dans data/rag/chroma_db avant le build)
-#    data/rag/.gitkeep garantit que COPY reste valide même si chroma_db est monté via volume
-COPY data/rag ./data/rag
-
-# 4. Interface et code applicatif en dernier pour des rebuilds rapides
-COPY app ./app
-COPY src ./src
 
 EXPOSE 8000
 
