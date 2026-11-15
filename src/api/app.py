@@ -6,6 +6,7 @@
 Routes :
     GET  /                 interface HEPHAISTOS (app/frontend_hephaistos/)
     POST /predict          prédiction (format de la page)            -> src/api/predict.py
+    GET  /dataset/summary  chiffres et séries de la page « Étude des données »
     GET  /models/status    état des modèles, du RAG distant et de Gemini
     POST /ask              chat : RAG (:8001) + Gemini Flash         -> src/api/ask.py
 """
@@ -30,6 +31,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.api import ask as ask_module
+from src.api import dataset as dataset_module
 from src.api import predict as predict_module
 
 LOGGER = logging.getLogger("hephaistos")
@@ -129,6 +131,11 @@ def create_app(
     @app.get("/", include_in_schema=False)
     def home():
         return RedirectResponse(f"/ui/{FRONTEND_PAGE}")
+
+    @app.get("/dataset/summary")
+    def dataset_summary():
+        """Chiffres et séries de la page « Étude des données »."""
+        return dataset_module.summary()
 
     @app.get("/models/status")
     def models_status():
