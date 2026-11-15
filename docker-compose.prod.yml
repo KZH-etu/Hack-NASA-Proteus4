@@ -24,13 +24,14 @@ services:
       # Force le RAG intégré (un seul serveur/domaine) et évite l'appel au CLI gh au démarrage
       RAG_SERVER_URL: ""
       RAG_SKIP_CHROMA_SYNC: "1"
-      # Si https://ai.derveloy.eu/v1 timeout depuis trader-network (pas de NAT-hairpin sur le VPS),
-      # définir dans .env : WEBAPP_EMBEDDING_BASE_URL=http://qwen3-embedding-api:11434/v1
+      # Surcharge l'URL du .env en prod pour joindre Ollama en interne sur trader-network (évite le NAT-hairpin sur https://ai.derveloy.eu/v1)
+      WEBAPP_EMBEDDING_BASE_URL: http://qwen3-embedding-api:11434/v1
     volumes:
       - ./src:/app/src:ro
       - ./app:/app/app:ro
       - ./data/processed:/app/data/processed:ro
       - ./data/raw/ntrs/catalog.csv:/app/data/raw/ntrs/catalog.csv:ro
+      - ./data/models:/app/data/models
       - ./data/rag/chroma_db:/app/data/rag/chroma_db
     networks:
       - trader-network
