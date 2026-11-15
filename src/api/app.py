@@ -127,7 +127,7 @@ def create_app(
         """Clé d'API facultative : si HEPHAISTOS_API_KEY est définie, l'en-tête X-API-Key est exigé."""
         key = os.getenv("HEPHAISTOS_API_KEY", "")
         if key and not compare_digest(request.headers.get("X-API-Key", ""), key):
-            raise HTTPException(status_code=401, detail="Clé d'API invalide")
+            raise HTTPException(status_code=401, detail="Invalid API key")
 
     # ---------- Interface ----------
 
@@ -166,18 +166,18 @@ def create_app(
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         except Exception as exc:  # noqa: BLE001
             LOGGER.exception("Prédiction impossible")
-            raise HTTPException(status_code=500, detail=f"Prédiction impossible : {exc}") from exc
+            raise HTTPException(status_code=500, detail=f"Prediction failed: {exc}") from exc
 
     @api.post("/ask")
     def ask(payload: AskRequest, request: Request):
         check_key(request)
         if not with_rag:
-            raise HTTPException(status_code=503, detail="Le chat est désactivé (serveur lancé avec --no-rag).")
+            raise HTTPException(status_code=503, detail="The chat is disabled (server started with --no-rag).")
         if rag_app is None and not remote_url:
-            raise HTTPException(status_code=503, detail=f"Le RAG n'a pas pu être créé ({rag_error}).")
+            raise HTTPException(status_code=503, detail=f"The RAG could not be created ({rag_error}).")
         if rag_app is not None and rag_status.get("status") != "ready":
             raise HTTPException(status_code=503,
-                                detail=f"Le RAG n'est pas disponible ({rag_status.get('error') or rag_status['status']}).")
+                                detail=f"The RAG is not available ({rag_status.get('error') or rag_status['status']}).")
         try:
             return ask_module.ask(rag_app.state if rag_app is not None else None, payload.question, payload.history,
                                   rag_server_url=remote_url or None, gemini_client=gemini_client)

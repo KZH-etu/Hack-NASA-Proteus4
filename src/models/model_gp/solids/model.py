@@ -44,8 +44,8 @@ N_BOOTSTRAP = 20
 SEED = 0
 THIN_MM = 0.5  # PMMA « mince » : film ou plaque jusqu'à 0,5 mm
 MIN_LENGTH_SCALE = 1.0
-RELIABILITY = ("faible : en validation par jour d'essai, AUC ≈ 0,59 (0,5 = hasard) ; "
-               "à ne pas utiliser pour décider (voir src/models/model_gp/solids/validation.md)")
+RELIABILITY = ("low: AUC ≈ 0.59 in validation on unseen test days (0.5 = chance); "
+               "do not use it to make decisions (see src/models/model_gp/solids/validation.md)")
 
 # Recommandation : unités de couverture et de pertinence (O2 en fraction, débit en log)
 COVERAGE_SCALES = {"x_o2": 0.02, "log_flow": 0.4}
@@ -153,7 +153,7 @@ def conditions_to_row(conditions):
     material = conditions.get("material", "pmma_flat")
     group = material if material in MATERIAL_GROUPS else material_group(material) if material in MATERIAL_CLASSES else None
     if group is None:
-        raise ValueError(f"matériau inconnu « {material} » ; groupes : {tuple(MATERIAL_GROUPS)} ; classes : {MATERIAL_CLASSES}")
+        raise ValueError(f"unknown material '{material}'; groups: {tuple(MATERIAL_GROUPS)}; classes: {MATERIAL_CLASSES}")
     return np.array([[float(group == g) for g in MATERIAL_GROUPS]
                      + [conditions["o2_percent"] / 100, np.log(max(conditions["flow_cm_s"], 0.1))]]), group
 
@@ -165,15 +165,15 @@ def predict(conditions):
     model = trained_model()
     X, group = conditions_to_row(conditions)
     r = model.predict_frame(X).iloc[0]
-    warnings = [f"fiabilité du modèle {RELIABILITY}"]
+    warnings = [f"model reliability {RELIABILITY}"]
     for key, value in (("x_o2", conditions["o2_percent"] / 100), ("flow_cm_s", conditions["flow_cm_s"])):
         lo, hi = model.ranges[key]
         if not lo - 1e-9 <= value <= hi + 1e-9:
-            warnings.append(f"{key} = {value:g} hors de la plage mesurée par BASS / BASS-II ({lo:g} à {hi:g}) : extrapolation")
+            warnings.append(f"{key} = {value:g} is outside the range tested by BASS / BASS-II ({lo:g} to {hi:g}): extrapolation")
     no_data = not _o2_in_range(model, conditions["o2_percent"] / 100)
     if no_data:
-        warnings.append("pas de donnée : aucun essai solide à ce niveau d'O2 ; loin des données, le modèle revient à 0,5 "
-                        "(absence d'information, pas une prédiction) : aucune probabilité n'est donnée")
+        warnings.append("no data: no solid test at this O2 level; far from the data, the model falls back to 0.5 "
+                        "(lack of information, not a prediction): no probability is given")
     return {
         "experiment": "BASS / BASS-II",
         "material_group": group,

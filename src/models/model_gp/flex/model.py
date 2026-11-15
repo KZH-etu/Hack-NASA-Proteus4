@@ -158,7 +158,7 @@ def conditions_to_row(conditions):
     """conditions : fuel ('heptane' / 'methanol'), o2_percent, pressure_kpa, co2_percent=0, he_percent=0, d0_mm=3.0."""
     fuel = conditions.get("fuel", "heptane").lower()
     if fuel not in FUELS:
-        raise ValueError(f"FLEX n'a testé que {FUELS} ; « {fuel} » n'est pas couvert")
+        raise ValueError(f"FLEX only tested {FUELS}; '{fuel}' is not covered")
     return np.array([[
         1.0 if fuel == "heptane" else 0.0,
         conditions["o2_percent"] / 100,
@@ -180,10 +180,10 @@ def predict(conditions):
     for c, value in zip(FEATURES[1:], X[0, 1:]):
         lo, hi = model.ranges[c]
         if not lo - 1e-9 <= value <= hi + 1e-9:
-            warnings.append(f"{c} = {value:g} hors de la plage mesurée par FLEX ({lo:g} à {hi:g}) : extrapolation ; "
-                            "l'intervalle affiché ne tient pas compte de cette extrapolation (il est sous-estimé)")
+            warnings.append(f"{c} = {value:g} is outside the range tested by FLEX ({lo:g} to {hi:g}): extrapolation; "
+                            "the displayed interval does not account for this extrapolation (it is underestimated)")
     if not r["near_data"]:
-        warnings.append("pas de donnée proche : aucun essai FLEX dans des conditions voisines, la prédiction est peu fiable")
+        warnings.append("no nearby data: no FLEX test in similar conditions, the prediction is unreliable")
     return {
         "experiment": "FLEX",
         "p_extinction": round(float(r["p_extinction"]), 3),
