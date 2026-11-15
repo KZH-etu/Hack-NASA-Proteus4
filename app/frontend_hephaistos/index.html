@@ -261,7 +261,8 @@ body{background:var(--bg)}
 #chat .src-item,#chat .cite-ref,#chat .src-excerpt-text{border-radius:8px}
 @media(max-width:800px){#chat .chat{margin-top:0;border-radius:0}}
 
-.menu-brand{justify-content:center;gap:18px}
+/* Menu : titre puis logo de l'équipe en dessous, centrés */
+.menu-brand{flex-direction:column;justify-content:center;align-items:center;gap:14px}
 .credits{margin-top:24px;font-size:11px;line-height:1.5;color:#667085}
 
 /* Étude des données */
@@ -315,7 +316,7 @@ body{background:var(--bg)}
 <!-- ============ MENU PRINCIPAL ============ -->
 <section class="view" id="menu">
   <div class="menu-panel">
-  <div class="menu-brand"><div class="logo-slot" data-logo="partner"></div><h1>HEPHAISTOS</h1></div>
+  <div class="menu-brand"><h1>HEPHAISTOS</h1><div class="logo-slot" data-logo="partner"></div></div>
   <p class="menu-subtitle">Menu principal</p>
   <p id="modelsStatus" role="status" aria-live="polite" style="font-size:13px;margin:12px 0;color:#0b3d91">Vérification des trois modèles…</p>
   <div class="opts">
