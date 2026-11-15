@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -314,62 +314,62 @@ body{background:var(--bg)}
 </style>
 </head>
 <body>
-<div id="intro" role="button" tabindex="0" aria-label="Accéder au menu principal"><div class="intro-name">HEPHAISTOS</div></div>
+<div id="intro" role="button" tabindex="0" aria-label="Go to the main menu"><div class="intro-name">HEPHAISTOS</div></div>
 
 <!-- ============ MENU PRINCIPAL ============ -->
 <section class="view" id="menu">
   <div class="menu-panel">
   <div class="menu-brand"><h1>HEPHAISTOS</h1><div class="logo-slot" data-logo="partner"></div></div>
-  <p class="menu-subtitle">Menu principal</p>
-  <p id="modelsStatus" role="status" aria-live="polite" style="font-size:13px;margin:12px 0;color:#0b3d91">Vérification des trois modèles…</p>
+  <p class="menu-subtitle">Main menu</p>
+  <p id="modelsStatus" role="status" aria-live="polite" style="font-size:13px;margin:12px 0;color:#0b3d91">Checking the three models…</p>
   <div class="opts">
-    <button class="opt" data-go="predict"><span class="ico" aria-hidden="true">◎</span><span>Prédiction<small>Comportement d’une flamme, avec sa fourchette</small></span></button>
-    <button class="opt" data-go="data"><span class="ico" aria-hidden="true">▤</span><span>Étude des données<small>Les essais NASA en chiffres et en graphiques</small></span></button>
-    <button class="opt" data-go="chat"><span class="ico" aria-hidden="true">✦</span><span>Chat<small>Questions sur les documents NASA</small></span></button>
+    <button class="opt" data-go="predict"><span class="ico" aria-hidden="true">◎</span><span>Prediction<small>How a flame behaves, with its uncertainty range</small></span></button>
+    <button class="opt" data-go="data"><span class="ico" aria-hidden="true">▤</span><span>Data study<small>NASA tests in numbers and charts</small></span></button>
+    <button class="opt" data-go="chat"><span class="ico" aria-hidden="true">✦</span><span>Chat<small>Questions about NASA documents</small></span></button>
   </div>
-  <p class="credits">Données : NASA Physical Sciences Informatics (PSI) et NASA Technical Reports Server (NTRS).<br>
-  Projet étudiant pour le NASA Space Apps Challenge, sans lien officiel avec la NASA.</p>
+  <p class="credits">Data: NASA Physical Sciences Informatics (PSI) and NASA Technical Reports Server (NTRS).<br>
+  Student project for the NASA Space Apps Challenge, not affiliated with NASA.</p>
   </div>
 </section>
 
 <!-- ============ PRÉDICTION ============ -->
 <section class="view" id="predict" hidden>
   <div class="top">
-    <button class="back" data-go="menu">&lt; Retour</button>
-    <span class="title">Prédiction</span>
+    <button class="back" data-go="menu">&lt; Back</button>
+    <span class="title">Prediction</span>
     <div class="logo-pair small"><div class="logo-slot" data-logo="partner"></div></div>
   </div>
   <div class="split">
     <!-- Moitié gauche : variables d'entrée -->
     <div class="left">
-      <h2>Conditions de l’essai</h2>
-      <div class="presets" aria-label="Scénarios de mission">
-        <span class="presets-label">Scénarios de mission</span>
-        <button type="button" class="preset" data-preset="iss">Cabine ISS</button>
-        <button type="button" class="preset" data-preset="lune">Habitat lunaire</button>
-        <button type="button" class="preset" data-preset="pauvre">Atmosphère pauvre en O₂</button>
-        <button type="button" class="preset" data-preset="cabine">Matériau de cabine</button>
+      <h2>Test conditions</h2>
+      <div class="presets" aria-label="Mission scenarios">
+        <span class="presets-label">Mission scenarios</span>
+        <button type="button" class="preset" data-preset="iss">ISS cabin</button>
+        <button type="button" class="preset" data-preset="lune">Lunar habitat</button>
+        <button type="button" class="preset" data-preset="pauvre">Low-O₂ atmosphere</button>
+        <button type="button" class="preset" data-preset="cabine">Cabin material</button>
       </div>
       <form id="form" autocomplete="off">
-        <div class="field"><label for="fuel_type">État du combustible</label>
+        <div class="field"><label for="fuel_type">Fuel state</label>
           <select id="fuel_type" name="fuel_type" required>
-            <option value="" selected disabled>Choisir un état…</option>
-            <option value="solid">Solide</option><option value="gas">Gaz</option><option value="droplet">Gouttelette</option>
+            <option value="" selected disabled>Choose a state…</option>
+            <option value="solid">Solid</option><option value="gas">Gas</option><option value="droplet">Droplet</option>
           </select></div>
         <div id="dynamicFields" hidden></div>
-        <button class="go" id="goPredict" type="submit" hidden>Lancer la prédiction</button>
+        <button class="go" id="goPredict" type="submit" hidden>Run prediction</button>
       </form>
     </div>
 
     <!-- Moitié droite : prédiction (noir) puis sources -->
     <div class="right">
       <div class="pred" id="predOut" aria-live="polite">
-        <h2>Prédiction</h2>
-        <p class="muted">Renseignez les conditions puis lancez la prédiction.</p>
+        <h2>Prediction</h2>
+        <p class="muted">Enter the conditions, then run the prediction.</p>
       </div>
       <div class="src" id="srcOut">
-        <h2>Essais NASA les plus proches</h2>
-        <p class="muted">Les essais réels les plus proches de vos conditions apparaîtront ici, avec leur source.</p>
+        <h2>Closest NASA tests</h2>
+        <p class="muted">The real tests closest to your conditions will appear here, with their source.</p>
       </div>
     </div>
   </div>
@@ -378,49 +378,49 @@ body{background:var(--bg)}
 <!-- ============ ÉTUDE DES DONNÉES ============ -->
 <section class="view" id="data" hidden>
   <div class="top">
-    <button class="back" data-go="menu">&lt; Retour</button>
-    <span class="title">Étude des données</span>
+    <button class="back" data-go="menu">&lt; Back</button>
+    <span class="title">Data study</span>
     <div class="logo-pair small"><div class="logo-slot" data-logo="partner"></div></div>
   </div>
   <div class="dash">
-    <p class="dash-intro">Les essais de combustion réalisés par la NASA en microgravité (base PSI) : combien, sur quoi, dans quelles conditions, et ce qui manque encore pour les missions vers la Lune et Mars.</p>
+    <p class="dash-intro">Combustion tests run by NASA in microgravity (PSI database): how many, on what, under which conditions, and what is still missing for missions to the Moon and Mars.</p>
     <p class="dash-error" id="dashError" hidden></p>
     <div class="kpis">
-      <div class="kpi reveal" style="--i:0"><div class="v" data-kpi="tests">–</div><div class="l">essais</div></div>
-      <div class="kpi reveal" style="--i:1"><div class="v" data-kpi="experiments">–</div><div class="l">expériences</div></div>
-      <div class="kpi reveal" style="--i:2"><div class="v" data-kpi="campaigns">–</div><div class="l">campagnes PSI</div></div>
-      <div class="kpi reveal" style="--i:3"><div class="v" data-kpi="documents">–</div><div class="l">documents NASA</div></div>
-      <div class="kpi reveal" style="--i:4"><div class="v" data-kpi="micro_pct" data-suffix=" %">–</div><div class="l">en microgravité</div></div>
-      <div class="kpi reveal" style="--i:5"><div class="v" data-kpi="with_outcome_pct" data-suffix=" %">–</div><div class="l">avec une issue mesurée</div></div>
+      <div class="kpi reveal" style="--i:0"><div class="v" data-kpi="tests">–</div><div class="l">tests</div></div>
+      <div class="kpi reveal" style="--i:1"><div class="v" data-kpi="experiments">–</div><div class="l">experiments</div></div>
+      <div class="kpi reveal" style="--i:2"><div class="v" data-kpi="campaigns">–</div><div class="l">PSI campaigns</div></div>
+      <div class="kpi reveal" style="--i:3"><div class="v" data-kpi="documents">–</div><div class="l">NASA documents</div></div>
+      <div class="kpi reveal" style="--i:4"><div class="v" data-kpi="micro_pct" data-suffix="%">–</div><div class="l">in microgravity</div></div>
+      <div class="kpi reveal" style="--i:5"><div class="v" data-kpi="with_outcome_pct" data-suffix="%">–</div><div class="l">with a measured outcome</div></div>
     </div>
     <div class="grid">
       <article class="card span2 reveal" style="--i:6">
-        <h3>Essais par expérience</h3><p class="card-sub">Nombre d’essais dans chaque campagne, coloré par famille de combustible.</p>
+        <h3>Tests per experiment</h3><p class="card-sub">Number of tests in each campaign, colored by fuel family.</p>
         <div class="chips" id="familyChips"></div>
-        <div class="chart"><canvas id="chExp" aria-label="Essais par expérience"></canvas></div>
+        <div class="chart"><canvas id="chExp" aria-label="Tests per experiment"></canvas></div>
       </article>
       <article class="card reveal" style="--i:7">
-        <h3>Issue des essais</h3><p class="card-sub">Ce qu’est devenue la flamme à la fin de l’essai.</p>
-        <div class="chart"><canvas id="chOutcome" aria-label="Issue des essais"></canvas></div>
+        <h3>Test outcomes</h3><p class="card-sub">What happened to the flame at the end of the test.</p>
+        <div class="chart"><canvas id="chOutcome" aria-label="Test outcomes"></canvas></div>
       </article>
       <article class="card span2 reveal" style="--i:8">
-        <h3>Oxygène testé</h3><p class="card-sub">Nombre d’essais par tranche de 5 % d’O₂. Trait rouge : habitat lunaire envisagé (34 %).</p>
-        <div class="chart"><canvas id="chO2" aria-label="Oxygène testé"></canvas></div>
+        <h3>Oxygen tested</h3><p class="card-sub">Number of tests per 5% O₂ band. Red line: planned lunar habitat (34%).</p>
+        <div class="chart"><canvas id="chO2" aria-label="Oxygen tested"></canvas></div>
       </article>
       <article class="card reveal" style="--i:9">
-        <h3>Ce que montrent les données</h3><p class="card-sub">Constats recalculés à partir des tables.</p>
+        <h3>What the data show</h3><p class="card-sub">Findings recomputed from the tables.</p>
         <ul class="insights" id="insights"></ul>
       </article>
       <article class="card span2 reveal" style="--i:10">
-        <h3>Où la NASA a testé : O₂ × pression</h3><p class="card-sub">Chaque point est un essai. Losanges rouges : cabine de l’ISS et habitat lunaire. Les zones vides sont les conditions jamais testées.</p>
-        <div class="chart tall"><canvas id="chMap" aria-label="Carte des essais O2 et pression"></canvas></div>
+        <h3>Where NASA tested: O₂ × pressure</h3><p class="card-sub">Each dot is a test. Red diamonds: ISS cabin and lunar habitat. Empty areas are conditions never tested.</p>
+        <div class="chart tall"><canvas id="chMap" aria-label="Map of tests by O2 and pressure"></canvas></div>
       </article>
       <article class="card reveal" style="--i:11">
-        <h3>Données renseignées</h3><p class="card-sub">Part des essais où la mesure est disponible (le reste est vide, jamais inventé).</p>
+        <h3>Available measurements</h3><p class="card-sub">Share of tests where the measurement exists (the rest is left empty, never invented).</p>
         <div class="comp" id="completeness"></div>
       </article>
       <article class="card span3 reveal" style="--i:12">
-        <h3>Campagnes</h3><p class="card-sub">Jeux de données de la NASA Physical Sciences Informatics utilisés.</p>
+        <h3>Campaigns</h3><p class="card-sub">NASA Physical Sciences Informatics datasets used.</p>
         <div style="overflow:auto"><table class="camp" id="campaigns"></table></div>
       </article>
     </div>
@@ -430,19 +430,19 @@ body{background:var(--bg)}
 <!-- ============ CHAT ============ -->
 <section class="view" id="chat" hidden>
   <div class="top">
-    <button class="back" data-go="menu">&lt; Retour</button>
+    <button class="back" data-go="menu">&lt; Back</button>
     <span class="title">Chat</span>
     <div class="logo-pair small"><div class="logo-slot" data-logo="partner"></div></div>
   </div>
   <div class="chat">
     <div id="log" aria-live="polite">
-      <div class="empty" id="chatEmpty"><p>Posez une question sur les données de combustion de la NASA.</p><button class="ask-ex" data-q="Pourquoi une flamme s’éteint-elle plus facilement en microgravité ?">Pourquoi une flamme s’éteint-elle plus facilement en microgravité ?</button><button class="ask-ex" data-q="Qu’a montré l’expérience FLEX sur l’extinction des gouttelettes ?">Qu’a montré l’expérience FLEX sur l’extinction des gouttelettes ?</button><button class="ask-ex" data-q="Comment la vitesse du flux d’air influence-t-elle la combustion des matériaux solides dans BASS ?">Comment la vitesse du flux d’air influence-t-elle la combustion des matériaux solides dans BASS ?</button></div>
+      <div class="empty" id="chatEmpty"><p>Ask a question about NASA combustion data.</p><button class="ask-ex" data-q="Why does a flame go out more easily in microgravity?">Why does a flame go out more easily in microgravity?</button><button class="ask-ex" data-q="What did the FLEX experiment show about droplet extinction?">What did the FLEX experiment show about droplet extinction?</button><button class="ask-ex" data-q="How does airflow velocity affect the combustion of solid materials in BASS?">How does airflow velocity affect the combustion of solid materials in BASS?</button></div>
     </div>
     <div class="bar">
-      <textarea id="q" placeholder="Écrivez votre message…" aria-label="Message"></textarea>
-      <button id="send">Envoyer</button>
+      <textarea id="q" placeholder="Type your message…" aria-label="Message"></textarea>
+      <button id="send">Send</button>
     </div>
-    <p class="ai-note">Réponses générées par IA (Google Gemini) à partir de documents NASA, avec leurs sources. Vérifiez les informations importantes dans les documents cités.</p>
+    <p class="ai-note">Answers generated by AI (Google Gemini) from NASA documents, with their sources. Check important information in the cited documents.</p>
   </div>
 </section>
 
@@ -481,7 +481,7 @@ const CONFIG = {
   STATUS_URL: API_BASE + "/api/models/status",
 };
 
-const NO_SOURCE = "Aucun test de la NASA n’a été effectué sur une situation similaire";
+const NO_SOURCE = "No NASA test was run in a similar situation";
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -490,12 +490,12 @@ document.querySelectorAll(".logo-slot").forEach(slot => {
   const placeholder = () => {
     const label = document.createElement("span");
     label.className = "logo-placeholder";
-    label.textContent = "Votre logo";
+    label.textContent = "Your logo";
     slot.replaceChildren(label);
   };
   if (!CONFIG.PARTNER_LOGO_URL) { placeholder(); return; }
   const img = new Image();
-  img.alt = "Logo de l'équipe Proteus";
+  img.alt = "Proteus team logo";
   img.onerror = () => { console.error("Logo introuvable :", CONFIG.PARTNER_LOGO_URL); placeholder(); };
   img.src = CONFIG.PARTNER_LOGO_URL;
   slot.appendChild(img);
@@ -541,9 +541,9 @@ document.addEventListener("click", e => {
 // Format attendu : tout champ est optionnel, seuls ceux présents sont affichés.
 // { experiment, psi_id, test_id, o2_percent, pressure_kpa, flow_cm_s, material,
 //   source_doc, source_page, doi, title, ntrs_id, page, url, demo }
-const OUTCOME_FR = {extinguished:"extinction", burned:"a brûlé", completion:"brûlée jusqu’au bout",
-                    disruption:"goutte éclatée", no_ignition:"ne s’est pas allumée"};
-const fr = v => (v == null || v === "") ? v : Number(v).toLocaleString("fr-FR", {maximumFractionDigits: 3});
+const OUTCOME_FR = {extinguished:"extinguished", burned:"burned", completion:"burned to completion",
+                    disruption:"droplet disruption", no_ignition:"did not ignite"};
+const fr = v => (v == null || v === "") ? v : Number(v).toLocaleString("en-US", {maximumFractionDigits: 3});
 function safeHttpUrl(raw){
   if(!raw) return null;
   try{
@@ -555,12 +555,12 @@ function safeHttpUrl(raw){
 }
 function renderSource(s){
   const parts = [];
-  const head = [s.index != null && "[" + s.index + "]", s.experiment, s.psi_id && "(" + s.psi_id + ")", s.test_id && "essai " + s.test_id, s.title, s.year && "(" + s.year + ")", s.ntrs_id && "NTRS " + s.ntrs_id].filter(Boolean).join(" ");
+  const head = [s.index != null && "[" + s.index + "]", s.experiment, s.psi_id && "(" + s.psi_id + ")", s.test_id && "test " + s.test_id, s.title, s.year && "(" + s.year + ")", s.ntrs_id && "NTRS " + s.ntrs_id].filter(Boolean).join(" ");
   if(head) parts.push("<strong>" + esc(head) + "</strong>");
-  const cond = [s.material, s.o2_percent != null && "O₂ " + fr(s.o2_percent) + " %", s.pressure_kpa != null && fr(s.pressure_kpa) + " kPa", s.flow_cm_s != null && fr(s.flow_cm_s) + " cm/s"].filter(Boolean).join(", ");
+  const cond = [s.material, s.o2_percent != null && "O₂ " + fr(s.o2_percent) + "%", s.pressure_kpa != null && fr(s.pressure_kpa) + " kPa", s.flow_cm_s != null && fr(s.flow_cm_s) + " cm/s"].filter(Boolean).join(", ");
   if(cond) parts.push(esc(cond));
-  if(s.outcome) parts.push('Issue : <span class="outcome">' + esc(OUTCOME_FR[s.outcome] || s.outcome) + "</span>");
-  const metaLine = [s.authors, s.mission_program && "Mission : " + s.mission_program, s.headers_path && "Section : " + s.headers_path, s.source_type && s.source_type.toUpperCase()].filter(Boolean).join(" • ");
+  if(s.outcome) parts.push('Outcome: <span class="outcome">' + esc(OUTCOME_FR[s.outcome] || s.outcome) + "</span>");
+  const metaLine = [s.authors, s.mission_program && "Mission: " + s.mission_program, s.headers_path && "Section: " + s.headers_path, s.source_type && s.source_type.toUpperCase()].filter(Boolean).join(" • ");
   if(metaLine) parts.push(esc(metaLine));
   const doc = [s.source_doc, (s.source_page || s.page) && "p. " + (s.source_page || s.page)].filter(Boolean).join(", ");
   if(doc) parts.push(esc(doc));
@@ -569,15 +569,15 @@ function renderSource(s){
   const links = [];
   const pdfLooksLikePdf = pdfHref && (pdfHref.toLowerCase().includes(".pdf") || (expHref && pdfHref !== expHref));
   if(pdfHref){
-    const primaryLabel = pdfLooksLikePdf ? "Ouvrir le PDF" : (String(pdfHref).includes("psi.nasa.gov") ? "Source NASA PSI" : "Source NASA");
+    const primaryLabel = pdfLooksLikePdf ? "Open the PDF" : (String(pdfHref).includes("psi.nasa.gov") ? "Source NASA PSI" : "Source NASA");
     links.push('<a href="' + esc(pdfHref) + '" target="_blank" rel="noopener noreferrer">' + esc(primaryLabel) + "</a>");
   }
   if(expHref && expHref !== pdfHref){
-    const linkText = s.doi || (String(expHref).includes("psi.nasa.gov") ? "Source NASA PSI" + (s.psi_id ? " (" + s.psi_id + ")" : "") : (s.ntrs_id ? "Fiche NTRS (" + s.ntrs_id + ")" : "Fiche document"));
+    const linkText = s.doi || (String(expHref).includes("psi.nasa.gov") ? "Source NASA PSI" + (s.psi_id ? " (" + s.psi_id + ")" : "") : (s.ntrs_id ? "NTRS record (" + s.ntrs_id + ")" : "Document record"));
     links.push('<a href="' + esc(expHref) + '" target="_blank" rel="noopener noreferrer">' + esc(linkText) + "</a>");
   }
   if(links.length) parts.push(links.join(" · "));
-  if(s.demo) parts.push('<span class="muted">DEMO : donnée factice</span>');
+  if(s.demo) parts.push('<span class="muted">DEMO: dummy data</span>');
   return "<li>" + parts.join("<br>") + "</li>";
 }
 
@@ -586,24 +586,24 @@ function renderSource(s){
    Champs envoyés à Python : uniquement ceux de l'état sélectionné.
    ===================================================================== */
 const MATERIALS = {
-  solid: [["pmma_flat","PMMA (plaque)"],["pmma_rod_sphere","PMMA (tige ou sphère)"],["fabric_other","Tissu / autre"]],
-  gas: [["ethane","Éthane"],["propane","Propane"],["n-butane","n-Butane"]],
-  droplet: [["heptane","Heptane"],["methanol","Méthanol"]]
+  solid: [["pmma_flat","PMMA (flat sheet)"],["pmma_rod_sphere","PMMA (rod or sphere)"],["fabric_other","Fabric / other"]],
+  gas: [["ethane","Ethane"],["propane","Propane"],["n-butane","n-Butane"]],
+  droplet: [["heptane","Heptane"],["methanol","Methanol"]]
 };
 // range : plage testée par la NASA (affichée sous le champ ; en dehors, le modèle extrapole).
 const FIELD_DEFINITIONS = {
-  solid: [{key:"flow_cm_s",label:"Vitesse de l’air (cm/s)",min:0,value:10,range:[0.5,53],unit:"cm/s"}],
-  gas: [{key:"pressure_kpa",label:"Pression (kPa)",min:0,value:101.3,range:[51,304],unit:"kPa"},
-        {key:"x_fuel",label:"Part du combustible dans le jet",min:0,max:1,value:0.3,range:[0.02,1],unit:""},
-        {key:"hc_rate_mg_s",label:"Débit de combustible (mg/s)",min:0,value:1,range:[0.1,3.2],unit:"mg/s"}],
-  droplet: [{key:"pressure_kpa",label:"Pression (kPa)",min:0,value:101.3,range:[70,309],unit:"kPa"},
-            {key:"d0_mm",label:"Diamètre de la goutte (mm)",min:0.000001,value:3,range:[1.1,4.7],unit:"mm"},
+  solid: [{key:"flow_cm_s",label:"Air flow speed (cm/s)",min:0,value:10,range:[0.5,53],unit:"cm/s"}],
+  gas: [{key:"pressure_kpa",label:"Pressure (kPa)",min:0,value:101.3,range:[51,304],unit:"kPa"},
+        {key:"x_fuel",label:"Fuel fraction in the jet",min:0,max:1,value:0.3,range:[0.02,1],unit:""},
+        {key:"hc_rate_mg_s",label:"Fuel flow rate (mg/s)",min:0,value:1,range:[0.1,3.2],unit:"mg/s"}],
+  droplet: [{key:"pressure_kpa",label:"Pressure (kPa)",min:0,value:101.3,range:[70,309],unit:"kPa"},
+            {key:"d0_mm",label:"Droplet diameter (mm)",min:0.000001,value:3,range:[1.1,4.7],unit:"mm"},
             {key:"co2_percent",label:"CO₂ (%)",min:0,max:100,value:0,range:[0,70],unit:"%"},
-            {key:"he_percent",label:"Hélium (%)",min:0,max:100,value:0,range:[0,45],unit:"%"}]
+            {key:"he_percent",label:"Helium (%)",min:0,max:100,value:0,range:[0,45],unit:"%"}]
 };
 const O2_RANGE = {droplet:[12,34], solid:[14.2,22.2], gas:[18,40]};
 let LAST_STATUS = {};
-const fmtRange = (r, unit) => r[0].toLocaleString("fr-FR") + " – " + r[1].toLocaleString("fr-FR") + (unit ? " " + unit : "");
+const fmtRange = (r, unit) => r[0].toLocaleString("en-US") + " – " + r[1].toLocaleString("en-US") + (unit ? " " + unit : "");
 function numericField(def){
   const attrs = ['type="number"','step="any"','required', 'id="'+def.key+'"','name="'+def.key+'"'];
   if(def.min !== undefined) attrs.push('min="'+def.min+'"');
@@ -612,7 +612,7 @@ function numericField(def){
   let hint = '';
   if(def.range){
     attrs.push('data-lo="'+def.range[0]+'"','data-hi="'+def.range[1]+'"','data-unit="'+(def.unit||"")+'"','aria-describedby="h_'+def.key+'"');
-    hint = '<small class="hint" id="h_'+def.key+'">Testé par la NASA : '+fmtRange(def.range, def.unit)+'</small>';
+    hint = '<small class="hint" id="h_'+def.key+'">Tested by NASA: '+fmtRange(def.range, def.unit)+'</small>';
   }
   return '<div class="field"><label for="'+def.key+'">'+def.label+'</label><input '+attrs.join(' ')+'>'+hint+'</div>';
 }
@@ -623,8 +623,8 @@ function checkRange(input){
   const lo = Number(input.dataset.lo), hi = Number(input.dataset.hi), v = Number(input.value);
   const out = input.value !== "" && (v < lo || v > hi);
   field.classList.toggle("out", out);
-  hint.textContent = out ? "Hors des essais NASA (" + fmtRange([lo, hi], input.dataset.unit) + ") : extrapolation"
-                         : "Testé par la NASA : " + fmtRange([lo, hi], input.dataset.unit);
+  hint.textContent = out ? "Outside NASA tests (" + fmtRange([lo, hi], input.dataset.unit) + "): extrapolation"
+                         : "Tested by NASA: " + fmtRange([lo, hi], input.dataset.unit);
 }
 function updateFields(){
   const type = $("#fuel_type").value;
@@ -632,13 +632,13 @@ function updateFields(){
   target.hidden = !MATERIALS[type];
   $("#goPredict").hidden = !MATERIALS[type];
   if(!MATERIALS[type]){target.innerHTML="";return;}
-  target.innerHTML = '<div class="field"><label for="material">Nom du matériau</label><select id="material" name="material" required><option value="" selected disabled>Choisir un matériau…</option>' +
+  target.innerHTML = '<div class="field"><label for="material">Material</label><select id="material" name="material" required><option value="" selected disabled>Choose a material…</option>' +
     MATERIALS[type].map(([value,label])=>'<option value="'+esc(value)+'">'+esc(label)+'</option>').join('') + '</select></div>' +
-    numericField({key:"o2_percent",label:"Oxygène O₂ (%)",min:0,max:100,value:21,range:O2_RANGE[type],unit:"%"}) +
+    numericField({key:"o2_percent",label:"Oxygen O₂ (%)",min:0,max:100,value:21,range:O2_RANGE[type],unit:"%"}) +
     FIELD_DEFINITIONS[type].map(numericField).join('');
   target.querySelectorAll("input[data-lo]").forEach(input => { checkRange(input); input.addEventListener("input", () => checkRange(input)); });
-  $("#predOut").innerHTML='<h2>Prédiction</h2><p class="muted">Renseignez les conditions puis lancez la prédiction.</p>';
-  $("#srcOut").innerHTML='<h2>Essais NASA les plus proches</h2><p class="muted">Les essais réels les plus proches de vos conditions apparaîtront ici, avec leur source.</p>';
+  $("#predOut").innerHTML='<h2>Prediction</h2><p class="muted">Enter the conditions, then run the prediction.</p>';
+  $("#srcOut").innerHTML='<h2>Closest NASA tests</h2><p class="muted">The real tests closest to your conditions will appear here, with their source.</p>';
 }
 $("#fuel_type").addEventListener("change",updateFields);
 
@@ -669,13 +669,13 @@ function riskColor(probability){
   const blue=[79,141,255],red=[252,61,33]; // bleu NASA éclairci : lisible sur fond noir
   return 'rgb('+blue.map((v,i)=>Math.round(v+(red[i]-v)*t)).join(',')+')';
 }
-const fmtPct = v => v == null ? "Non disponible" : (100 * Number(v)).toLocaleString("fr-FR",{maximumFractionDigits:1})+" %";
-const fmtNum = v => v == null ? "Non disponible" : Number(v).toLocaleString("fr-FR",{maximumFractionDigits:3});
-const interval = (arr,unit="prob") => Array.isArray(arr) && arr.length===2 ? (unit==="prob" ? fmtPct(arr[0])+" – "+fmtPct(arr[1]) : fmtNum(arr[0])+" – "+fmtNum(arr[1])) : "Non disponible";
+const fmtPct = v => v == null ? "Not available" : (100 * Number(v)).toLocaleString("en-US",{maximumFractionDigits:1})+"%";
+const fmtNum = v => v == null ? "Not available" : Number(v).toLocaleString("en-US",{maximumFractionDigits:3});
+const interval = (arr,unit="prob") => Array.isArray(arr) && arr.length===2 ? (unit==="prob" ? fmtPct(arr[0])+" – "+fmtPct(arr[1]) : fmtNum(arr[0])+" – "+fmtNum(arr[1])) : "Not available";
 const RELIABILITY = {
-  droplet: ["good", "Fiabilité bonne", "Modèle validé sur des jours d’essai FLEX jamais vus à l’entraînement."],
-  gas: ["medium", "Fiabilité moyenne", "Auto-extinction : fiabilité moyenne ; allumage : fiabilité faible."],
-  solid: ["low", "Fiabilité faible", "Indication seulement : les données ne suffisent pas à prédire de façon fiable."]
+  droplet: ["good", "Reliability: good", "Model validated on FLEX test days never seen in training."],
+  gas: ["medium", "Reliability: medium", "Self-extinction: medium reliability; ignition: low reliability."],
+  solid: ["low", "Reliability: low", "Indication only: the data are not enough for a reliable prediction."]
 };
 // Jauge 0–100 % : fourchette (bande) et valeur annoncée (point), couleur selon le risque.
 function rangeBar(p, iv, colorValue){
@@ -683,9 +683,9 @@ function rangeBar(p, iv, colorValue){
   const pct = x => Math.min(100, Math.max(0, 100 * Number(x)));
   const hasIv = Array.isArray(iv) && iv.length === 2;
   const band = hasIv ? '<span class="band" style="left:'+pct(iv[0])+'%;width:'+(pct(iv[1]) - pct(iv[0]))+'%"></span>' : "";
-  const label = "Probabilité " + fmtPct(p) + (hasIv ? ", intervalle " + interval(iv) : "");
+  const label = "Probability " + fmtPct(p) + (hasIv ? ", interval " + interval(iv) : "");
   return '<div class="range-bar" style="--risk-color:'+riskColor(colorValue)+'" role="img" aria-label="'+esc(label)+'">'+band+
-         '<span class="dot" style="left:'+pct(p)+'%"></span></div><div class="range-scale"><span>0 %</span><span>50 %</span><span>100 %</span></div>';
+         '<span class="dot" style="left:'+pct(p)+'%"></span></div><div class="range-scale"><span>0%</span><span>50%</span><span>100%</span></div>';
 }
 function metric(label, value, colorValue=null, subtitle="", bar=""){
   const color = colorValue == null ? "#6fb1ff" : riskColor(colorValue);
@@ -694,56 +694,56 @@ function metric(label, value, colorValue=null, subtitle="", bar=""){
 }
 function conditionsRecap(c, type){
   const name = ((MATERIALS[type] || []).find(([v]) => v === c.material) || [null, c.material])[1];
-  const parts = [name, "O₂ " + fr(c.o2_percent) + " %"];
+  const parts = [name, "O₂ " + fr(c.o2_percent) + "%"];
   if(c.pressure_kpa != null) parts.push(fr(c.pressure_kpa) + " kPa");
   if(c.flow_cm_s != null) parts.push("air " + fr(c.flow_cm_s) + " cm/s");
-  if(c.d0_mm != null) parts.push("goutte de " + fr(c.d0_mm) + " mm");
-  if(c.co2_percent) parts.push("CO₂ " + fr(c.co2_percent) + " %");
-  if(c.he_percent) parts.push("He " + fr(c.he_percent) + " %");
-  if(c.x_fuel != null) parts.push("part de combustible " + fr(c.x_fuel));
+  if(c.d0_mm != null) parts.push(fr(c.d0_mm) + " mm droplet");
+  if(c.co2_percent) parts.push("CO₂ " + fr(c.co2_percent) + "%");
+  if(c.he_percent) parts.push("He " + fr(c.he_percent) + "%");
+  if(c.x_fuel != null) parts.push("fuel fraction " + fr(c.x_fuel));
   if(c.hc_rate_mg_s != null) parts.push(fr(c.hc_rate_mg_s) + " mg/s");
-  return parts.join(" · ") + " · microgravité";
+  return parts.join(" · ") + " · microgravity";
 }
 function renderPrediction(res, type, c){
   const warnings = Array.isArray(res.warnings) ? res.warnings : [];
   const [rel, relLabel, relText] = RELIABILITY[type];
-  let html = '<h2>Résultats · '+esc(res.experiment || type)+'<span class="badge '+rel+'" title="'+esc(relText)+'">'+relLabel+'</span></h2>';
+  let html = '<h2>Results · '+esc(res.experiment || type)+'<span class="badge '+rel+'" title="'+esc(relText)+'">'+relLabel+'</span></h2>';
   if(c) html += '<p class="recap">'+esc(conditionsRecap(c, type))+'</p>';
-  html += '<div class="legend">Couleur :<span>faible risque d’incendie</span><i aria-hidden="true"></i><span>fort risque</span></div>';
+  html += '<div class="legend">Color:<span>low fire risk</span><i aria-hidden="true"></i><span>high fire risk</span></div>';
   if(type === "solid"){
     const p = res.p_flame_sustained;
-    html += metric("Probabilité que la flamme se maintienne", fmtPct(p), p, "Intervalle à 90 % : "+interval(res.p_flame_sustained_interval_90), rangeBar(p, res.p_flame_sustained_interval_90, p));
-    if(p == null) html += '<p class="nodata">Pas de donnée NASA dans ces conditions : aucune probabilité n’est donnée.</p>';
-    if(res.n_observations_same_group != null) html += '<p class="muted">Observations du même groupe de matériau : '+esc(res.n_observations_same_group)+'</p>';
+    html += metric("Probability that the flame is sustained", fmtPct(p), p, "90% interval: "+interval(res.p_flame_sustained_interval_90), rangeBar(p, res.p_flame_sustained_interval_90, p));
+    if(p == null) html += '<p class="nodata">No NASA data in these conditions: no probability is given.</p>';
+    if(res.n_observations_same_group != null) html += '<p class="muted">Observations in the same material group: '+esc(res.n_observations_same_group)+'</p>';
   }else if(type === "gas"){
     const pi = res.p_hot_ignition, se = res.p_self_extinction_if_ignited, risk = se == null ? null : 1 - se;
-    html += metric("Probabilité d’allumage", fmtPct(pi), pi, "Intervalle à 90 % : "+interval(res.p_hot_ignition_interval_90), rangeBar(pi, res.p_hot_ignition_interval_90, pi));
-    html += metric("Si elle s’allume, probabilité qu’elle s’éteigne seule", fmtPct(se), risk, "Intervalle à 90 % : "+interval(res.p_self_extinction_interval_90), rangeBar(se, res.p_self_extinction_interval_90, risk));
-    if(res.p_hot_ignition_reliability) html += '<p class="muted">Allumage : '+esc(res.p_hot_ignition_reliability)+'</p>';
-    if(res.p_self_extinction_reliability) html += '<p class="muted">Auto-extinction : '+esc(res.p_self_extinction_reliability)+'</p>';
+    html += metric("Ignition probability", fmtPct(pi), pi, "90% interval: "+interval(res.p_hot_ignition_interval_90), rangeBar(pi, res.p_hot_ignition_interval_90, pi));
+    html += metric("If it ignites, probability that it goes out on its own", fmtPct(se), risk, "90% interval: "+interval(res.p_self_extinction_interval_90), rangeBar(se, res.p_self_extinction_interval_90, risk));
+    if(res.p_hot_ignition_reliability) html += '<p class="muted">Ignition: '+esc(res.p_hot_ignition_reliability)+'</p>';
+    if(res.p_self_extinction_reliability) html += '<p class="muted">Self-extinction: '+esc(res.p_self_extinction_reliability)+'</p>';
   }else if(type === "droplet"){
     const p = res.p_extinction, risk = p == null ? null : 1 - p;
-    html += metric("Probabilité que la flamme s’éteigne d’elle-même", fmtPct(p), risk, "Intervalle à 90 % : "+interval(res.p_extinction_interval_90), rangeBar(p, res.p_extinction_interval_90, risk));
-    html += metric("Vitesse de combustion K", fmtNum(res.burning_rate_k_mm2_s)+" mm²/s", null, "Intervalle à 95 % : "+interval(res.burning_rate_k_interval_95,"num")+" mm²/s · écart-type "+fmtNum(res.burning_rate_k_std)+" mm²/s");
-    if(res.near_data === false) html += '<p class="nodata">Pas d’essai NASA dans des conditions voisines : prédiction peu fiable.</p>';
+    html += metric("Probability that the flame goes out on its own", fmtPct(p), risk, "90% interval: "+interval(res.p_extinction_interval_90), rangeBar(p, res.p_extinction_interval_90, risk));
+    html += metric("Burning rate K", fmtNum(res.burning_rate_k_mm2_s)+" mm²/s", null, "95% interval: "+interval(res.burning_rate_k_interval_95,"num")+" mm²/s · standard deviation "+fmtNum(res.burning_rate_k_std)+" mm²/s");
+    if(res.near_data === false) html += '<p class="nodata">No NASA test in nearby conditions: unreliable prediction.</p>';
   }
-  if(warnings.length) html += '<div class="warn"><strong>Limites et avertissements</strong><ul>'+warnings.map(w => '<li>'+esc(w)+'</li>').join('')+'</ul></div>';
-  html += '<p class="muted">'+esc(relText)+(res.n_training_tests != null ? ' Essais d’entraînement : '+esc(res.n_training_tests)+'.' : '')+'</p>';
+  if(warnings.length) html += '<div class="warn"><strong>Limits and warnings</strong><ul>'+warnings.map(w => '<li>'+esc(w)+'</li>').join('')+'</ul></div>';
+  html += '<p class="muted">'+esc(relText)+(res.n_training_tests != null ? ' Training tests: '+esc(res.n_training_tests)+'.' : '')+'</p>';
   $("#predOut").innerHTML = html;
   const sources = Array.isArray(res.sources) ? res.sources : [];
   const near = Array.isArray(res.nearest_tests) ? res.nearest_tests : [];
-  let src = '<h2>Essais NASA les plus proches'+(sources.length ? ' <span class="muted">('+sources.length+')</span>' : '')+'</h2>';
+  let src = '<h2>Closest NASA tests'+(sources.length ? ' <span class="muted">('+sources.length+')</span>' : '')+'</h2>';
   if(sources.length) src += '<ul>'+sources.map(renderSource).join('')+'</ul>';
-  if(near.length) src += '<ul>'+near.map(t => '<li>'+esc([t.test_id && "Essai "+t.test_id, t.fuel, "O₂ "+t.o2_percent+" %", t.pressure_kpa+" kPa"].filter(Boolean).join(' · '))+'</li>').join('')+'</ul>';
+  if(near.length) src += '<ul>'+near.map(t => '<li>'+esc([t.test_id && "Test "+t.test_id, t.fuel, "O₂ "+t.o2_percent+"%", t.pressure_kpa+" kPa"].filter(Boolean).join(' · '))+'</li>').join('')+'</ul>';
   if(!sources.length && !near.length) src += '<p class="muted">'+NO_SOURCE+'</p>';
   $("#srcOut").innerHTML = src;
 }
 async function callPredict(conditions){
   const model=CONFIG.MODEL_BY_STATE[conditions.fuel_type];
-  if(!model)throw new Error("Aucun modèle configuré pour cet état : "+conditions.fuel_type);
+  if(!model)throw new Error("No model configured for this state: "+conditions.fuel_type);
   const payload={...conditions,model};
   const r=await fetch(CONFIG.PREDICT_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-  if(!r.ok){let msg="Le serveur a répondu "+r.status;try{const d=await r.json();msg=d.detail||msg}catch(_){}throw new Error(typeof msg==="string"?msg:JSON.stringify(msg));}
+  if(!r.ok){let msg="The server responded "+r.status;try{const d=await r.json();msg=d.detail||msg}catch(_){}throw new Error(typeof msg==="string"?msg:JSON.stringify(msg));}
   return await r.json();
 }
 $("#form").addEventListener("submit",async e=>{
@@ -754,15 +754,15 @@ $("#form").addEventListener("submit",async e=>{
     c[k]=el.type==="number"?Number(v):v;
   }
   if(c.fuel_type==="droplet" && c.o2_percent+c.co2_percent+c.he_percent>100+1e-9){
-    $("#predOut").innerHTML='<h2>Conditions invalides</h2><p>La somme des pourcentages O₂, CO₂ et hélium ne peut pas dépasser 100 %.</p>';
+    $("#predOut").innerHTML='<h2>Invalid conditions</h2><p>The sum of the O₂, CO₂ and helium percentages cannot exceed 100%.</p>';
     return;
   }
-  const btn=$("#goPredict");btn.disabled=true;btn.textContent="Calcul en cours…";
+  const btn=$("#goPredict");btn.disabled=true;btn.textContent="Computing…";
   const ready=(LAST_STATUS[c.fuel_type]||{}).status==="ready";
-  $("#predOut").innerHTML='<h2>Prédiction</h2><p class="loading"><span class="spinner" aria-hidden="true"></span>Calcul en cours…'+(ready?'':' Premier calcul pour cet état : jusqu’à 30 s.')+'</p>';
+  $("#predOut").innerHTML='<h2>Prediction</h2><p class="loading"><span class="spinner" aria-hidden="true"></span>Computing…'+(ready?'':' First computation for this state: up to 30 s.')+'</p>';
   try{const res=await callPredict(c);renderPrediction(res,c.fuel_type,c)}
-  catch(err){$("#predOut").innerHTML='<h2>Erreur</h2><p>'+esc(err.message)+'</p>';$("#srcOut").innerHTML='<h2>Sources</h2>'}
-  finally{btn.disabled=false;btn.textContent="Lancer la prédiction";}
+  catch(err){$("#predOut").innerHTML='<h2>Error</h2><p>'+esc(err.message)+'</p>';$("#srcOut").innerHTML='<h2>Sources</h2>'}
+  finally{btn.disabled=false;btn.textContent="Run prediction";}
 });
 async function checkModels(){
   const el=$("#modelsStatus");
@@ -771,11 +771,11 @@ async function checkModels(){
     if(!r.ok)throw new Error("HTTP "+r.status);
     const data=await r.json();
     LAST_STATUS=data.models||{};
-    const names={solid:"Solide",gas:"Gaz",droplet:"Gouttelette"};
-    el.textContent=Object.entries(names).map(([k,n])=>n+" : "+({ready:"prêt",loading:"chargement…",error:"erreur"}[data.models?.[k]?.status]||"en attente")).join(" · ");
+    const names={solid:"Solid",gas:"Gas",droplet:"Droplet"};
+    el.textContent=Object.entries(names).map(([k,n])=>n+": "+({ready:"ready",loading:"loading…",error:"error"}[data.models?.[k]?.status]||"waiting")).join(" · ");
     const pending=Object.values(data.models||{}).some(v=>v.status==="loading"||v.status==="pending");
     if(pending)setTimeout(checkModels,1800);
-  }catch(_){el.textContent="Serveur Python indisponible — lancez le backend pour activer les modèles.";}
+  }catch(_){el.textContent="Python server unavailable: start the backend to enable the models.";}
 }
 checkModels();
 
@@ -792,14 +792,14 @@ async function callChat(question){
   if(CONFIG.USE_DEMO){
     // >>> ZONE DEMO : réponse factice, à supprimer une fois l'IA branchée.
     await new Promise(r => setTimeout(r, 600));
-    return { answer: "[DEMO] Réponse factice. Branchez l’IA du chat pour obtenir des réponses fondées sur les documents de la NASA.", sources: [] };
+    return { answer: "[DEMO] Dummy answer. Connect the chat AI to get answers based on NASA documents.", sources: [] };
   }
   // >>> ZONE PYTHON 2 : appel de ask(question) via CHAT_URL.
   const r = await fetch(CONFIG.CHAT_URL, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, history })
   });
   if(!r.ok){
-    let msg = "Le serveur a répondu " + r.status;
+    let msg = "The server responded " + r.status;
     try{
       const errBody = await r.json();
       if(errBody && errBody.detail) msg = errBody.detail;
@@ -826,7 +826,7 @@ function addThinkingMsg(){
   const d = document.createElement("div");
   d.className = "msg a";
   d.setAttribute("role", "status");
-  d.setAttribute("aria-label", "Le modèle réfléchit");
+  d.setAttribute("aria-label", "The model is thinking");
   const dots = document.createElement("span");
   dots.className = "chat-thinking";
   dots.setAttribute("aria-hidden", "true");
@@ -923,7 +923,7 @@ function appendInlineFormatted(parent, text, msgId, availableIndices){
         a.className = "cite-ref";
         a.href = "#" + targetId;
         a.textContent = token;
-        a.setAttribute("aria-label", "Voir la source " + num);
+        a.setAttribute("aria-label", "See source " + num);
         a.addEventListener("click", e => {
           e.preventDefault();
           const target = document.getElementById(targetId);
@@ -1051,8 +1051,8 @@ function renderChatSourceItem(s, idx, msgId){
 
   const metaParts = [
     s.authors ? "Auteurs : " + s.authors : null,
-    s.mission_program ? "Mission : " + s.mission_program : null,
-    s.headers_path ? "Section : " + s.headers_path : null,
+    s.mission_program ? "Mission: " + s.mission_program : null,
+    s.headers_path ? "Section: " + s.headers_path : null,
     (s.source_page || s.page) ? "p. " + (s.source_page || s.page) : null,
     s.ntrs_id ? "NTRS " + s.ntrs_id : null,
     s.source_type ? String(s.source_type).toUpperCase() : null
@@ -1075,7 +1075,7 @@ function renderChatSourceItem(s, idx, msgId){
       aPdf.href = pdfHref;
       aPdf.target = "_blank";
       aPdf.rel = "noopener noreferrer";
-      aPdf.textContent = pdfLooksLikePdf ? "Ouvrir le PDF" : (String(pdfHref).includes("psi.nasa.gov") ? "Source NASA PSI" : "Ouvrir le document");
+      aPdf.textContent = pdfLooksLikePdf ? "Open the PDF" : (String(pdfHref).includes("psi.nasa.gov") ? "Source NASA PSI" : "Open the document");
       links.appendChild(aPdf);
     }
     if(expHref && expHref !== pdfHref){
@@ -1083,7 +1083,7 @@ function renderChatSourceItem(s, idx, msgId){
       aDoc.href = expHref;
       aDoc.target = "_blank";
       aDoc.rel = "noopener noreferrer";
-      aDoc.textContent = s.ntrs_id ? "Fiche NTRS (" + s.ntrs_id + ")" : "Fiche NASA";
+      aDoc.textContent = s.ntrs_id ? "NTRS record (" + s.ntrs_id + ")" : "NASA record";
       links.appendChild(aDoc);
     }
     li.appendChild(links);
@@ -1097,8 +1097,8 @@ function renderChatSourceItem(s, idx, msgId){
     details.className = "src-excerpt";
     const summary = document.createElement("summary");
     summary.textContent = excerpts.length > 1
-      ? "Voir les " + excerpts.length + " extraits exacts"
-      : "Voir l’extrait exact";
+      ? "See the " + excerpts.length + " exact excerpts"
+      : "See the exact excerpt";
     details.appendChild(summary);
 
     const body = document.createElement("div");
@@ -1160,7 +1160,7 @@ async function sendChat(){
     wait.className = "msg err";
     wait.removeAttribute("role");
     wait.removeAttribute("aria-label");
-    wait.textContent = "Impossible de joindre l’IA du chat (" + err.message + ").";
+    wait.textContent = "Could not reach the chat AI (" + err.message + ").";
   }
   $("#send").disabled = false; $("#q").focus();
 }
@@ -1185,7 +1185,7 @@ function replayReveal(){
 // Chiffre qui défile de 0 à sa valeur.
 function countUp(el, value, suffix){
   const decimals = Number.isInteger(value) ? 0 : 1;
-  const show = x => el.textContent = x.toLocaleString("fr-FR", {minimumFractionDigits:decimals, maximumFractionDigits:decimals}) + (suffix || "");
+  const show = x => el.textContent = x.toLocaleString("en-US", {minimumFractionDigits:decimals, maximumFractionDigits:decimals}) + (suffix || "");
   if(reduceMotion){ show(value); return; }
   const start = performance.now();
   const step = now => {
@@ -1239,7 +1239,7 @@ function renderCharts(d){
   const bins = d.o2_hist.bins;
   charts.push(new Chart($("#chO2"), {
     type: "bar",
-    data: {labels: bins.slice(0, -1).map((b, i) => b + "–" + bins[i + 1] + " %"),
+    data: {labels: bins.slice(0, -1).map((b, i) => b + "–" + bins[i + 1] + "%"),
            datasets: families.map(f => ({label: d.families[f], data: d.o2_hist.series[f], backgroundColor: FAMILY_COLORS[f], borderRadius: 4}))},
     options: {maintainAspectRatio: false, plugins: {legend: {position: "bottom", labels: {boxWidth: 10}}, lunarLine: {index: bins.findIndex(b => b > 34) - 1}},
               scales: {x: {stacked: true, grid: {display: false}}, y: {stacked: true, grid}}},
@@ -1248,14 +1248,14 @@ function renderCharts(d){
 
   const points = families.map(f => ({label: d.families[f], data: d.coverage[f].map(([x, y]) => ({x, y})),
                                      backgroundColor: FAMILY_COLORS[f] + "88", pointRadius: 3}));
-  points.push({label: "Scénarios de mission", data: d.scenarios.map(sc => ({x: sc.o2, y: sc.p, name: sc.label})),
+  points.push({label: "Mission scenarios", data: d.scenarios.map(sc => ({x: sc.o2, y: sc.p, name: sc.label})),
                pointStyle: "rectRot", pointRadius: 9, pointHoverRadius: 11, borderWidth: 2, borderColor: "#0b0d12", backgroundColor: "#fc3d21"});
   charts.push(new Chart($("#chMap"), {
     type: "scatter",
     data: {datasets: points},
     options: {maintainAspectRatio: false, plugins: {legend: {position: "bottom", labels: {boxWidth: 10, usePointStyle: true}},
-              tooltip: {callbacks: {label: c => (c.raw.name ? c.raw.name + " : " : "") + "O₂ " + fr(c.raw.x) + " % · " + fr(c.raw.y) + " kPa"}}},
-              scales: {x: {title: {display: true, text: "O₂ (%)"}, min: 0, max: 90, grid}, y: {title: {display: true, text: "Pression (kPa)"}, min: 0, grid}}}
+              tooltip: {callbacks: {label: c => (c.raw.name ? c.raw.name + ": " : "") + "O₂ " + fr(c.raw.x) + "% · " + fr(c.raw.y) + " kPa"}}},
+              scales: {x: {title: {display: true, text: "O₂ (%)"}, min: 0, max: 90, grid}, y: {title: {display: true, text: "Pressure (kPa)"}, min: 0, grid}}}
   }));
 }
 
@@ -1276,7 +1276,7 @@ function renderCompleteness(d){
 function renderCampaigns(rows){
   const max = Math.max(...rows.map(r => r.n), 1);
   const period = r => r.start ? (r.start + (r.end ? " → " + r.end : " → …")) : "–";
-  $("#campaigns").innerHTML = "<thead><tr><th>Expérience</th><th>Titre</th><th>Période</th><th>Essais</th></tr></thead><tbody>" +
+  $("#campaigns").innerHTML = "<thead><tr><th>Experiment</th><th>Title</th><th>Period</th><th>Tests</th></tr></thead><tbody>" +
     rows.map(r => "<tr><td><strong>" + esc(r.experiment) + "</strong></td><td>" + esc(r.title) + "</td><td>" + esc(period(r)) +
                   '</td><td><span class="n"><i style="width:' + Math.round(60 * r.n / max) + 'px"></i>' + fr(r.n) + "</span></td></tr>").join("") + "</tbody>";
 }
@@ -1290,7 +1290,7 @@ async function openDataPage(){
   }
   try{
     const r = await fetch(DATASET_URL);
-    if(!r.ok) throw new Error("le serveur a répondu " + r.status);
+    if(!r.ok) throw new Error("the server responded " + r.status);
     dataset = await r.json();
     $("#dashError").hidden = true;
     renderKpis(dataset.kpis);
@@ -1300,7 +1300,7 @@ async function openDataPage(){
     renderCampaigns(dataset.campaigns);
   }catch(err){
     $("#dashError").hidden = false;
-    $("#dashError").textContent = "Impossible de charger l’étude des données (" + err.message + "). Le serveur Python est-il lancé ?";
+    $("#dashError").textContent = "Could not load the data study (" + err.message + "). Is the Python server running?";
   }
   replayReveal();
 }

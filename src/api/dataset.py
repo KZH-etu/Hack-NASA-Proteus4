@@ -17,13 +17,13 @@ ROOT = Path(__file__).resolve().parents[2]
 PROCESSED = ROOT / "data" / "processed"
 CATALOG = ROOT / "data" / "raw" / "ntrs" / "catalog.csv"
 
-FAMILY_LABELS = {"droplet": "Gouttelettes", "gas": "Gaz", "solid": "Solides"}
-OUTCOME_LABELS = {"extinguished": "Extinction", "burned": "A brûlé", "no_ignition": "Pas d'allumage",
-                  "disruption": "Goutte éclatée", "completion": "Brûlée jusqu'au bout", "other": "Autre"}
-COMPLETENESS = {"o2_percent": "O₂", "pressure_kpa": "Pression", "flow_cm_s": "Vitesse de l'air", "outcome": "Issue",
-                "burning_rate": "Vitesse de combustion", "spread_rate_mm_s": "Vitesse de propagation"}
+FAMILY_LABELS = {"droplet": "Droplets", "gas": "Gases", "solid": "Solids"}
+OUTCOME_LABELS = {"extinguished": "Extinguished", "burned": "Burned", "no_ignition": "No ignition",
+                  "disruption": "Droplet disruption", "completion": "Burned to completion", "other": "Other"}
+COMPLETENESS = {"o2_percent": "O₂", "pressure_kpa": "Pressure", "flow_cm_s": "Air flow speed", "outcome": "Outcome",
+                "burning_rate": "Burning rate", "spread_rate_mm_s": "Flame spread rate"}
 O2_BINS = list(range(10, 95, 5))  # 10-15 %, 15-20 %, ..., 85-90 %
-SCENARIOS = [{"label": "Cabine ISS", "o2": 21, "p": 101.3}, {"label": "Habitat lunaire", "o2": 34, "p": 55}]
+SCENARIOS = [{"label": "ISS cabin", "o2": 21, "p": 101.3}, {"label": "Lunar habitat", "o2": 34, "p": 55}]
 
 
 def _pct(part, total):
@@ -53,7 +53,7 @@ def summary():
 
     counts = df["outcome"].value_counts()
     outcomes = [{"outcome": k, "label": OUTCOME_LABELS.get(k, k), "n": int(v)} for k, v in counts.items()]
-    outcomes.append({"outcome": None, "label": "Non mesurée", "n": int((~with_outcome).sum())})
+    outcomes.append({"outcome": None, "label": "Not measured", "n": int((~with_outcome).sum())})
 
     hist = {}
     for fam in families:
@@ -101,18 +101,17 @@ def _insights(df):
     out = []
     flex = df[(df["experiment"] == "FLEX") & df["pressure_kpa"].notna()]
     if len(flex):
-        out.append(f"Gouttelettes : aucun essai FLEX sous {flex['pressure_kpa'].min():.0f} kPa. "
-                   "Un habitat lunaire à 55 kPa est donc hors des données mesurées.")
+        out.append(f"Droplets: no FLEX test below {flex['pressure_kpa'].min():.0f} kPa, "
+                   "so a 55 kPa lunar habitat is outside the measured data.")
     solid = df[(df["fuel_type"] == "solid") & (df["gravity"] == "micro") & df["o2_percent"].notna()]
     if len(solid):
-        top = f"{solid['o2_percent'].max():.1f}".replace(".", ",")
-        out.append(f"Solides : {top} % d'O₂ au maximum en microgravité, "
-                   "alors que les atmosphères d'exploration envisagées visent environ 34 %.")
+        out.append(f"Solids: at most {solid['o2_percent'].max():.1f}% O₂ in microgravity, "
+                   "while planned exploration atmospheres target about 34%.")
     gas = df[(df["fuel_type"] == "gas") & df["o2_percent"].between(30, 40) & (df["pressure_kpa"] <= 70)]
-    out.append(f"Gaz : {len(gas)} essais proches du scénario lunaire (30 à 40 % d'O₂, 70 kPa au plus).")
+    out.append(f"Gases: {len(gas)} tests close to the lunar scenario (30 to 40% O₂, 70 kPa or less).")
     no_outcome = df[df["outcome"].isna()]
     if len(no_outcome):
         main = ", ".join(no_outcome["experiment"].value_counts().index[:2])
-        out.append(f"{_pct(len(no_outcome), len(df)):.0f} % des essais n'ont pas d'issue de flamme mesurée "
-                   f"({main} : mesures de suie et de forme de flamme).")
+        out.append(f"{_pct(len(no_outcome), len(df)):.0f}% of the tests have no measured flame outcome "
+                   f"({main}: soot and flame shape measurements).")
     return out

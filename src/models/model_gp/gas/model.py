@@ -32,8 +32,8 @@ N_BOOTSTRAP = 20
 SEED = 0
 MIN_LENGTH_SCALE = 1.0  # contrainte : un peu meilleure en validation par jour d'essai (voir evaluate.py)
 RELIABILITY = {
-    "ignited": "faible : AUC ≈ 0,66 en validation par jour d'essai, exactitude sous la classe majoritaire",
-    "self_extinguished": "moyenne : AUC ≈ 0,76 en validation par jour d'essai (exactitude 82 % contre 77 %)",
+    "ignited": "low: AUC ≈ 0.66 in validation on unseen test days, accuracy below the majority class",
+    "self_extinguished": "medium: AUC ≈ 0.76 in validation on unseen test days (accuracy 82% vs 77%)",
 }
 # Distance aux essais réels (unités physiques) pour montrer les essais les plus proches
 NEAR_SCALES = {"x_o2": 0.02, "pressure_kpa": 10.0, "x_fuel": 0.1, "hc_rate_mg_s": 0.5}
@@ -110,7 +110,7 @@ def conditions_to_row(conditions):
     """conditions : fuel (ethane / propane / n-butane), o2_percent, pressure_kpa, x_fuel (0–1), hc_rate_mg_s."""
     fuel = conditions.get("fuel", "propane").lower().replace("butane", "n-butane").replace("n-n-", "n-")
     if fuel not in FUELS:
-        raise ValueError(f"ACME CFI-G n'a testé que {FUELS} ; « {fuel} » n'est pas couvert")
+        raise ValueError(f"ACME CFI-G only tested {FUELS}; '{fuel}' is not covered")
     return np.array([[float(fuel == f) for f in FUELS]
                      + [conditions["o2_percent"] / 100, conditions["pressure_kpa"],
                         conditions.get("x_fuel", 0.3), conditions.get("hc_rate_mg_s", 1.0)]]), fuel
@@ -127,7 +127,7 @@ def predict(conditions):
     for key, value in zip(FEATURES[len(FUELS):], X[0, len(FUELS):]):
         lo, hi = model.ranges[key]
         if not lo - 1e-9 <= value <= hi + 1e-9:
-            warnings.append(f"{key} = {value:g} hors de la plage mesurée par ACME CFI-G ({lo:g} à {hi:g}) : extrapolation")
+            warnings.append(f"{key} = {value:g} is outside the range tested by ACME CFI-G ({lo:g} to {hi:g}): extrapolation")
     interval = lambda t: (round(float(r[f"p_{t}_low"]), 3), round(float(r[f"p_{t}_high"]), 3))
     return {
         "experiment": "ACME CFI-G (flammes normales)",

@@ -101,7 +101,7 @@ def _source(family, test, extra):
 def _require(conditions, keys):
     missing = [k for k in keys if conditions.get(k) is None]
     if missing:
-        raise PredictionError(f"champ(s) manquant(s) : {', '.join(missing)}")
+        raise PredictionError(f"missing field(s): {', '.join(missing)}")
 
 
 # ---------- Prédiction ----------
@@ -109,7 +109,7 @@ def _require(conditions, keys):
 def predict(payload: dict[str, Any]) -> dict[str, Any]:
     family = str(payload.get("fuel_type", "")).strip().lower()
     if family not in FAMILIES:
-        raise PredictionError("fuel_type doit valoir droplet, gas ou solid")
+        raise PredictionError("fuel_type must be droplet, gas or solid")
     material = str(payload.get("material", "")).strip().lower()
     c = {"o2_percent": payload.get("o2_percent")}
     for key, default in FIELDS[family].items():
@@ -134,7 +134,7 @@ def predict(payload: dict[str, Any]) -> dict[str, Any]:
             near = nearest_tests(module.trained_model(), material, c["o2_percent"] / 100, c["flow_cm_s"], k=3)
             sources = [_source(family, t, {"material": t["material_class"], "o2_percent": t["o2_percent"],
                                            "flow_cm_s": t["flow_cm_s"],
-                                           "outcome": "la flamme tient" if t["flame_sustained"] else "la flamme ne tient pas"})
+                                           "outcome": "flame sustained" if t["flame_sustained"] else "flame not sustained"})
                        for t in near]
         else:
             result = module.predict({"fuel": material, **c})
