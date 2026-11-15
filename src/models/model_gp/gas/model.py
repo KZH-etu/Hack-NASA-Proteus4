@@ -25,6 +25,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from src.data.build_unified import load_family
+from src.models.model_gp.cache import load_or_train
 
 FUELS = ("ethane", "propane", "n-butane")
 FEATURES = [f"is_{f.replace('-', '_')}" for f in FUELS] + ["x_o2", "pressure_kpa", "x_fuel", "hc_rate_mg_s"]
@@ -103,7 +104,7 @@ class GasModel:
 
 @lru_cache(maxsize=1)
 def trained_model():
-    return GasModel(load_data())
+    return load_or_train("gas", lambda: GasModel(load_data()))
 
 
 def conditions_to_row(conditions):
