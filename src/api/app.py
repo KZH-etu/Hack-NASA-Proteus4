@@ -14,7 +14,7 @@ Routes :
     POST /api/rag/retrieve
 
 Le RAG tourne dans le même processus : son application est créée par src.rag.server.create_app() et son
-démarrage (base ChromaDB, client LM Studio) est exécuté au lancement. Pour utiliser un serveur RAG séparé
+démarrage (base ChromaDB, client d'embedding OpenAI-compatible de la webapp) est exécuté au lancement. Pour utiliser un serveur RAG séparé
 (python -m src.rag.server, par exemple sur une autre machine), définir RAG_SERVER_URL.
 """
 

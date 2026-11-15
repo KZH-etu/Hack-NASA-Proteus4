@@ -8,8 +8,8 @@ Le destinataire dézippe puis lance lancer.bat (Windows) ou bash lancer.sh (macO
 environnement Python, installation des dépendances, démarrage, ouverture du navigateur.
 
 Seuls les fichiers suivis par git sont copiés (pas de __pycache__ ni de fichiers locaux). Le fichier .env
-(clé Gemini) n'est JAMAIS inclus : le destinataire copie .env.example en .env et y met sa propre clé.
-La version avec chat demande aussi, chez le destinataire, LM Studio avec le modèle d'embedding du RAG.
+(clés Gemini et QWEN3_EMBEDDING) n'est JAMAIS inclus : le destinataire copie .env.example en .env et y met ses propres clés.
+La version avec chat utilise le serveur d'embedding configuré (par défaut https://ai.derveloy.eu/v1).
 """
 
 from __future__ import annotations
@@ -52,14 +52,13 @@ echo [2/3] Installation des dependances - la premiere fois, quelques minutes...
 """
 BAT_CHAT = r"""if not exist ".env" (
   echo.
-  echo ATTENTION : fichier .env absent. Copiez .env.example en .env et renseignez GEMINI_API_KEY pour le chat.
+  echo ATTENTION : fichier .env absent. Copiez .env.example en .env et renseignez GEMINI_API_KEY et QWEN3_EMBEDDING pour le chat.
   echo.
 )
 if not exist "data\rag\chroma_db\chroma.sqlite3" (
   echo [*] Base du chat absente : telechargement depuis GitHub - gh auth login requis...
   ".venv\Scripts\python.exe" -m src.rag.storage.download_chroma_release || echo Base non telechargee : le chat sera indisponible.
 )
-echo [*] Chat : LM Studio doit tourner avec le modele d'embedding.
 """
 BAT_FOOTER = r"""echo [3/3] HEPHAISTOS : http://127.0.0.1:%HEPHAISTOS_PORT%/   - Ctrl+C pour arreter
 echo       Les modeles se preparent pendant environ 1 minute au demarrage.
@@ -88,13 +87,12 @@ echo "[2/3] Installation des dépendances (la première fois : quelques minutes)
 .venv/bin/python -m pip install --disable-pip-version-check -q -r requirements.txt
 """
 SH_CHAT = """if [ ! -f .env ]; then
-  echo; echo "ATTENTION : fichier .env absent. Copiez .env.example en .env et renseignez GEMINI_API_KEY pour le chat."; echo
+  echo; echo "ATTENTION : fichier .env absent. Copiez .env.example en .env et renseignez GEMINI_API_KEY et QWEN3_EMBEDDING pour le chat."; echo
 fi
 if [ ! -f data/rag/chroma_db/chroma.sqlite3 ]; then
   echo "[*] Base du chat absente : téléchargement depuis GitHub (gh auth login requis)..."
   .venv/bin/python -m src.rag.storage.download_chroma_release || echo "Base non téléchargée : le chat sera indisponible."
 fi
-echo "[*] Chat : LM Studio doit tourner avec le modèle d'embedding."
 """
 SH_FOOTER = """echo "[3/3] HEPHAISTOS : http://127.0.0.1:$PORT/   (Ctrl+C pour arrêter)"
 echo "      Les modèles se préparent pendant environ 1 minute au démarrage."
@@ -141,9 +139,7 @@ Données : NASA Physical Sciences Informatics (PSI) et NASA Technical Reports Se
 CHAT_PREREQ = """
 Pour le chat, en plus :
 - un fichier .env : copier .env.example en .env et y mettre sa clé GEMINI_API_KEY
-  (ne jamais partager ce fichier) ;
-- LM Studio lancé (http://localhost:1234) avec le modèle d'embedding
-  text-embedding-qwen3-embedding-0.6b chargé ;
+  ainsi que QWEN3_EMBEDDING pour le serveur d'embedding (ne jamais partager ce fichier) ;
 {db_line}
 """
 
@@ -190,7 +186,7 @@ def build(with_chat=False, include_db=True, out=None):
     else:
         readme = README.format(
             title="démonstration (interface + prédictions)", underline="=" * 52, chat_prereq="", stop_rag="",
-            chat_line="- Le chat n'est pas inclus dans cette version (il demande une clé Gemini, LM Studio et la\n"
+            chat_line="- Le chat n'est pas inclus dans cette version (il demande les clés API et la\n"
                       "  base documentaire) : il affiche un message d'indisponibilité.\n",
             chat_status="")
 

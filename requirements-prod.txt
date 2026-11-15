@@ -1,0 +1,14 @@
+# Dépendances runtime de la webapp HEPHAISTOS (src.api + model_gp + RAG retrieval).
+# Les outils lourds d'ingestion offline (marker-pdf, pymupdf, streamlit, etc.) restent dans requirements.txt.
+fastapi
+uvicorn
+httpx
+python-dotenv
+pydantic
+pandas
+pyarrow
+numpy
+scikit-learn
+chromadb
+openai
+google-genai
