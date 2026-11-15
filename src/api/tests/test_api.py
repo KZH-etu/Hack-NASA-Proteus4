@@ -94,7 +94,7 @@ def test_ask_returns_answer_and_enriched_sources_in_order(monkeypatch):
     fake_gemini = FakeGeminiClient()
     with client_with_rag(fake_gemini=fake_gemini) as c:
         r = c.post(
-            "/ask",
+            "/api/ask",
             json={
                 "question": "Pourquoi la flamme s'éteint-elle ?",
                 "history": [{"role": "user", "content": "Bonjour"}, {"role": "assistant", "content": "Salut"}],
@@ -171,7 +171,7 @@ def test_ask_deduplicates_sources_and_reindexes_citations_continuously(monkeypat
             gemini_client=fake_gemini,
         )
     ) as c:
-        r = c.post("/ask", json={"question": "Résume ?"})
+        r = c.post("/api/ask", json={"question": "Résume ?"})
 
     assert r.status_code == 200
     body = r.json()
@@ -193,7 +193,7 @@ def test_ask_keeps_closest_sources_when_llm_refuses_off_topic_question():
     )
     fake_gemini = FakeGeminiClient(answer=refusal)
     with client_with_rag(fake_gemini=fake_gemini) as c:
-        r = c.post("/ask", json={"question": "azerty quelle est la recette des crepes ?"})
+        r = c.post("/api/ask", json={"question": "azerty quelle est la recette des crepes ?"})
 
     assert r.status_code == 200
     body = r.json()
@@ -250,12 +250,12 @@ def test_ask_calls_remote_rag_server_over_http(monkeypatch):
             gemini_client=fake_gemini,
         )
     ) as c:
-        status = c.get("/models/status").json()
+        status = c.get("/api/models/status").json()
         assert status["rag"]["status"] == "ready"
         assert status["rag"]["chunks"] == 21374
         assert status["llm"]["model"] == "gemini-3.8-flash"
 
-        r = c.post("/ask", json={"question": "Qu'est-ce qu'une flamme froide ?"})
+        r = c.post("/api/ask", json={"question": "Qu'est-ce qu'une flamme froide ?"})
 
     assert r.status_code == 200
     assert captured["url"] == "http://127.0.0.1:8001/retrieve"
@@ -269,7 +269,7 @@ def test_ask_calls_remote_rag_server_over_http(monkeypatch):
 
 def test_ask_without_gemini_returns_passages():
     with client_with_rag(fake_gemini=FakeGeminiClient(fail=True)) as c:
-        body = c.post("/ask", json={"question": "extinction"}).json()
+        body = c.post("/api/ask", json={"question": "extinction"}).json()
     assert "Gemini" in body["answer"]
     assert body["sources"]
 
@@ -292,7 +292,7 @@ def test_ask_falls_back_when_primary_gemini_model_is_overloaded(monkeypatch):
         models = _Models()
 
     with client_with_rag(fake_gemini=FlakyGemini()) as c:
-        r = c.post("/ask", json={"question": "extinction"})
+        r = c.post("/api/ask", json={"question": "extinction"})
     assert r.status_code == 200
     body = r.json()
     assert tried == ["gemini-3.8-flash", "gemini-3.6-flash"]
@@ -304,21 +304,21 @@ def test_ask_requires_gemini_key_when_missing(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "")
     rag = create_rag_app(skip_sync=True, chroma_client=make_collection(), llm_client=FakeLMStudio())
     with TestClient(create_app(rag_app=rag, warm_up=False)) as c:
-        r = c.post("/ask", json={"question": "extinction"})
+        r = c.post("/api/ask", json={"question": "extinction"})
     assert r.status_code == 503
     assert "GEMINI_API_KEY" in r.json()["detail"]
 
 
 def test_rag_routes_are_kept_and_status_reports_rag():
     with client_with_rag() as c:
-        assert c.get("/health").json()["chunk_count"] == len(DOCS)
-        assert c.post("/retrieve", json={"query": "x", "top_k": 1}).status_code == 200
-        assert c.get("/models/status").json()["rag"]["status"] == "ready"
+        assert c.get("/api/rag/health").json()["chunk_count"] == len(DOCS)
+        assert c.post("/api/rag/retrieve", json={"query": "x", "top_k": 1}).status_code == 200
+        assert c.get("/api/models/status").json()["rag"]["status"] == "ready"
 
 
 def test_ask_is_503_without_rag():
     with TestClient(create_app(with_rag=False, warm_up=False)) as c:
-        assert c.post("/ask", json={"question": "x"}).status_code == 503
+        assert c.post("/api/ask", json={"question": "x"}).status_code == 503
 
 
 @pytest.mark.parametrize(
@@ -331,7 +331,7 @@ def test_ask_is_503_without_rag():
 )
 def test_predict_rejects_incomplete_requests(payload, message):
     with TestClient(create_app(with_rag=False, warm_up=False)) as c:
-        r = c.post("/predict", json=payload)
+        r = c.post("/api/predict", json=payload)
     assert r.status_code == 422
     assert message in r.json()["detail"]
 
@@ -360,7 +360,7 @@ def test_predict_maps_material_to_fuel(monkeypatch):
     monkeypatch.setattr("src.models.model_gp.flex.recommend.nearest_tests", lambda *a, **k: [])
     with TestClient(create_app(with_rag=False, warm_up=False)) as c:
         r = c.post(
-            "/predict",
+            "/api/predict",
             json={
                 "fuel_type": "droplet",
                 "material": "Methanol",
@@ -383,7 +383,7 @@ def test_home_serves_the_interface():
 
 def test_dataset_summary_for_the_data_page():
     with TestClient(create_app(with_rag=False, warm_up=False)) as c:
-        r = c.get("/dataset/summary")
+        r = c.get("/api/dataset/summary")
     assert r.status_code == 200
     d = r.json()
     assert d["kpis"]["tests"] == sum(e["n"] for e in d["by_experiment"])

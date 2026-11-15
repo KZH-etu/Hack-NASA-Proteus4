@@ -34,10 +34,11 @@ La base vectorielle locale (`data/rag/chroma_db/`) est **exclue de Git** (`.giti
    - Vérifier si une mise à jour est disponible sans télécharger : `python -m src.rag.storage.download_chroma_release --check-only`
    - Forcer le re-téléchargement : `python -m src.rag.storage.download_chroma_release --force`
 
-2. **Récupération automatique via le serveur web RAG (`FastAPI` + `Uvicorn`) :**
+2. **Récupération automatique au lancement de HEPHAISTOS (`FastAPI` + `Uvicorn`) :**
    ```bash
-   python -m src.rag.server --host 127.0.0.1 --port 8000
+   python -m src.api          # interface, prédictions et chat sur http://127.0.0.1:8000
    ```
+   Le RAG est intégré à ce serveur (routes `/api/rag/health` et `/api/rag/retrieve`). Il peut aussi tourner seul : `python -m src.rag.server --port 8001`.
    Au démarrage, le serveur vérifie automatiquement que `data/rag/chroma_db/` est présent et à jour par rapport à la dernière release GitHub, et le télécharge si nécessaire avant d'exposer `GET /health` et `POST /retrieve` (voir [`src/rag/server/API.md`](src/rag/server/API.md)).
 
 3. **Publier une nouvelle version (après ré-indexation) :**

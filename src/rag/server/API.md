@@ -2,6 +2,8 @@
 
 API REST **FastAPI + Uvicorn** dédiée au retrieval sémantique sur la base vectorielle ChromaDB des rapports NASA (`nasa_scientific_reports`).
 
+> Dans le serveur HEPHAISTOS (`python -m src.api`), ces routes sont intégrées sous `/api/rag/health` et `/api/rag/retrieve`. Lancé seul, ce serveur les expose à la racine (ci-dessous).
+
 ## Lancement & Synchronisation au démarrage
 
 ```bash
