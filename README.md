@@ -47,6 +47,18 @@ La base vectorielle locale (`data/rag/chroma_db/`) est **exclue de Git** (`.giti
    ```
    *(Plus de détails sur l'organisation de `src/rag/` dans [`src/rag/README.md`](src/rag/README.md).)*
 
+## Utilisation d'outils d'IA (Use of AI tools)
+
+Conformément aux règles du NASA Space Apps Challenge, voici où et comment des outils d'IA ont été utilisés.
+
+**Code et documentation.** Une partie du code (scripts d'extraction des données, modèles, API, interface) et de la documentation a été écrite avec l'aide d'un assistant de programmation IA (Claude, Anthropic). L'équipe a défini les objectifs et les règles (pas de donnée inventée, validation par jour d'essai, incertitude affichée), relu le code, et l'a vérifié par des tests automatiques et des rapports de validation (`src/models/*/validation.md`, `src/models/comparaison.md`).
+
+**Données.** Toutes les valeurs d'essais proviennent des fichiers NASA (PSI, NTRS) ; aucune n'est générée par IA. Chaque valeur interprétée est signalée dans la colonne `qc_flags`. Dans l'index du chat, les métadonnées manquantes des documents (titre, auteurs, année, mission) ont été complétées par un modèle de langage local (Phi-3.5-mini) : elles peuvent contenir des approximations.
+
+**Dans l'application.** Les réponses du chat sont rédigées par un modèle d'IA (Google Gemini), uniquement à partir de passages de documents NASA retrouvés par recherche sémantique (embeddings Qwen3-Embedding), et citent leurs sources. L'interface l'indique sous la zone de saisie du chat.
+
+**Marque NASA.** Le projet n'utilise aucun logo ni élément graphique de la NASA ; les noms d'expériences (FLEX, ACME, BASS…) servent uniquement à citer les sources des données.
+
 ## Sources
 
 _Voir [`data/SOURCES.md`](data/SOURCES.md)._
